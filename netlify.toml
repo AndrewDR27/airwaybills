@@ -1,0 +1,22 @@
+# Netlify configuration file
+# This handles routing and redirects for your application
+
+[[redirects]]
+  from = "/"
+  to = "/login.html"
+  status = 200
+
+# Handle 404 errors gracefully
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 404
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

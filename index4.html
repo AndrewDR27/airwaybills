@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airway Bills</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📄 PDF to Webform Converter</h1>
+            <p>Upload a fillable PDF and convert it into an interactive web form</p>
+        </header>
+
+        <div class="upload-section">
+            <label for="pdfInput" class="upload-area" id="uploadArea">
+                <input type="file" id="pdfInput" accept=".pdf">
+                <div class="upload-content">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <h3>Drop your PDF here or click to browse</h3>
+                    <p>Supports fillable PDF forms</p>
+                </div>
+            </label>
+        </div>
+
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Processing PDF...</p>
+        </div>
+
+        <div class="error" id="error" style="display: none;"></div>
+
+        <div class="content-wrapper" id="contentWrapper" style="display: none;">
+            <div class="form-section" id="formSection">
+                <div class="form-header">
+                    <h2>Generated Web Form</h2>
+                    <button class="btn-secondary" id="resetBtn">Upload Another PDF</button>
+                </div>
+            <form id="generatedForm" onsubmit="return false;">
+                <!-- Dynamically generated form fields will appear here -->
+            </form>
+                <div class="form-actions">
+                    <button type="button" class="btn-primary" id="fillPdfBtn">Fill PDF & Download</button>
+                    <button type="button" class="btn-primary" id="fillAndFlattenBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">Download Clean PDF (Flattened)</button>
+                    <button type="button" class="btn-secondary" id="submitBtn">View Form Data</button>
+                    <button type="button" class="btn-secondary" id="downloadBtn">Download as JSON</button>
+                </div>
+            </div>
+
+            <div class="preview-section" id="previewSection">
+                <div class="preview-header">
+                    <h2>PDF Preview</h2>
+                </div>
+                <div class="preview-container" id="previewContainer">
+                    <!-- PDF pages will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="results" id="results" style="display: none;">
+            <h3>Form Data</h3>
+            <pre id="resultsContent"></pre>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="app4.js"></script>
+</body>
+</html>

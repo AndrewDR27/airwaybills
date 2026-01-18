@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Destination List - Airway Bills</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .destinations-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        .destinations-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .destinations-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .destinations-content {
+            padding: 40px;
+        }
+        .destinations-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .destination-item {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: box-shadow 0.3s;
+        }
+        .destination-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .destination-info {
+            flex: 1;
+        }
+        .destination-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .destination-code {
+            font-size: 14px;
+            color: #666;
+        }
+        .destination-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-edit, .btn-delete {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .btn-edit {
+            background: #667eea;
+            color: white;
+        }
+        .btn-edit:hover {
+            background: #5568d3;
+        }
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+        .add-destination-btn {
+            margin-bottom: 20px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        .add-destination-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="destinations-container">
+        <div class="destinations-header">
+            <h1>🌍 Destination List</h1>
+            <p>Manage your destination codes and information</p>
+        </div>
+        <div class="destinations-content">
+            <button class="add-destination-btn" id="addDestinationBtn">+ Add Destination</button>
+            <div class="destinations-list" id="destinationsList">
+                <!-- Destinations will be dynamically loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Destination Modal -->
+    <div id="destinationModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="destinationModalTitle">Add Destination</h2>
+                <button type="button" class="modal-close" id="closeDestinationModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="destinationForm">
+                    <input type="hidden" id="destinationId" value="">
+                    
+                    <div class="form-group">
+                        <label for="airportCode">Airport Code *</label>
+                        <input type="text" id="airportCode" required placeholder="e.g., JFK" maxlength="3" style="text-transform: uppercase;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="cityName">City Name</label>
+                        <input type="text" id="cityName" placeholder="e.g., New York">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="stateName">State Name</label>
+                        <input type="text" id="stateName" placeholder="e.g., New York">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="airportName">Airport Name</label>
+                        <input type="text" id="airportName" placeholder="e.g., John F. Kennedy International Airport">
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancelDestinationBtn">Cancel</button>
+                        <button type="submit" class="btn-primary" id="saveDestinationBtn">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get destinations from localStorage
+        function getDestinations() {
+            try {
+                const destinationsJson = localStorage.getItem('awbDestinations');
+                return destinationsJson ? JSON.parse(destinationsJson) : [];
+            } catch (error) {
+                console.warn('Could not read destinations from localStorage:', error);
+                return [];
+            }
+        }
+
+        // Save destinations to localStorage
+        function saveDestinations(destinations) {
+            try {
+                localStorage.setItem('awbDestinations', JSON.stringify(destinations));
+                return true;
+            } catch (error) {
+                console.warn('Could not save destinations to localStorage:', error);
+                alert('Error saving destination. Storage may be full.');
+                return false;
+            }
+        }
+
+        // Render destinations list
+        function renderDestinations() {
+            const destinations = getDestinations();
+            const destinationsList = document.getElementById('destinationsList');
+            
+            if (destinations.length === 0) {
+                destinationsList.innerHTML = `
+                    <div class="empty-state">
+                        <p>No destinations added yet</p>
+                        <p>Click "Add Destination" to get started</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            destinationsList.innerHTML = destinations.map(dest => `
+                <div class="destination-item">
+                    <div class="destination-info">
+                        <div class="destination-name">${dest.airportCode || ''}</div>
+                        <div class="destination-code">${dest.cityName || ''}${dest.stateName ? ', ' + dest.stateName : ''} - ${dest.airportName || ''}</div>
+                    </div>
+                    <div class="destination-actions">
+                        <button class="btn-edit" onclick="editDestination('${dest.id}')">Edit</button>
+                        <button class="btn-delete" onclick="deleteDestination('${dest.id}')">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Open destination modal
+        function openDestinationModal(destinationId) {
+            const modal = document.getElementById('destinationModal');
+            const form = document.getElementById('destinationForm');
+            const title = document.getElementById('destinationModalTitle');
+            const destinationIdInput = document.getElementById('destinationId');
+            
+            if (destinationId) {
+                const destinations = getDestinations();
+                const destination = destinations.find(d => d.id === destinationId);
+                if (destination) {
+                    title.textContent = 'Edit Destination';
+                    destinationIdInput.value = destination.id;
+                    document.getElementById('airportCode').value = destination.airportCode || '';
+                    document.getElementById('cityName').value = destination.cityName || '';
+                    document.getElementById('stateName').value = destination.stateName || '';
+                    document.getElementById('airportName').value = destination.airportName || '';
+                }
+            } else {
+                title.textContent = 'Add Destination';
+                form.reset();
+                destinationIdInput.value = '';
+            }
+            
+            modal.style.display = 'flex';
+        }
+
+        // Close destination modal
+        function closeDestinationModal() {
+            const modal = document.getElementById('destinationModal');
+            const form = document.getElementById('destinationForm');
+            modal.style.display = 'none';
+            form.reset();
+        }
+
+        // Edit destination
+        function editDestination(id) {
+            openDestinationModal(id);
+        }
+
+        // Delete destination
+        function deleteDestination(id) {
+            if (!confirm('Are you sure you want to delete this destination?')) {
+                return;
+            }
+            
+            const destinations = getDestinations();
+            const filtered = destinations.filter(d => d.id !== id);
+            
+            if (saveDestinations(filtered)) {
+                renderDestinations();
+            }
+        }
+
+        // Handle save destination
+        function handleSaveDestination(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('destinationId').value || Date.now().toString();
+            const airportCode = document.getElementById('airportCode').value.trim().toUpperCase();
+            const cityName = document.getElementById('cityName').value.trim();
+            const stateName = document.getElementById('stateName').value.trim();
+            const airportName = document.getElementById('airportName').value.trim();
+            
+            if (!airportCode) {
+                alert('Airport Code is required.');
+                return;
+            }
+            
+            const destinations = getDestinations();
+            const destinationIndex = destinations.findIndex(d => d.id === id);
+            
+            const destination = {
+                id,
+                cityName,
+                stateName,
+                airportCode,
+                airportName
+            };
+            
+            if (destinationIndex >= 0) {
+                destinations[destinationIndex] = destination;
+            } else {
+                destinations.push(destination);
+            }
+            
+            if (saveDestinations(destinations)) {
+                closeDestinationModal();
+                renderDestinations();
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderDestinations();
+            
+            document.getElementById('addDestinationBtn').addEventListener('click', () => {
+                openDestinationModal(null);
+            });
+            
+            document.getElementById('closeDestinationModal').addEventListener('click', closeDestinationModal);
+            document.getElementById('cancelDestinationBtn').addEventListener('click', closeDestinationModal);
+            document.getElementById('destinationForm').addEventListener('submit', handleSaveDestination);
+            
+            // Close modal when clicking outside
+            document.getElementById('destinationModal').addEventListener('click', (e) => {
+                if (e.target.id === 'destinationModal') {
+                    closeDestinationModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create AWB - Airway Bills</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Create Airway Bill</h1>
+            <p>Fill out the form below to generate your completed PDF</p>
+        </header>
+
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Processing PDF...</p>
+        </div>
+
+        <div class="error" id="error" style="display: none;"></div>
+
+        <div class="content-wrapper" id="contentWrapper" style="display: none;">
+            <div class="form-section" id="formSection">
+                <div class="template-section" id="templateSection">
+                    <div class="template-controls">
+                        <div class="template-select-group">
+                            <label for="templateSelect">Template:</label>
+                            <select id="templateSelect" class="template-select">
+                                <option value="">-- Select Template --</option>
+                            </select>
+                        </div>
+                        <div class="template-name-group" id="templateNameGroup" style="display: none;">
+                            <label for="templateNameInput">Template Name:</label>
+                            <input type="text" id="templateNameInput" class="template-name-input" placeholder="Enter template name">
+                        </div>
+                        <div class="template-buttons">
+                            <button type="button" class="btn-template" id="saveTemplateBtn">Save Template</button>
+                            <button type="button" class="btn-template" id="deleteTemplateBtn" style="display: none;">Delete</button>
+                            <button type="button" class="btn-template" id="renameTemplateBtn" style="display: none;">Rename</button>
+                            <button type="button" class="btn-template btn-clear" id="clearFormBtn">Clear Form</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabs Navigation -->
+                <div class="awb-tabs">
+                    <button class="awb-tab-button" data-tab="form">
+                        Form
+                        <span class="tab-validation-indicator" id="form-validation-indicator"></span>
+                    </button>
+                    <button class="awb-tab-button" data-tab="contacts">
+                        Contacts
+                        <span class="tab-validation-indicator" id="contacts-validation-indicator"></span>
+                    </button>
+                    <button class="awb-tab-button active" data-tab="routing">
+                        Routing
+                        <span class="tab-validation-indicator" id="routing-validation-indicator"></span>
+                    </button>
+                    <button class="awb-tab-button" data-tab="billing">
+                        DIMS & Billing
+                        <span class="tab-validation-indicator" id="billing-validation-indicator"></span>
+                    </button>
+                </div>
+                
+                <!-- Form Tab -->
+                <div id="form-tab" class="awb-tab-content">
+                    <div class="form-header">
+                        <h2>Form Information</h2>
+                    </div>
+                    <p>Form fields will be displayed here.</p>
+                </div>
+                
+                <!-- Contacts Tab -->
+                <div id="contacts-tab" class="awb-tab-content">
+                    <div class="contact-section" id="contactSection" style="display: none;">
+                        <div class="contact-controls">
+                            <div class="contact-select-group">
+                                <label for="shipperSelect">Shipper (04. SNA):</label>
+                                <select id="shipperSelect" class="contact-select">
+                                    <option value="">-- Select Shipper --</option>
+                                </select>
+                                <button type="button" class="btn-contact-small" id="addShipperBtn">+ Add</button>
+                            </div>
+                            <div class="contact-select-group">
+                                <label for="consigneeSelect">Consignee (05. CNA):</label>
+                                <select id="consigneeSelect" class="contact-select">
+                                    <option value="">-- Select Consignee --</option>
+                                </select>
+                                <button type="button" class="btn-contact-small" id="addConsigneeBtn">+ Add</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="contact-fields-container" id="contactFieldsContainer">
+                        <form id="contactFieldsForm" onsubmit="return false;">
+                            <!-- Fields 04, 05, 06, 07 will be displayed here -->
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Routing Tab -->
+                <div id="routing-tab" class="awb-tab-content active">
+                    <div class="routing-controls-section" id="routingControlsSection" style="display: none;">
+                        <div class="routing-controls">
+                            <div class="contact-select-group">
+                                <label for="airlineSelect1">Issuing Carrier:</label>
+                                <select id="airlineSelect1" class="contact-select">
+                                    <option value="">-- Select Airline --</option>
+                                </select>
+                                <button type="button" class="btn-contact-small" id="addAirlineBtn1">+ Add</button>
+                            </div>
+                            <div class="contact-select-group">
+                                <label for="destinationSelect">Destination:</label>
+                                <select id="destinationSelect" class="contact-select" required>
+                                    <option value="">-- Select Destination --</option>
+                                </select>
+                                <button type="button" class="btn-contact-small" id="addDestinationBtn">+ Add</button>
+                            </div>
+                            <div class="contact-select-group">
+                                <label for="directFlightSelect">Direct Flight:</label>
+                                <select id="directFlightSelect" class="contact-select">
+                                    <option value="">-- Select --</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                            <div class="contact-select-group">
+                                <label for="interlineShipmentSelect">Interline Shipment:</label>
+                                <select id="interlineShipmentSelect" class="contact-select">
+                                    <option value="">-- Select --</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                            <div class="contact-select-group" id="interlineCarrierGroup" style="display: none;">
+                                <label for="interlineCarrierSelect1">Interline Carrier 1:</label>
+                                <select id="interlineCarrierSelect1" class="contact-select">
+                                    <option value="">-- Select Airline --</option>
+                                </select>
+                            </div>
+                            <div class="contact-select-group" id="addInterlineCarrier2BtnGroup" style="display: none; justify-content: center;">
+                                <button type="button" class="btn-contact-small" id="addInterlineCarrier2Btn">+ Add Interline Carrier 2</button>
+                            </div>
+                            <div class="contact-select-group" id="interlineCarrierGroup2" style="display: none;">
+                                <label for="interlineCarrierSelect2">Interline Carrier 2:</label>
+                                <select id="interlineCarrierSelect2" class="contact-select">
+                                    <option value="">-- Select Airline --</option>
+                                </select>
+                            </div>
+                            <div class="contact-select-group">
+                                <label for="dangerousGoodsSelect" style="color: red;">Dangerous Goods: *</label>
+                                <select id="dangerousGoodsSelect" class="contact-select" required>
+                                    <option value="">-- Select --</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-header">
+                        <h2>Routing Information</h2>
+                    </div>
+                    <form id="generatedForm" onsubmit="return false;">
+                        <!-- Dynamically generated form fields will appear here -->
+                    </form>
+                </div>
+                
+                <!-- DIMS & Billing Tab -->
+                <div id="billing-tab" class="awb-tab-content">
+                    <div class="billing-controls-section" id="billingControlsSection" style="display: block;">
+                        <div class="routing-controls">
+                            <div class="contact-select-group">
+                                <label for="declaredValuesSelect">Declared Values:</label>
+                                <select id="declaredValuesSelect" class="contact-select">
+                                    <option value="">-- Select --</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                            <div class="contact-select-group">
+                                <label for="insuranceSelect">Insurance:</label>
+                                <select id="insuranceSelect" class="contact-select">
+                                    <option value="">-- Select --</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                            <div class="prepaid-dimensions-wrapper">
+                                <div class="contact-select-group">
+                                    <label for="prepaidCollectSelect">Prepaid or Collect:</label>
+                                    <select id="prepaidCollectSelect" class="contact-select">
+                                        <option value="">-- Select --</option>
+                                        <option value="Prepaid">Prepaid</option>
+                                        <option value="Collect">Collect</option>
+                                    </select>
+                                </div>
+                                <div class="contact-select-group dimensions-group">
+                                    <label>Dimensions:</label>
+                                    <div class="dimensions-container" id="dimensionsContainer">
+                                        <div class="dimensions-row" data-row-index="0" style="position: relative;">
+                                            <button type="button" class="dim-minimize-btn" id="minimizeDimensionsBtn" style="display: none;">▼</button>
+                                            <input type="number" class="dim-input dim-length" placeholder="L (cm)" min="0" step="0.1">
+                                            <input type="number" class="dim-input dim-width" placeholder="W (cm)" min="0" step="0.1">
+                                            <input type="number" class="dim-input dim-height" placeholder="H (cm)" min="0" step="0.1">
+                                            <input type="number" class="dim-input dim-qty" placeholder="QTY" min="1" step="1">
+                                            <button type="button" class="dim-add-box-btn" id="addDimensionsBoxBtn">+ Add Box</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-header">
+                        <h2>DIMS & Billing Information</h2>
+                    </div>
+                    <form id="billingFieldsForm">
+                        <!-- Dynamically generated billing fields will appear here -->
+                    </form>
+                </div>
+                
+                <!-- Form Actions - Appears at bottom of all tabs -->
+                <div class="form-actions">
+                    <button type="button" class="btn-primary" id="fillPdfBtn">Fill PDF & Download</button>
+                    <button type="button" class="btn-primary" id="fillAndFlattenBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">Download Clean PDF (Flattened)</button>
+                    <button type="button" class="btn-secondary" id="printPreviewBtn">Print Preview</button>
+                    <button type="button" class="btn-secondary" id="submitBtn">View Form Data</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="results" id="results" style="display: none;">
+            <h3>Form Data</h3>
+            <pre id="resultsContent"></pre>
+        </div>
+    </div>
+
+    <!-- Contact Management Modal -->
+    <div id="contactModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Contact</h2>
+                <button type="button" class="modal-close" id="closeContactModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="contactForm">
+                    <input type="hidden" id="contactId" value="">
+                    <input type="hidden" id="contactType" value="">
+                    
+                    <div class="form-group">
+                        <label for="contactCompanyName">Company Name *</label>
+                        <input type="text" id="contactCompanyName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contactName" id="contactNameLabel">Contact Name *</label>
+                        <input type="text" id="contactName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contactEmail" id="contactEmailLabel">Email *</label>
+                        <input type="email" id="contactEmail" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contactPhone" id="contactPhoneLabel">Phone Number *</label>
+                        <input type="tel" id="contactPhone" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contactAddress" id="contactAddressLabel">Address *</label>
+                        <textarea id="contactAddress" rows="3" required></textarea>
+                    </div>
+                    
+                    <div class="form-group" id="formattedValueGroup">
+                        <label for="contactFormattedValue" id="formattedValueLabel">Formatted Field Value *</label>
+                        <textarea id="contactFormattedValue" rows="4" required placeholder="This will be used to fill the form field. Format: Company Name\nContact Name\nEmail\nPhone\nAddress"></textarea>
+                        <small>This value will be used to fill the form field. Use line breaks (\n) to format.</small>
+                    </div>
+                    
+                    <div class="form-group" id="originInfoGroup" style="display: none;">
+                        <label for="contactOrigin">Origin (02. ORIGIN)</label>
+                        <input type="text" id="contactOrigin" placeholder="Enter origin information">
+                        <small>This will be used to auto-fill field 02. ORIGIN when the form loads.</small>
+                    </div>
+                    
+                    <div class="form-group" id="aoDEPInfoGroup" style="display: none;">
+                        <label for="contactAoDEP">AoDEP (08. AoDEP)</label>
+                        <input type="text" id="contactAoDEP" placeholder="Enter AoDEP information">
+                        <small>This will be used to auto-fill field 08. AoDEP when the form loads.</small>
+                    </div>
+                    
+                    <div class="form-group" id="handlingInfoGroup" style="display: none;">
+                        <label for="contactHandlingInfo">Handling Info (22. HANDLING INFO)</label>
+                        <textarea id="contactHandlingInfo" placeholder="Enter handling information" rows="4"></textarea>
+                        <small>This will be used to auto-fill field 22. HANDLING INFO when the form loads.</small>
+                    </div>
+                    
+                    <div class="form-group" id="awbpInfoGroup" style="display: none;">
+                        <label for="contactAWBP">AWBP (01. AWBP)</label>
+                        <input type="text" id="contactAWBP" placeholder="Enter AWBP (Air Waybill Prefix)">
+                        <small>This will be used to auto-fill field 01. AWBP when this airline is selected.</small>
+                    </div>
+                    
+                    <div class="form-group" id="airlineAbbreviationGroup" style="display: none;">
+                        <label for="contactAirlineAbbreviation">Airline Abbreviation</label>
+                        <input type="text" id="contactAirlineAbbreviation" placeholder="Enter Airline Abbreviation">
+                        <small>This abbreviation will be stored with the airline contact.</small>
+                    </div>
+                    
+                    <div class="form-group" id="airlineImageGroup" style="display: none;">
+                        <label for="contactAirlineImage">Airline Logo/Image</label>
+                        <input type="file" id="contactAirlineImage" accept="image/*">
+                        <small>Upload an image/logo for this airline (JPG, PNG, etc.)</small>
+                        <div id="airlineImagePreview" style="margin-top: 10px; display: none;">
+                            <img id="airlineImagePreviewImg" src="" alt="Preview" style="max-width: 200px; max-height: 100px; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
+                            <button type="button" id="removeAirlineImageBtn" style="margin-left: 10px; padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove Image</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" id="accountInfoGroup" style="display: none;">
+                        <label for="contactAccountInfo">Account Info (07. ACCNT INFO)</label>
+                        <textarea id="contactAccountInfo" rows="3" placeholder="Enter account information for this consignee"></textarea>
+                        <small>This will be used to fill field 07. ACCNT INFO when this consignee is selected.</small>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancelContactBtn">Cancel</button>
+                        <button type="submit" class="btn-primary" id="saveContactBtn">Save Contact</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal for Missing Fields -->
+    <div id="missingFieldsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Missing Fields</h2>
+            </div>
+            <div class="modal-body">
+                <p>The following fields are missing:</p>
+                <div id="missingFieldsList" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 6px; max-height: 300px; overflow-y: auto;">
+                    <!-- Missing fields will be listed here -->
+                </div>
+                <p style="margin-top: 15px; font-weight: 600;">Do you want to continue anyway?</p>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="cancelMissingFieldsBtn">Cancel</button>
+                <button type="button" class="btn-primary" id="confirmMissingFieldsBtn">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="app4.js"></script>
+    <script>
+        // Tab switching functionality
+        document.querySelectorAll('.awb-tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.getAttribute('data-tab');
+                
+                // Update active tab button
+                document.querySelectorAll('.awb-tab-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Update active tab content
+                document.querySelectorAll('.awb-tab-content').forEach(content => content.classList.remove('active'));
+                document.getElementById(`${tabName}-tab`).classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>
