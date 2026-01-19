@@ -122,6 +122,9 @@
             width: 0;
             display: none;
         }
+        .sidebar.collapsed .nav-menu .submenu {
+            display: none;
+        }
         .nav-menu a:hover {
             background: rgba(255,255,255,0.1);
             border-left-color: #667eea;
@@ -134,6 +137,28 @@
             margin-right: 10px;
             width: 20px;
             display: inline-block;
+        }
+        .nav-menu .submenu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: linear-gradient(180deg, #5a7ba8 0%, #6b8db8 100%);
+        }
+        .nav-menu .submenu.expanded {
+            max-height: 500px;
+        }
+        .nav-menu .submenu a {
+            padding-left: 50px;
+            font-size: 14px;
+        }
+        .nav-menu .has-submenu > a::after {
+            content: '▼';
+            float: right;
+            transition: transform 0.3s;
+            font-size: 12px;
+        }
+        .nav-menu .has-submenu.expanded > a::after {
+            transform: rotate(180deg);
         }
         .user-section {
             position: absolute;
@@ -253,22 +278,36 @@
         // Common menu items (all roles)
         const commonItems = [
             { href: 'shipments/list.html', icon: '📦', text: 'My Shipments', roles: ['all'] },
-            { href: 'airlines.html', icon: '✈️', text: 'Airlines', roles: ['all'] },
-            { href: 'destinations.html', icon: '🌍', text: 'Destinations', roles: ['all'] }
+            { 
+                text: 'Locations', 
+                icon: '📍', 
+                roles: ['all'],
+                submenu: [
+                    { href: 'airlines.html', icon: '✈️', text: 'Airlines' },
+                    { href: 'destinations.html', icon: '🌍', text: 'Destinations' },
+                    { href: 'terminals.html', icon: '🌐', text: 'Terminals' }
+                ]
+            },
+            { 
+                text: 'Contacts', 
+                icon: '👥', 
+                roles: ['all'],
+                submenu: [
+                    { href: 'contacts.html', icon: '📋', text: 'AWB Form Contacts' },
+                    { href: 'users.html', icon: '👤', text: 'Users', roles: ['admin'] }
+                ]
+            }
         ];
 
         // Role-specific menu items
         const roleItems = {
             'admin': [
-                { href: 'contacts.html', icon: '👥', text: 'AWB Contacts', roles: ['all'] },
                 { href: 'admin-setup.html', icon: '🔐', text: 'Admin Setup', roles: ['admin'] }
             ],
             'issuing-carrier-agent': [
-                { href: 'contacts.html', icon: '👥', text: 'AWB Contacts', roles: ['all'] }
             ],
             'shipper': [
-                { href: 'shipments/create.html', icon: '➕', text: 'Create Shipment', roles: ['shipper'] },
-                { href: 'contacts.html', icon: '👥', text: 'AWB Contacts', roles: ['all'] }
+                { href: 'shipments/create.html', icon: '➕', text: 'Create Shipment', roles: ['shipper'] }
             ],
             'consignee': [
                 { href: 'shipments/pending.html', icon: '⏳', text: 'Pending Approvals', roles: ['consignee'] },
@@ -294,12 +333,43 @@
         // Add common menu items (all roles)
         commonItems.forEach(item => {
             const li = document.createElement('li');
-            const isActive = defaultPage === item.href ? 'active' : '';
-            li.innerHTML = `<a href="${item.href}" class="${isActive}" target="contentFrame">
-                <span>${item.icon}</span> <span class="menu-text">${item.text}</span>
-            </a>`;
+            
+            // Check if item has submenu
+            if (item.submenu) {
+                li.className = 'has-submenu';
+                const isActive = '';
+                li.innerHTML = `
+                    <a href="#" class="${isActive}" onclick="event.preventDefault(); toggleSubmenu(this.parentElement); return false;">
+                        <span>${item.icon}</span> <span class="menu-text">${item.text}</span>
+                    </a>
+                    <ul class="submenu">
+                        ${item.submenu.map(subItem => `
+                            <li>
+                                <a href="${subItem.href}" target="contentFrame">
+                                    <span>${subItem.icon}</span> <span class="menu-text">${subItem.text}</span>
+                                </a>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+            } else {
+                const isActive = defaultPage === item.href ? 'active' : '';
+                li.innerHTML = `<a href="${item.href}" class="${isActive}" target="contentFrame">
+                    <span>${item.icon}</span> <span class="menu-text">${item.text}</span>
+                </a>`;
+            }
+            
             navMenu.appendChild(li);
         });
+        
+        // Function to toggle submenu
+        window.toggleSubmenu = function(liElement) {
+            liElement.classList.toggle('expanded');
+            const submenu = liElement.querySelector('.submenu');
+            if (submenu) {
+                submenu.classList.toggle('expanded');
+            }
+        };
         
         // Add role-specific menu items
         itemsToShow.forEach(item => {
@@ -318,14 +388,19 @@
         });
         
         // Set default iframe source based on role
-        document.getElementById('contentFrame').src = defaultPage;
+        const savedPage = localStorage.getItem('dashboardCurrentPage');
+        const initialPage = savedPage || defaultPage;
+        document.getElementById('contentFrame').src = initialPage;
 
         // Handle navigation
         document.querySelectorAll('.nav-menu a').forEach(link => {
             link.addEventListener('click', (e) => {
-                // Update active state
-                document.querySelectorAll('.nav-menu a').forEach(a => a.classList.remove('active'));
-                e.target.closest('a').classList.add('active');
+                // Only handle navigation for links that have href (not submenu toggles)
+                if (link.getAttribute('href') && link.getAttribute('href') !== '#') {
+                    // Update active state
+                    document.querySelectorAll('.nav-menu a').forEach(a => a.classList.remove('active'));
+                    link.classList.add('active');
+                }
             });
         });
 
@@ -352,6 +427,55 @@
         toggleBtn.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
             localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        });
+
+        // Save current page when iframe src changes
+        const contentFrame = document.getElementById('contentFrame');
+        contentFrame.addEventListener('load', function() {
+            if (this.src && !this.src.includes('about:blank')) {
+                try {
+                    const src = this.src;
+                    // Extract relative path if it's a full URL
+                    const url = new URL(src, window.location.href);
+                    let relativePath = url.pathname;
+                    // Remove leading slash and get just the filename/path
+                    if (relativePath.startsWith('/')) {
+                        relativePath = relativePath.substring(1);
+                    }
+                    // Remove any query params or hash
+                    relativePath = relativePath.split('?')[0].split('#')[0];
+                    if (relativePath) {
+                        localStorage.setItem('dashboardCurrentPage', relativePath);
+                    }
+                } catch (e) {
+                    console.warn('Could not save current page:', e);
+                }
+            }
+        });
+        
+        // Prevent F5 from refreshing the page - reload iframe instead
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F5') {
+                e.preventDefault();
+                e.stopPropagation();
+                // Reload the iframe content instead of the whole page
+                if (contentFrame && contentFrame.src) {
+                    contentFrame.src = contentFrame.src;
+                }
+                return false;
+            }
+        });
+        
+        // Also handle Ctrl+R
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'r' && e.ctrlKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (contentFrame && contentFrame.src) {
+                    contentFrame.src = contentFrame.src;
+                }
+                return false;
+            }
         });
     </script>
 </body>

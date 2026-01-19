@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminals List - Airway Bills</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .terminals-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        .terminals-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .terminals-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .terminals-content {
+            padding: 40px;
+        }
+        .terminals-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .terminal-item {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        .terminal-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        .terminal-info {
+            flex: 1;
+        }
+        .terminal-code {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .terminal-name {
+            font-size: 1.1em;
+            color: #666;
+        }
+        .terminal-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-edit, .btn-delete {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .btn-edit {
+            background: #667eea;
+            color: white;
+        }
+        .btn-edit:hover {
+            background: #5568d3;
+        }
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+        .btn-add {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header {
+            margin-bottom: 20px;
+        }
+        .modal-header h2 {
+            margin: 0;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+        .btn-save, .btn-cancel {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-save {
+            background: #667eea;
+            color: white;
+        }
+        .btn-save:hover {
+            background: #5568d3;
+        }
+        .btn-cancel {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-cancel:hover {
+            background: #d0d0d0;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminals-container">
+        <div class="terminals-header">
+            <h1>🌐 Terminals</h1>
+            <p>Manage terminal codes and information</p>
+        </div>
+        <div class="terminals-content">
+            <button class="btn-add" onclick="openTerminalModal()">+ Add Terminal</button>
+            <div id="terminals-list" class="terminals-list">
+                <!-- Terminals will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit Terminal -->
+    <div id="terminalModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Terminal</h2>
+            </div>
+            <form id="terminalForm">
+                <input type="hidden" id="terminalId">
+                <div class="form-group">
+                    <label for="terminalCode">Terminal Code *</label>
+                    <input type="text" id="terminalCode" required>
+                </div>
+                <div class="form-group">
+                    <label for="terminalName">Terminal Name *</label>
+                    <input type="text" id="terminalName" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeTerminalModal()">Cancel</button>
+                    <button type="submit" class="btn-save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        function isAdmin() {
+            const user = getCurrentUser();
+            return user && user.role === 'admin';
+        }
+
+        function getTerminals() {
+            const terminals = localStorage.getItem('awb_terminals');
+            return terminals ? JSON.parse(terminals) : [];
+        }
+
+        function saveTerminals(terminals) {
+            localStorage.setItem('awb_terminals', JSON.stringify(terminals));
+        }
+
+        function renderTerminals() {
+            const terminals = getTerminals();
+            const listContainer = document.getElementById('terminals-list');
+            
+            if (terminals.length === 0) {
+                listContainer.innerHTML = '<div class="empty-state"><h3>No Terminals</h3><p>Click "+ Add Terminal" to create your first terminal.</p></div>';
+                return;
+            }
+
+            listContainer.innerHTML = terminals.map(terminal => `
+                <div class="terminal-item">
+                    <div class="terminal-info">
+                        <div class="terminal-code">${escapeHtml(terminal.code)}</div>
+                        <div class="terminal-name">${escapeHtml(terminal.name)}</div>
+                    </div>
+                    ${isAdmin() ? `
+                    <div class="terminal-actions">
+                        <button class="btn-edit" onclick="openTerminalModal('${terminal.id}')">Edit</button>
+                        <button class="btn-delete" onclick="deleteTerminal('${terminal.id}')">Delete</button>
+                    </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function openTerminalModal(terminalId) {
+            if (!isAdmin()) {
+                alert('Only administrators can manage terminals.');
+                return;
+            }
+
+            const modal = document.getElementById('terminalModal');
+            const form = document.getElementById('terminalForm');
+            const modalTitle = document.getElementById('modalTitle');
+            const terminalIdInput = document.getElementById('terminalId');
+            const terminalCodeInput = document.getElementById('terminalCode');
+            const terminalNameInput = document.getElementById('terminalName');
+
+            if (terminalId) {
+                const terminals = getTerminals();
+                const terminal = terminals.find(t => t.id === terminalId);
+                if (terminal) {
+                    modalTitle.textContent = 'Edit Terminal';
+                    terminalIdInput.value = terminal.id;
+                    terminalCodeInput.value = terminal.code;
+                    terminalNameInput.value = terminal.name;
+                }
+            } else {
+                modalTitle.textContent = 'Add Terminal';
+                form.reset();
+                terminalIdInput.value = '';
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeTerminalModal() {
+            document.getElementById('terminalModal').style.display = 'none';
+        }
+
+        function deleteTerminal(terminalId) {
+            if (!isAdmin()) {
+                alert('Only administrators can delete terminals.');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to delete this terminal?')) {
+                return;
+            }
+
+            const terminals = getTerminals();
+            const filtered = terminals.filter(t => t.id !== terminalId);
+            saveTerminals(filtered);
+            renderTerminals();
+        }
+
+        document.getElementById('terminalForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            if (!isAdmin()) {
+                alert('Only administrators can save terminals.');
+                return;
+            }
+
+            const terminalId = document.getElementById('terminalId').value;
+            const code = document.getElementById('terminalCode').value.trim().toUpperCase();
+            const name = document.getElementById('terminalName').value.trim();
+
+            if (!code || !name) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            const terminals = getTerminals();
+
+            if (terminalId) {
+                // Edit existing
+                const index = terminals.findIndex(t => t.id === terminalId);
+                if (index >= 0) {
+                    // Check if code is already used by another terminal
+                    if (terminals.some(t => t.code === code && t.id !== terminalId)) {
+                        alert('Terminal code already exists.');
+                        return;
+                    }
+                    terminals[index] = { ...terminals[index], code, name };
+                }
+            } else {
+                // Add new
+                if (terminals.some(t => t.code === code)) {
+                    alert('Terminal code already exists.');
+                    return;
+                }
+                terminals.push({
+                    id: 'terminal_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    code,
+                    name,
+                    createdAt: new Date().toISOString()
+                });
+            }
+
+            saveTerminals(terminals);
+            renderTerminals();
+            closeTerminalModal();
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('terminalModal').addEventListener('click', (e) => {
+            if (e.target.id === 'terminalModal') {
+                closeTerminalModal();
+            }
+        });
+
+        // Hide add button for non-admins
+        if (!isAdmin()) {
+            document.querySelector('.btn-add').style.display = 'none';
+        }
+
+        // Initial render
+        renderTerminals();
+    </script>
+</body>
+</html>
