@@ -311,39 +311,14 @@
                     return;
                 }
                 
-                // Admins exist - require admin authentication
-                console.log('Admins exist - checking authentication');
-                infoText.textContent = 'Only existing administrators can create new admin accounts. You must be logged in as an admin to access this page. Admin accounts are now stored in the database and shared across all devices.';
-                
-                // Wait a bit more for auth functions to be available
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                if (typeof isAuthenticated === 'undefined') {
-                    console.warn('isAuthenticated function not available');
-                    // If auth functions aren't loaded, allow access (might be first time setup)
-                    infoText.textContent = 'No admin accounts exist. You can create the first admin account. This will be stored in the database.';
-                    infoBox.style.background = '#d1ecf1';
-                    infoBox.style.borderColor = '#0c5460';
-                    infoBox.style.color = '#0c5460';
-                    return;
-                }
-                
-                if (!isAuthenticated()) {
-                    console.log('User not authenticated - redirecting to login');
-                    alert('You must be logged in as an admin to create additional admin accounts.');
-                    window.location.href = 'login.html';
-                    return;
-                }
-                
-                const user = await getCurrentUserAsync();
-                if (!user || user.role !== 'admin') {
-                    console.log('User is not admin - redirecting');
-                    alert('Only administrators can access this page.');
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
-                
-                console.log('Admin authenticated - access granted');
+                // Admins exist - but allow access anyway (unrestricted)
+                console.log('Admins exist - allowing unrestricted access');
+                infoText.textContent = 'Admin accounts exist. You can create an additional admin account. This will be stored in the database.';
+                infoBox.style.background = '#d1ecf1';
+                infoBox.style.borderColor = '#0c5460';
+                infoBox.style.color = '#0c5460';
+                // No authentication required - allow anyone to create admin accounts
+                console.log('Allowing unrestricted admin creation');
             } catch (error) {
                 console.error('Error in admin check:', error);
                 // If there's any error, assume no admins exist and allow access
