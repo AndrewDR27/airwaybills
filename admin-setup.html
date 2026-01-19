@@ -105,8 +105,8 @@
         <h1>🔐 Admin User Setup</h1>
         <p>Create an administrator account</p>
         
-        <div class="warning-box">
-            <strong>ℹ️ Information:</strong> Only existing administrators can create new admin accounts. You must be logged in as an admin to access this page.
+        <div class="warning-box" id="infoBox">
+            <strong>ℹ️ Information:</strong> <span id="infoText">Checking for existing admin accounts...</span>
         </div>
         
         <div class="error-message" id="errorMessage"></div>
@@ -139,6 +139,8 @@
         <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
             <p style="font-size: 14px; color: #666; margin-bottom: 10px;">Already have an account?</p>
             <a href="login.html" style="color: #667eea; text-decoration: none; font-weight: 500;">Login here</a>
+            <br><br>
+            <a href="register.html" style="color: #667eea; text-decoration: none; font-weight: 500; font-size: 14px;">Or register a regular user account</a>
         </div>
     </div>
 
@@ -146,30 +148,128 @@
     <script src="models/user.js"></script>
     <script src="js/roles.js"></script>
     <script src="js/auth.js"></script>
-    
-    <script>
-        // Check if user is authenticated and is an admin
-        if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
-            alert('You must be logged in to access the admin setup page.');
-            window.location.href = 'login.html';
-        } else {
-            const user = getCurrentUser();
-            if (!user || user.role !== 'admin') {
-                alert('Only administrators can access this page.');
-                window.location.href = 'dashboard.html';
+    <script type="module">
+        import { usersAPI } from './js/api.js';
+        
+        // Make usersAPI available globally
+        window.usersAPI = usersAPI;
+        
+        // Also expose checkForAdmins globally for debugging
+        window.checkForAdmins = async function() {
+            try {
+                if (!usersAPI) return false;
+                const users = await usersAPI.getAll();
+                if (!Array.isArray(users)) return false;
+                const admins = users.filter(u => u && u.role === 'admin');
+                return admins.length > 0;
+            } catch (error) {
+                console.error('Error checking for admins:', error);
+                return false;
+            }
+        };
+        
+        // Check if any admin accounts exist
+        async function checkForAdmins() {
+            try {
+                // Wait for API to be ready
+                if (!usersAPI) {
+                    console.log('usersAPI not ready yet, assuming no admins exist');
+                    return false;
+                }
+                
+                const users = await usersAPI.getAll();
+                if (!Array.isArray(users)) {
+                    console.log('Users API returned non-array, assuming no admins exist');
+                    return false;
+                }
+                
+                const admins = users.filter(u => u && u.role === 'admin');
+                console.log(`Found ${admins.length} admin(s) in database`);
+                return admins.length > 0;
+            } catch (error) {
+                console.error('Error checking for admins:', error);
+                // If API fails, assume no admins exist (allow first admin creation)
+                return false;
             }
         }
         
-        document.getElementById('adminSetupForm').addEventListener('submit', (e) => {
+        // Check authentication and admin status
+        (async () => {
+            const infoText = document.getElementById('infoText');
+            const infoBox = document.getElementById('infoBox');
+            
+            try {
+                // Wait a moment for API to initialize
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                const hasAdmins = await checkForAdmins();
+                
+                if (!hasAdmins) {
+                    // No admins exist - allow anyone to create the first admin
+                    infoText.textContent = 'No admin accounts exist. You can create the first admin account. This will be stored in the database.';
+                    infoBox.style.background = '#d1ecf1';
+                    infoBox.style.borderColor = '#0c5460';
+                    infoBox.style.color = '#0c5460';
+                    // Don't require authentication for first admin
+                    console.log('No admins found - allowing first admin creation');
+                    return;
+                }
+                
+                // Admins exist - require admin authentication
+                console.log('Admins exist - checking authentication');
+                infoText.textContent = 'Only existing administrators can create new admin accounts. You must be logged in as an admin to access this page. Admin accounts are now stored in the database and shared across all devices.';
+                
+                // Wait a bit more for auth functions to be available
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                if (typeof isAuthenticated === 'undefined') {
+                    console.warn('isAuthenticated function not available');
+                    // If auth functions aren't loaded, allow access (might be first time setup)
+                    infoText.textContent = 'No admin accounts exist. You can create the first admin account. This will be stored in the database.';
+                    infoBox.style.background = '#d1ecf1';
+                    infoBox.style.borderColor = '#0c5460';
+                    infoBox.style.color = '#0c5460';
+                    return;
+                }
+                
+                if (!isAuthenticated()) {
+                    console.log('User not authenticated - redirecting to login');
+                    alert('You must be logged in as an admin to create additional admin accounts.');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                const user = await getCurrentUserAsync();
+                if (!user || user.role !== 'admin') {
+                    console.log('User is not admin - redirecting');
+                    alert('Only administrators can access this page.');
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+                
+                console.log('Admin authenticated - access granted');
+            } catch (error) {
+                console.error('Error in admin check:', error);
+                // If there's any error, assume no admins exist and allow access
+                infoText.textContent = 'No admin accounts exist. You can create the first admin account. This will be stored in the database.';
+                infoBox.style.background = '#d1ecf1';
+                infoBox.style.borderColor = '#0c5460';
+                infoBox.style.color = '#0c5460';
+                console.log('Error occurred - allowing access for first admin creation');
+            }
+        })();
+        
+        document.getElementById('adminSetupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const company = document.getElementById('company').value;
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const company = document.getElementById('company').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const errorMessage = document.getElementById('errorMessage');
             const successMessage = document.getElementById('successMessage');
+            const submitButton = e.target.querySelector('button[type="submit"]');
             
             // Hide messages
             errorMessage.style.display = 'none';
@@ -188,51 +288,64 @@
                 return;
             }
             
-            // Create admin user directly (bypassing normal registration)
-            const users = getAllUsers();
+            // Disable button during submission
+            submitButton.disabled = true;
+            submitButton.textContent = 'Creating Admin...';
             
-            // Check if email already exists
-            if (users.some(u => u.email === email)) {
-                errorMessage.textContent = 'Email already registered';
-                errorMessage.style.display = 'block';
-                return;
-            }
-            
-            // Create admin user
-            const User = window.User;
-            let newUser;
-            if (User) {
-                newUser = new User({
+            try {
+                // Check if email already exists
+                try {
+                    const existing = await usersAPI.getByEmail(email);
+                    if (existing) {
+                        errorMessage.textContent = 'Email already registered';
+                        errorMessage.style.display = 'block';
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Create Admin User';
+                        return;
+                    }
+                } catch (checkError) {
+                    // User doesn't exist, continue
+                }
+                
+                // Create admin user via API
+                const userData = {
                     name: name,
                     email: email,
-                    role: 'admin',
-                    company: company || ''
-                });
-            } else {
-                // Fallback
-                newUser = {
-                    id: 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                    email: email,
-                    name: name,
                     role: 'admin',
                     company: company || '',
-                    createdAt: new Date().toISOString(),
-                    isActive: true
+                    password: password
                 };
+                
+                const newUser = await usersAPI.register(userData);
+                
+                if (newUser) {
+                    successMessage.textContent = '✅ Admin user created successfully in database!';
+                    successMessage.style.display = 'block';
+                    
+                    // If this is the first admin, offer to log in
+                    const hasAdmins = await checkForAdmins();
+                    if (!hasAdmins || (await usersAPI.getAll()).filter(u => u.role === 'admin').length === 1) {
+                        successMessage.textContent += ' This is your first admin account. You can now log in.';
+                        setTimeout(() => {
+                            if (confirm('Would you like to log in as this admin now?')) {
+                                window.location.href = 'login.html';
+                            }
+                        }, 1000);
+                    }
+                    
+                    // Reset form
+                    document.getElementById('adminSetupForm').reset();
+                } else {
+                    throw new Error('Failed to create admin user');
+                }
+            } catch (error) {
+                console.error('Error creating admin user:', error);
+                errorMessage.textContent = error.message || 'Failed to create admin user. Please try again.';
+                errorMessage.style.display = 'block';
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Create Admin User';
             }
-            
-            users.push(newUser);
-            localStorage.setItem('awb_users', JSON.stringify(users));
-            
-            // Store password
-            localStorage.setItem(`user_password_${newUser.id}`, password);
-            
-            // Don't auto-login - keep current admin logged in
-            successMessage.textContent = 'Admin user created successfully!';
-            successMessage.style.display = 'block';
-            
-            // Reset form
-            document.getElementById('adminSetupForm').reset();
         });
     </script>
 </body>
