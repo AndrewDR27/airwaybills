@@ -106,7 +106,7 @@
         <p>Create an administrator account</p>
         
         <div class="warning-box">
-            <strong>⚠️ Warning:</strong> This page allows you to create an admin user with full system access. Keep this page secure and only use it for initial setup.
+            <strong>ℹ️ Information:</strong> Only existing administrators can create new admin accounts. You must be logged in as an admin to access this page.
         </div>
         
         <div class="error-message" id="errorMessage"></div>
@@ -148,6 +148,18 @@
     <script src="js/auth.js"></script>
     
     <script>
+        // Check if user is authenticated and is an admin
+        if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
+            alert('You must be logged in to access the admin setup page.');
+            window.location.href = 'login.html';
+        } else {
+            const user = getCurrentUser();
+            if (!user || user.role !== 'admin') {
+                alert('Only administrators can access this page.');
+                window.location.href = 'dashboard.html';
+            }
+        }
+        
         document.getElementById('adminSetupForm').addEventListener('submit', (e) => {
             e.preventDefault();
             
@@ -215,14 +227,12 @@
             // Store password
             localStorage.setItem(`user_password_${newUser.id}`, password);
             
-            // Auto-login
-            login(email, password);
-            
-            successMessage.textContent = 'Admin user created successfully! Redirecting to dashboard...';
+            // Don't auto-login - keep current admin logged in
+            successMessage.textContent = 'Admin user created successfully!';
             successMessage.style.display = 'block';
-            setTimeout(() => {
-                window.location.href = 'dashboard.html';
-            }, 1500);
+            
+            // Reset form
+            document.getElementById('adminSetupForm').reset();
         });
     </script>
 </body>
