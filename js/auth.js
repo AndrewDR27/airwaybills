@@ -102,7 +102,26 @@ function getStorageSource() {
 
 // Get storage source with async check
 async function getStorageSourceAsync() {
+    // Wait a bit for API to load if it's not ready yet
     if (!usersAPI) {
+        // Wait for apiReady event
+        await new Promise((resolve) => {
+            if (window.usersAPI) {
+                usersAPI = window.usersAPI;
+                resolve();
+            } else {
+                window.addEventListener('apiReady', () => {
+                    usersAPI = window.usersAPI;
+                    resolve();
+                }, { once: true });
+                // Timeout after 1 second
+                setTimeout(resolve, 1000);
+            }
+        });
+    }
+    
+    if (!usersAPI) {
+        console.log('usersAPI not available');
         return 'localhost';
     }
     
@@ -110,12 +129,14 @@ async function getStorageSourceAsync() {
         // Try to fetch from API with a short timeout
         const testPromise = usersAPI.getAll();
         const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 2000)
+            setTimeout(() => reject(new Error('Timeout')), 3000)
         );
         
-        await Promise.race([testPromise, timeoutPromise]);
+        const result = await Promise.race([testPromise, timeoutPromise]);
+        console.log('API test successful, using database');
         return 'database';
     } catch (error) {
+        console.log('API test failed, using localhost:', error.message);
         return 'localhost';
     }
 }
