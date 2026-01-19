@@ -163,13 +163,35 @@
             const dbDiv = document.getElementById('databaseUsers');
             const localDiv = document.getElementById('localStorageUsers');
             
-            // Check storage source
+            // Check storage source - try to actually use the API
             let storageSource = 'unknown';
+            let dbWorking = false;
+            
             if (usersAPI) {
                 try {
-                    await usersAPI.getAll();
-                    storageSource = 'database';
+                    // Try to make an actual API call to test if database is working
+                    const response = await fetch(`${window.location.origin}/api/users?action=all`);
+                    if (response.status === 200 || response.status === 503) {
+                        // 200 = working, 503 = env vars missing but API exists
+                        if (response.status === 200) {
+                            storageSource = 'database';
+                            dbWorking = true;
+                        } else {
+                            // Check the error message
+                            const error = await response.json();
+                            if (error.details && error.details.hasUrl && error.details.hasToken) {
+                                // Variables exist but connection might be failing
+                                storageSource = 'database';
+                                dbWorking = false;
+                            } else {
+                                storageSource = 'localhost';
+                            }
+                        }
+                    } else {
+                        storageSource = 'localhost';
+                    }
                 } catch (e) {
+                    console.error('Error checking database:', e);
                     storageSource = 'localhost';
                 }
             } else {
@@ -177,8 +199,10 @@
             }
             
             // Update status
-            if (storageSource === 'database') {
+            if (storageSource === 'database' && dbWorking) {
                 statusDiv.innerHTML = '<div class="status success">✅ Connected to Database (Upstash Redis)</div>';
+            } else if (storageSource === 'database' && !dbWorking) {
+                statusDiv.innerHTML = '<div class="status error">⚠️ Database connection issue - check environment variables</div>';
             } else {
                 statusDiv.innerHTML = '<div class="status error">⚠️ Using LocalStorage (localhost) - Database not available</div>';
             }
