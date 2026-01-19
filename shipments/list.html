@@ -331,10 +331,10 @@
 
             let currentTab = 'pending';
 
-            // Show Create Space button for Issuing Carrier Agent
-            try {
-                const createSpaceBtn = document.getElementById('createSpaceBtn');
-                if (createSpaceBtn && user && user.role === 'issuing-carrier-agent') {
+        // Show Create Space button for Issuing Carrier Agent only
+        try {
+            const createSpaceBtn = document.getElementById('createSpaceBtn');
+            if (createSpaceBtn && user && user.role === 'issuing-carrier-agent') {
                     createSpaceBtn.style.display = 'block';
                     createSpaceBtn.addEventListener('click', function() {
                         if (window.parent && window.parent !== window) {
@@ -474,10 +474,11 @@
                 const participants = shipment.participants || [];
                 const spaceId = shipment.spaceId || 'N/A';
                 const awbNumber = shipment.awbNumber || 'Not created yet';
-                const isAgent = user.role === 'issuing-carrier-agent';
+                const isAgent = user.role === 'issuing-carrier-agent' || user.role === 'admin';
                 const isConsignee = user.role === 'consignee';
                 const isCourier = user.role === 'courier';
                 const isShipper = user.role === 'shipper';
+                const isAdmin = user.role === 'admin';
                 
                 // Determine effective status for display
                 let displayStatus = shipment.status;
@@ -491,8 +492,8 @@
             
                 // Pending tab actions
                 if (currentTab === 'pending') {
-                    // Agent can confirm AWB if it exists
-                    const confirmButton = (isAgent && shipment.awbNumber && !shipment.isConfirmed) 
+                    // Agent or Admin can confirm AWB if it exists
+                    const confirmButton = ((isAgent || isAdmin) && shipment.awbNumber && !shipment.isConfirmed) 
                         ? `<button class="btn-success" onclick="confirmShipmentAWB('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">Confirm</button>` 
                         : '';
                     

@@ -211,9 +211,12 @@
                 return;
             }
 
-            // Check if user has access
-            const hasAccess = currentShipment.createdBy === user.id || 
-                            currentShipment.participants.some(p => p.userId === user.id);
+            // Check if user has access (admins can access all shipments)
+            const isAdmin = user.role === 'admin';
+            const participants = currentShipment.participants || [];
+            const hasAccess = isAdmin || 
+                            currentShipment.createdBy === user.id || 
+                            participants.some(p => p.userId === user.id);
             
             if (!hasAccess) {
                 alert('You do not have access to this shipment space.');
@@ -248,45 +251,80 @@
 
             // Show/hide sections based on role
             const isAgent = user.role === 'issuing-carrier-agent';
+            // isAdmin already declared above
             const isCancelled = currentShipment.status === 'cancelled';
             
-            if (isAgent) {
+            if (isAgent || isAdmin) {
                 document.getElementById('agentSection').style.display = 'block';
                 
-                // Show Create AWB button only if AWB not created yet
-                if (!currentShipment.awbNumber) {
+                // Show Create AWB button only for agents (not admins) and only if AWB not created yet
+                if (isAgent && !currentShipment.awbNumber) {
                     document.getElementById('createAWBBtn').style.display = 'block';
                 } else {
                     document.getElementById('createAWBBtn').style.display = 'none';
                 }
                 
-                // Show Share button only if AWB exists and not shared yet
-                if (currentShipment.awbNumber && !currentShipment.isShared) {
+                // Show Share button only for agents (not admins) and only if AWB exists and not shared yet
+                if (isAgent && currentShipment.awbNumber && !currentShipment.isShared) {
                     document.getElementById('shareAWBBtn').style.display = 'block';
+                } else {
+                    document.getElementById('shareAWBBtn').style.display = 'none';
                 }
                 
-                // Show delete button only if cancelled
-                if (isCancelled) {
+                // Show delete button only for agents (not admins) and only if cancelled
+                if (isAgent && isCancelled) {
                     document.getElementById('deleteBtn').style.display = 'block';
                     document.getElementById('cancelBtn').textContent = 'Uncancel Shipment';
+                } else {
+                    document.getElementById('deleteBtn').style.display = 'none';
+                }
+                
+                // Show cancel/uncancel button only for agents (not admins)
+                if (!isAgent) {
+                    document.getElementById('cancelBtn').style.display = 'none';
                 }
             } else {
                 // Non-agents see restricted message
                 document.getElementById('restrictedSection').style.display = 'block';
             }
 
-            // Show PDF section if available and shared (or if agent)
-            if (currentShipment.pdfBase64 && (isAgent || currentShipment.isShared)) {
+            // Show PDF section if available and shared (or if agent or admin)
+            if (currentShipment.pdfBase64 && (isAgent || isAdmin || currentShipment.isShared)) {
                 document.getElementById('pdfSection').style.display = 'block';
             }
 
             // Load participants
             loadParticipants();
 
-            // Disable actions if cancelled (except for agent)
-            if (isCancelled && !isAgent) {
-                // Non-agents can't do anything with cancelled shipments
+            // Disable actions if cancelled (except for agent or admin)
+            if (isCancelled && !isAgent && !isAdmin) {
+                // Non-agents and non-admins can't do anything with cancelled shipments
                 document.getElementById('restrictedSection').innerHTML = '<p><strong>Cancelled:</strong> This shipment has been cancelled and is no longer accessible.</p>';
+            }
+            
+            // Add Edit button for admins if AWB exists
+            if (isAdmin && currentShipment.awbNumber) {
+                const agentSection = document.getElementById('agentSection');
+                if (agentSection) {
+                    // Check if edit button already exists
+                    let editBtn = document.getElementById('editAWBBtn');
+                    if (!editBtn) {
+                        editBtn = document.createElement('button');
+                        editBtn.id = 'editAWBBtn';
+                        editBtn.className = 'btn-primary';
+                        editBtn.textContent = 'Edit AWB';
+                        editBtn.style.marginTop = '10px';
+                        editBtn.addEventListener('click', function() {
+                            // Navigate to edit page
+                            if (window.parent && window.parent !== window) {
+                                window.parent.document.getElementById('contentFrame').src = `shipments/edit.html?awb=${currentShipment.awbNumber}`;
+                            } else {
+                                window.location.href = `edit.html?awb=${currentShipment.awbNumber}`;
+                            }
+                        });
+                        agentSection.appendChild(editBtn);
+                    }
+                }
             }
         }
 

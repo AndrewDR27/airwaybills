@@ -45,7 +45,14 @@ function getUserShipments(userId = null) {
         userId = user.id;
     }
     
+    const user = getCurrentUser();
     const shipments = getAllShipments();
+    
+    // Admin can see all shipments
+    if (user && user.role === 'admin') {
+        return shipments.filter(s => s.status !== 'deleted');
+    }
+    
     return shipments.filter(s => {
         // Exclude deleted shipments
         if (s.status === 'deleted') return false;
@@ -350,8 +357,8 @@ function uncancelShipment(spaceId) {
 // Delete shipment (only cancelled ones, by Agent only)
 function deleteShipment(spaceId) {
     const user = getCurrentUser();
-    if (!user || user.role !== 'issuing-carrier-agent') {
-        return { success: false, message: 'Only Issuing Carrier Agents can delete shipments' };
+    if (!user || (user.role !== 'issuing-carrier-agent' && user.role !== 'admin')) {
+        return { success: false, message: 'Only Issuing Carrier Agents or Administrators can delete shipments' };
     }
     
     const shipment = getShipmentBySpaceId(spaceId);
@@ -438,8 +445,10 @@ function setShipmentStatus(spaceId, status, subStatus = null) {
         return { success: false, message: 'Shipment not found' };
     }
     
-    // Role-based permissions
-    if (status === 'in-transit') {
+    // Role-based permissions (admin has all permissions)
+    if (user.role === 'admin') {
+        // Admin can do anything - skip permission checks
+    } else if (status === 'in-transit') {
         if (user.role !== 'issuing-carrier-agent') {
             return { success: false, message: 'Only Agents can set status to In Transit' };
         }
@@ -480,8 +489,8 @@ function uploadFactoryInvoice(spaceId, fileBase64) {
         return { success: false, message: 'Not authenticated' };
     }
     
-    // Only shipper, consignee, or agent can upload
-    if (user.role !== 'shipper' && user.role !== 'consignee' && user.role !== 'issuing-carrier-agent') {
+    // Only shipper, consignee, agent, or admin can upload
+    if (user.role !== 'shipper' && user.role !== 'consignee' && user.role !== 'issuing-carrier-agent' && user.role !== 'admin') {
         return { success: false, message: 'You do not have permission to upload factory invoices' };
     }
     

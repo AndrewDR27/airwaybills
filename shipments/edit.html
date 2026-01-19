@@ -378,7 +378,7 @@
                 }
                 
                 const user = getCurrentUser();
-                if (!user || user.role !== 'issuing-carrier-agent') {
+                if (!user || (user.role !== 'issuing-carrier-agent' && user.role !== 'admin')) {
                     return;
                 }
                 

@@ -51,6 +51,16 @@
             font-weight: 600;
             color: #666;
             transition: all 0.3s;
+            position: relative;
+        }
+        .tab-count {
+            font-size: 0.85em;
+            font-weight: 500;
+            color: #999;
+            margin-left: 4px;
+        }
+        .tab-button.active .tab-count {
+            color: #667eea;
         }
         .tab-button:hover {
             color: #667eea;
@@ -230,14 +240,24 @@
         
         <div class="contacts-content">
             <div class="contacts-tabs">
-                <button class="tab-button active" data-tab="shippers">Shippers</button>
-                <button class="tab-button" data-tab="consignees">Consignees</button>
-                <button class="tab-button" data-tab="airlines">Airlines</button>
+                <button class="tab-button active" data-tab="all">All <span class="tab-count" id="all-count">(0)</span></button>
+                <button class="tab-button" data-tab="shippers">Shippers <span class="tab-count" id="shippers-count">(0)</span></button>
+                <button class="tab-button" data-tab="consignees">Consignees <span class="tab-count" id="consignees-count">(0)</span></button>
                 <button class="tab-button" data-tab="profile">My Profile</button>
             </div>
             
+            <!-- All Tab -->
+            <div id="all-tab" class="tab-content active">
+                <div class="contacts-actions">
+                    <h2>All Contacts</h2>
+                </div>
+                <div id="all-list" class="contacts-list">
+                    <!-- All contacts will be loaded here -->
+                </div>
+            </div>
+            
             <!-- Shippers Tab -->
-            <div id="shippers-tab" class="tab-content active">
+            <div id="shippers-tab" class="tab-content">
                 <div class="contacts-actions">
                     <h2>Shipper Contacts</h2>
                     <button class="btn-add" onclick="openContactModal('Shipper', null)">+ Add Shipper</button>
@@ -255,17 +275,6 @@
                 </div>
                 <div id="consignees-list" class="contacts-list">
                     <!-- Consignees will be loaded here -->
-                </div>
-            </div>
-            
-            <!-- Airlines Tab -->
-            <div id="airlines-tab" class="tab-content">
-                <div class="contacts-actions">
-                    <h2>Airline Contacts</h2>
-                    <button class="btn-add" onclick="openContactModal('Airline', null)">+ Add Airline</button>
-                </div>
-                <div id="airlines-list" class="contacts-list">
-                    <!-- Airlines will be loaded here -->
                 </div>
             </div>
             
@@ -325,28 +334,6 @@
                         <label for="contactFormattedValue">Formatted Field Value *</label>
                         <textarea id="contactFormattedValue" rows="4" required placeholder="This will be used to fill the form field. Format: Company Name\nContact Name\nEmail\nPhone\nAddress"></textarea>
                         <small>This value will be used to fill the form field. Use line breaks (\n) to format.</small>
-                    </div>
-                    
-                    <div class="form-group" id="awbpInfoGroup" style="display: none;">
-                        <label for="contactAWBP">AWBP (01. AWBP)</label>
-                        <input type="text" id="contactAWBP" placeholder="Enter AWBP (Air Waybill Prefix)">
-                        <small>This will be used to auto-fill field 01. AWBP when this airline is selected.</small>
-                    </div>
-                    
-                    <div class="form-group" id="airlineAbbreviationGroup" style="display: none;">
-                        <label for="contactAirlineAbbreviation">Airline Abbreviation</label>
-                        <input type="text" id="contactAirlineAbbreviation" placeholder="Enter Airline Abbreviation">
-                        <small>This abbreviation will be stored with the airline contact.</small>
-                    </div>
-                    
-                    <div class="form-group" id="airlineImageGroup" style="display: none;">
-                        <label for="contactAirlineImage">Airline Logo/Image</label>
-                        <input type="file" id="contactAirlineImage" accept="image/*">
-                        <small>Upload an image/logo for this airline (JPG, PNG, etc.)</small>
-                        <div id="airlineImagePreview" style="margin-top: 10px; display: none;">
-                            <img id="airlineImagePreviewImg" src="" alt="Preview" style="max-width: 200px; max-height: 100px; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
-                            <button type="button" id="removeAirlineImageBtn" style="margin-left: 10px; padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove Image</button>
-                        </div>
                     </div>
                     
                     <div class="form-group" id="accountInfoGroup" style="display: none;">
@@ -412,16 +399,35 @@
 
         function loadContacts() {
             const contacts = getContacts();
-            const shippers = contacts.filter(c => c.type === 'Shipper');
-            const consignees = contacts.filter(c => c.type === 'Consignee');
-            const airlines = contacts.filter(c => c.type === 'Airline');
+            // Filter out airlines - they're on a separate page
+            const userContacts = contacts.filter(c => c.type !== 'Airline');
+            const shippers = userContacts.filter(c => c.type === 'Shipper');
+            const consignees = userContacts.filter(c => c.type === 'Consignee');
             
-            // Sort airlines alphabetically by company name
-            airlines.sort((a, b) => {
+            // Update tab counts (excluding airlines)
+            document.getElementById('all-count').textContent = `(${userContacts.length})`;
+            document.getElementById('shippers-count').textContent = `(${shippers.length})`;
+            document.getElementById('consignees-count').textContent = `(${consignees.length})`;
+            
+            // Sort all contacts by type, then by company name
+            const allContacts = [...userContacts].sort((a, b) => {
+                // First sort by type
+                const typeOrder = { 'Shipper': 1, 'Consignee': 2 };
+                const typeDiff = (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99);
+                if (typeDiff !== 0) return typeDiff;
+                // Then sort by company name
                 const nameA = (a.companyName || '').toLowerCase();
                 const nameB = (b.companyName || '').toLowerCase();
                 return nameA.localeCompare(nameB);
             });
+            
+            // Load all contacts
+            const allList = document.getElementById('all-list');
+            if (allContacts.length === 0) {
+                allList.innerHTML = '<div class="empty-state"><h3>No Contacts</h3><p>Click "+ Add" buttons in the individual tabs to create your first contacts.</p></div>';
+            } else {
+                allList.innerHTML = createContactsTable(allContacts, true); // true = show type badge
+            }
             
             // Load shippers
             const shippersList = document.getElementById('shippers-list');
@@ -438,29 +444,15 @@
             } else {
                 consigneesList.innerHTML = createContactsTable(consignees);
             }
-            
-            // Load airlines
-            const airlinesList = document.getElementById('airlines-list');
-            if (airlines.length === 0) {
-                airlinesList.innerHTML = '<div class="empty-state"><h3>No Airlines</h3><p>Click "+ Add Airline" to create your first airline contact.</p></div>';
-            } else {
-                airlinesList.innerHTML = createContactsTable(airlines);
-            }
         }
 
-        function createContactsTable(contacts) {
-            let badgeClass = 'badge-shipper';
-            if (contacts[0]?.type === 'Consignee') {
-                badgeClass = 'badge-consignee';
-            } else if (contacts[0]?.type === 'Airline') {
-                badgeClass = 'badge-airline';
-            }
-            
+        function createContactsTable(contacts, showTypeBadge = false) {
             let tableHTML = `
                 <table class="contacts-table">
                     <thead>
                         <tr>
                             <th>Company Name</th>
+                            ${showTypeBadge ? '<th>Type</th>' : ''}
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -468,19 +460,20 @@
             `;
             
             contacts.forEach(contact => {
-                const hasImage = contact.type === 'Airline' && contact.image;
+                let badgeClass = 'badge-shipper';
+                if (contact.type === 'Consignee') {
+                    badgeClass = 'badge-consignee';
+                }
+                
                 tableHTML += `
                     <tr>
                         <td>
-                            ${hasImage ? `<div style="display: flex; align-items: center; gap: 15px;"><img src="${contact.image}" alt="${escapeHtml(contact.companyName)}" style="max-width: 80px; max-height: 40px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px; padding: 5px; background: white;"><div>` : ''}
                             <div>
                                 <strong>${escapeHtml(contact.companyName)}</strong>
-                                ${contact.type === 'Airline' && contact.airlineAbbreviation ? `<br><span style="color: #666; font-size: 0.9em;">Abbreviation: ${escapeHtml(contact.airlineAbbreviation)}</span>` : ''}
-                                <br>
-                                <span class="contact-type-badge ${badgeClass}">${contact.type}</span>
+                                ${!showTypeBadge ? `<br><span class="contact-type-badge ${badgeClass}">${contact.type}</span>` : ''}
                             </div>
-                            ${hasImage ? `</div>` : ''}
                         </td>
+                        ${showTypeBadge ? `<td><span class="contact-type-badge ${badgeClass}">${contact.type}</span></td>` : ''}
                         <td>
                             <div class="contact-actions">
                                 <button class="btn-edit" onclick="openContactModal('${contact.type}', '${contact.id}')">Edit</button>
@@ -570,60 +563,24 @@
             contactType.value = type;
             contactId.value = contactIdToEdit || '';
             
-            const isAirline = type === 'Airline';
-            
-            // Show/hide AWBP field for airlines
-            const awbpInfoGroup = document.getElementById('awbpInfoGroup');
-            if (awbpInfoGroup) {
-                awbpInfoGroup.style.display = isAirline ? 'block' : 'none';
-            }
-            
-            // Show/hide Airline Abbreviation field for airlines
-            const airlineAbbreviationGroup = document.getElementById('airlineAbbreviationGroup');
-            if (airlineAbbreviationGroup) {
-                airlineAbbreviationGroup.style.display = isAirline ? 'block' : 'none';
-            }
-            
-            // Show/hide Airline Image field for airlines
-            const airlineImageGroup = document.getElementById('airlineImageGroup');
-            if (airlineImageGroup) {
-                airlineImageGroup.style.display = isAirline ? 'block' : 'none';
-            }
-            
             // Show/hide account info field based on contact type
             if (accountInfoGroup) {
                 accountInfoGroup.style.display = type === 'Consignee' ? 'block' : 'none';
             }
             
-            // Make fields optional for airlines (only company name required)
-            if (isAirline) {
-                if (contactName) contactName.required = false;
-                if (contactEmail) contactEmail.required = false;
-                if (contactPhone) contactPhone.required = false;
-                if (contactAddress) contactAddress.required = false;
-                if (contactFormattedValue) contactFormattedValue.required = false;
-                
-                // Update labels to remove asterisks
-                if (contactNameLabel) contactNameLabel.textContent = 'Contact Name';
-                if (contactEmailLabel) contactEmailLabel.textContent = 'Email';
-                if (contactPhoneLabel) contactPhoneLabel.textContent = 'Phone Number';
-                if (contactAddressLabel) contactAddressLabel.textContent = 'Address';
-                if (contactFormattedValueLabel) contactFormattedValueLabel.textContent = 'Formatted Field Value';
-            } else {
-                // Make fields required for other types
-                if (contactName) contactName.required = true;
-                if (contactEmail) contactEmail.required = true;
-                if (contactPhone) contactPhone.required = true;
-                if (contactAddress) contactAddress.required = true;
-                if (contactFormattedValue) contactFormattedValue.required = true;
-                
-                // Update labels to add asterisks
-                if (contactNameLabel) contactNameLabel.textContent = 'Contact Name *';
-                if (contactEmailLabel) contactEmailLabel.textContent = 'Email *';
-                if (contactPhoneLabel) contactPhoneLabel.textContent = 'Phone Number *';
-                if (contactAddressLabel) contactAddressLabel.textContent = 'Address *';
-                if (contactFormattedValueLabel) contactFormattedValueLabel.textContent = 'Formatted Field Value *';
-            }
+            // Make fields required for all contact types
+            if (contactName) contactName.required = true;
+            if (contactEmail) contactEmail.required = true;
+            if (contactPhone) contactPhone.required = true;
+            if (contactAddress) contactAddress.required = true;
+            if (contactFormattedValue) contactFormattedValue.required = true;
+            
+            // Update labels to add asterisks
+            if (contactNameLabel) contactNameLabel.textContent = 'Contact Name *';
+            if (contactEmailLabel) contactEmailLabel.textContent = 'Email *';
+            if (contactPhoneLabel) contactPhoneLabel.textContent = 'Phone Number *';
+            if (contactAddressLabel) contactAddressLabel.textContent = 'Address *';
+            if (contactFormattedValueLabel) contactFormattedValueLabel.textContent = 'Formatted Field Value *';
             
             if (contactIdToEdit) {
                 const contacts = getContacts();
@@ -638,25 +595,6 @@
                     if (contactFormattedValue) contactFormattedValue.value = contact.formattedValue || '';
                     if (document.getElementById('contactAccountInfo')) {
                         document.getElementById('contactAccountInfo').value = contact.accountInfo || '';
-                    }
-                    if (document.getElementById('contactAWBP')) {
-                        document.getElementById('contactAWBP').value = contact.awbp || '';
-                    }
-                    if (document.getElementById('contactAirlineAbbreviation')) {
-                        document.getElementById('contactAirlineAbbreviation').value = contact.airlineAbbreviation || '';
-                    }
-                    // Load airline image if it exists
-                    const airlineImageInput = document.getElementById('contactAirlineImage');
-                    const airlineImagePreview = document.getElementById('airlineImagePreview');
-                    const airlineImagePreviewImg = document.getElementById('airlineImagePreviewImg');
-                    if (contact.image && airlineImagePreview && airlineImagePreviewImg) {
-                        airlineImagePreviewImg.src = contact.image;
-                        airlineImagePreview.style.display = 'block';
-                    } else if (airlineImagePreview) {
-                        airlineImagePreview.style.display = 'none';
-                    }
-                    if (airlineImageInput) {
-                        airlineImageInput.value = ''; // Clear file input
                     }
                 }
             } else {
@@ -703,27 +641,11 @@
             const modal = document.getElementById('contactModal');
             const form = document.getElementById('contactForm');
             const accountInfoGroup = document.getElementById('accountInfoGroup');
-            const awbpInfoGroup = document.getElementById('awbpInfoGroup');
-            const airlineAbbreviationGroup = document.getElementById('airlineAbbreviationGroup');
-            const airlineImageGroup = document.getElementById('airlineImageGroup');
-            const airlineImagePreview = document.getElementById('airlineImagePreview');
             
             modal.style.display = 'none';
             form.reset();
             if (accountInfoGroup) {
                 accountInfoGroup.style.display = 'none';
-            }
-            if (awbpInfoGroup) {
-                awbpInfoGroup.style.display = 'none';
-            }
-            if (airlineAbbreviationGroup) {
-                airlineAbbreviationGroup.style.display = 'none';
-            }
-            if (airlineImageGroup) {
-                airlineImageGroup.style.display = 'none';
-            }
-            if (airlineImagePreview) {
-                airlineImagePreview.style.display = 'none';
             }
         }
 
@@ -739,23 +661,16 @@
             const address = document.getElementById('contactAddress').value.trim();
             const formattedValue = document.getElementById('contactFormattedValue').value.trim();
             const accountInfo = document.getElementById('contactAccountInfo') ? document.getElementById('contactAccountInfo').value.trim() : '';
-            const awbp = document.getElementById('contactAWBP') ? document.getElementById('contactAWBP').value.trim() : '';
-            const airlineAbbreviation = document.getElementById('contactAirlineAbbreviation') ? document.getElementById('contactAirlineAbbreviation').value.trim() : '';
             
-            // Validation based on contact type
-            const isAirline = type === 'Airline';
-            
+            // Validation
             if (!companyName) {
                 alert('Company Name is required.');
                 return;
             }
             
-            if (!isAirline) {
-                // For non-airlines, require all fields
-                if (!contactNameValue || !email || !phone || !address || !formattedValue) {
-                    alert('Please fill in all required fields.');
-                    return;
-                }
+            if (!contactNameValue || !email || !phone || !address || !formattedValue) {
+                alert('Please fill in all required fields.');
+                return;
             }
             
             if (type === 'User') {
@@ -779,46 +694,16 @@
                 const contact = {
                     id,
                     type,
-                    companyName
+                    companyName,
+                    contactName: contactNameValue,
+                    email,
+                    phone,
+                    address,
+                    formattedValue
                 };
-                
-                // Add optional fields (not required for airlines)
-                if (contactNameValue) contact.contactName = contactNameValue;
-                if (email) contact.email = email;
-                if (phone) contact.phone = phone;
-                if (address) contact.address = address;
-                if (formattedValue) contact.formattedValue = formattedValue;
                 
                 if (type === 'Consignee' && accountInfo) {
                     contact.accountInfo = accountInfo;
-                }
-                
-                // Add AWBP, Airline Abbreviation, and Image for Airline contacts
-                if (type === 'Airline') {
-                    if (awbp) {
-                        contact.awbp = awbp;
-                    }
-                    if (airlineAbbreviation) {
-                        contact.airlineAbbreviation = airlineAbbreviation;
-                    }
-                    // Handle image upload
-                    const airlineImageInput = document.getElementById('contactAirlineImage');
-                    const airlineImagePreviewImg = document.getElementById('airlineImagePreviewImg');
-                    if (airlineImageInput && airlineImageInput.files && airlineImageInput.files[0]) {
-                        // New image uploaded
-                        const file = airlineImageInput.files[0];
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            contact.image = e.target.result; // Store as base64
-                            saveContactWithImage(contact, contactIndex, contacts);
-                        };
-                        reader.readAsDataURL(file);
-                        return; // Exit early, save will happen in reader.onload
-                    } else if (airlineImagePreviewImg && airlineImagePreviewImg.src && airlineImagePreviewImg.src.startsWith('data:')) {
-                        // Existing image (not removed)
-                        contact.image = airlineImagePreviewImg.src;
-                    }
-                    // If image was removed (preview hidden), don't include image property
                 }
                 
                 if (contactIndex >= 0) {
@@ -868,42 +753,6 @@
             });
         });
 
-        // Image upload preview functionality
-        const airlineImageInput = document.getElementById('contactAirlineImage');
-        const airlineImagePreview = document.getElementById('airlineImagePreview');
-        const airlineImagePreviewImg = document.getElementById('airlineImagePreviewImg');
-        const removeAirlineImageBtn = document.getElementById('removeAirlineImageBtn');
-        
-        if (airlineImageInput) {
-            airlineImageInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        airlineImagePreviewImg.src = e.target.result;
-                        airlineImagePreview.style.display = 'block';
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    airlineImagePreview.style.display = 'none';
-                }
-            });
-        }
-        
-        if (removeAirlineImageBtn) {
-            removeAirlineImageBtn.addEventListener('click', function() {
-                if (airlineImageInput) {
-                    airlineImageInput.value = '';
-                }
-                if (airlineImagePreviewImg) {
-                    airlineImagePreviewImg.src = '';
-                }
-                if (airlineImagePreview) {
-                    airlineImagePreview.style.display = 'none';
-                }
-            });
-        }
-        
         // Modal event handlers
         document.getElementById('contactForm').addEventListener('submit', handleSaveContact);
         document.getElementById('closeContactModal').addEventListener('click', closeContactModal);

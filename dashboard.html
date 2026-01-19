@@ -252,14 +252,19 @@
 
         // Common menu items (all roles)
         const commonItems = [
-            { href: 'shipments/list.html', icon: '📦', text: 'My Shipments', roles: ['all'] }
+            { href: 'shipments/list.html', icon: '📦', text: 'My Shipments', roles: ['all'] },
+            { href: 'airlines.html', icon: '✈️', text: 'Airlines', roles: ['all'] },
+            { href: 'destinations.html', icon: '🌍', text: 'Destinations', roles: ['all'] }
         ];
 
         // Role-specific menu items
         const roleItems = {
-            'issuing-carrier-agent': [
+            'admin': [
                 { href: 'contacts.html', icon: '👥', text: 'Contacts', roles: ['all'] },
-                { href: 'destinations.html', icon: '🌍', text: 'Destinations', roles: ['all'] }
+                { href: 'admin-setup.html', icon: '🔐', text: 'Admin Setup', roles: ['admin'] }
+            ],
+            'issuing-carrier-agent': [
+                { href: 'contacts.html', icon: '👥', text: 'Contacts', roles: ['all'] }
             ],
             'shipper': [
                 { href: 'shipments/create.html', icon: '➕', text: 'Create Shipment', roles: ['shipper'] },
@@ -286,19 +291,20 @@
         let defaultPage = 'shipments/list.html';
         let defaultActiveItem = itemsToShow.find(item => item.href === 'shipments/list.html') || { href: 'shipments/list.html' };
         
-        // Add "My Shipments" to all roles first
-        const shipmentsItem = { href: 'shipments/list.html', icon: '📦', text: 'My Shipments' };
-        const liShipments = document.createElement('li');
-        const isShipmentsActive = defaultPage === 'shipments/list.html' ? 'active' : '';
-        liShipments.innerHTML = `<a href="${shipmentsItem.href}" class="${isShipmentsActive}" target="contentFrame">
-            <span>${shipmentsItem.icon}</span> <span class="menu-text">${shipmentsItem.text}</span>
-        </a>`;
-        navMenu.appendChild(liShipments);
+        // Add common menu items (all roles)
+        commonItems.forEach(item => {
+            const li = document.createElement('li');
+            const isActive = defaultPage === item.href ? 'active' : '';
+            li.innerHTML = `<a href="${item.href}" class="${isActive}" target="contentFrame">
+                <span>${item.icon}</span> <span class="menu-text">${item.text}</span>
+            </a>`;
+            navMenu.appendChild(li);
+        });
         
         // Add role-specific menu items
         itemsToShow.forEach(item => {
-            // Skip if it's My Shipments (already added above)
-            if (item.href === 'shipments/list.html') {
+            // Skip if it's already in common items
+            if (commonItems.some(common => common.href === item.href)) {
                 return;
             }
             

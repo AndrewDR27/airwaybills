@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airlines - Airway Bills</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .airlines-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        .airlines-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .airlines-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .airlines-content {
+            padding: 40px;
+        }
+        .airlines-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .btn-add {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .airlines-list {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+        }
+        .airlines-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .airlines-table thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .airlines-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        .airlines-table td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #666;
+            font-size: 14px;
+        }
+        .airlines-table tbody tr {
+            transition: background 0.2s;
+        }
+        .airlines-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+        .airlines-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .airline-logo {
+            max-width: 80px;
+            max-height: 40px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+            background: white;
+        }
+        .airline-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-edit, .btn-delete {
+            flex: 1;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-edit {
+            background: #667eea;
+            color: white;
+        }
+        .btn-edit:hover {
+            background: #5568d3;
+        }
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-delete:hover {
+            background: #c82333;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="airlines-container">
+        <div class="airlines-header">
+            <h1>✈️ Airlines Management</h1>
+            <p>Manage airline profiles and logos</p>
+        </div>
+        
+        <div class="airlines-content">
+            <div class="airlines-actions">
+                <h2>Airline Profiles</h2>
+                <button class="btn-add" id="addAirlineBtn" onclick="openAirlineModal(null)" style="display: none;">+ Add Airline</button>
+            </div>
+            <div id="airlines-list" class="airlines-list">
+                <!-- Airlines will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Airline Management Modal -->
+    <div id="airlineModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Airline</h2>
+                <button type="button" class="modal-close" id="closeAirlineModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="airlineForm">
+                    <input type="hidden" id="airlineId" value="">
+                    
+                    <div class="form-group">
+                        <label for="airlineCompanyName">Company Name *</label>
+                        <input type="text" id="airlineCompanyName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="airlineName">Contact Name</label>
+                        <input type="text" id="airlineName">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="airlineEmail">Email</label>
+                        <input type="email" id="airlineEmail">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="airlinePhone">Phone Number</label>
+                        <input type="tel" id="airlinePhone">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="airlineAddress">Address</label>
+                        <textarea id="airlineAddress" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="airlineFormattedValue">Formatted Field Value</label>
+                        <textarea id="airlineFormattedValue" rows="4" placeholder="This will be used to fill the form field. Format: Company Name\nContact Name\nEmail\nPhone\nAddress"></textarea>
+                        <small>This value will be used to fill the form field. Use line breaks (\n) to format.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="airlineAWBP">AWBP (01. AWBP)</label>
+                        <input type="text" id="airlineAWBP" placeholder="Enter AWBP (Air Waybill Prefix)">
+                        <small>This will be used to auto-fill field 01. AWBP when this airline is selected.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="airlineAbbreviation">Airline Abbreviation</label>
+                        <input type="text" id="airlineAbbreviation" placeholder="Enter Airline Abbreviation">
+                        <small>This abbreviation will be stored with the airline contact.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="airlineImage">Airline Logo/Image</label>
+                        <input type="file" id="airlineImage" accept="image/*">
+                        <small>Upload an image/logo for this airline (JPG, PNG, etc.)</small>
+                        <div id="airlineImagePreview" style="margin-top: 10px; display: none;">
+                            <img id="airlineImagePreviewImg" src="" alt="Preview" style="max-width: 200px; max-height: 100px; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
+                            <button type="button" id="removeAirlineImageBtn" style="margin-left: 10px; padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove Image</button>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancelAirlineBtn">Cancel</button>
+                        <button type="submit" class="btn-primary" id="saveAirlineBtn">Save Airline</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // Check if user is admin
+        function isAdmin() {
+            const user = getCurrentUser();
+            return user && user.role === 'admin';
+        }
+
+        // Get all contacts (airlines are stored with type 'Airline')
+        function getContacts() {
+            try {
+                const contactsJson = localStorage.getItem('awbContacts');
+                return contactsJson ? JSON.parse(contactsJson) : [];
+            } catch (error) {
+                console.warn('Could not read contacts from localStorage:', error);
+                return [];
+            }
+        }
+
+        // Get only airlines
+        function getAirlines() {
+            return getContacts().filter(c => c.type === 'Airline');
+        }
+
+        function saveContacts(contacts) {
+            try {
+                localStorage.setItem('awbContacts', JSON.stringify(contacts));
+                loadAirlines();
+                return true;
+            } catch (error) {
+                console.warn('Could not save contacts to localStorage:', error);
+                alert('Error saving airline. Storage may be full.');
+                return false;
+            }
+        }
+
+        function loadAirlines() {
+            const airlines = getAirlines();
+            
+            // Sort airlines alphabetically by company name
+            airlines.sort((a, b) => {
+                const nameA = (a.companyName || '').toLowerCase();
+                const nameB = (b.companyName || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
+            
+            const airlinesList = document.getElementById('airlines-list');
+            if (airlines.length === 0) {
+                airlinesList.innerHTML = '<div class="empty-state"><h3>No Airlines</h3><p>Click "+ Add Airline" to create your first airline profile.</p></div>';
+            } else {
+                airlinesList.innerHTML = createAirlinesTable(airlines);
+            }
+        }
+
+        function createAirlinesTable(airlines) {
+            const isUserAdmin = isAdmin();
+            let tableHTML = `
+                <table class="airlines-table">
+                    <thead>
+                        <tr>
+                            <th>Logo</th>
+                            <th>Company Name</th>
+                            <th>Abbreviation</th>
+                            <th>AWBP</th>
+                            ${isUserAdmin ? '<th>Actions</th>' : ''}
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            airlines.forEach(airline => {
+                const hasImage = airline.image;
+                tableHTML += `
+                    <tr>
+                        <td>
+                            ${hasImage ? `<img src="${airline.image}" alt="${escapeHtml(airline.companyName)}" class="airline-logo">` : '<span style="color: #999;">No logo</span>'}
+                        </td>
+                        <td>
+                            <strong>${escapeHtml(airline.companyName)}</strong>
+                        </td>
+                        <td>
+                            ${airline.airlineAbbreviation ? `<span>${escapeHtml(airline.airlineAbbreviation)}</span>` : '<span style="color: #999;">-</span>'}
+                        </td>
+                        <td>
+                            ${airline.awbp ? `<span>${escapeHtml(airline.awbp)}</span>` : '<span style="color: #999;">-</span>'}
+                        </td>
+                        ${isUserAdmin ? `
+                        <td>
+                            <div class="airline-actions">
+                                <button class="btn-edit" onclick="openAirlineModal('${airline.id}')">Edit</button>
+                                <button class="btn-delete" onclick="deleteAirline('${airline.id}')">Delete</button>
+                            </div>
+                        </td>
+                        ` : ''}
+                    </tr>
+                `;
+            });
+            
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+            
+            return tableHTML;
+        }
+
+        function deleteAirline(airlineId) {
+            // Check if user is admin
+            if (!isAdmin()) {
+                alert('Only administrators can delete airlines.');
+                return;
+            }
+            
+            if (!confirm('Are you sure you want to delete this airline?')) {
+                return;
+            }
+            
+            const contacts = getContacts();
+            const filtered = contacts.filter(c => c.id !== airlineId);
+            
+            if (saveContacts(filtered)) {
+                alert('Airline deleted successfully!');
+            }
+        }
+
+        function openAirlineModal(airlineIdToEdit) {
+            // Check if user is admin
+            if (!isAdmin()) {
+                alert('Only administrators can add or edit airlines.');
+                return;
+            }
+            
+            const modal = document.getElementById('airlineModal');
+            const form = document.getElementById('airlineForm');
+            const airlineId = document.getElementById('airlineId');
+            const modalTitle = document.getElementById('modalTitle');
+            
+            airlineId.value = airlineIdToEdit || '';
+            
+            if (airlineIdToEdit) {
+                const contacts = getContacts();
+                const airline = contacts.find(c => c.id === airlineIdToEdit && c.type === 'Airline');
+                if (airline) {
+                    modalTitle.textContent = 'Edit Airline';
+                    document.getElementById('airlineCompanyName').value = airline.companyName || '';
+                    document.getElementById('airlineName').value = airline.contactName || '';
+                    document.getElementById('airlineEmail').value = airline.email || '';
+                    document.getElementById('airlinePhone').value = airline.phone || '';
+                    document.getElementById('airlineAddress').value = airline.address || '';
+                    document.getElementById('airlineFormattedValue').value = airline.formattedValue || '';
+                    document.getElementById('airlineAWBP').value = airline.awbp || '';
+                    document.getElementById('airlineAbbreviation').value = airline.airlineAbbreviation || '';
+                    
+                    // Load airline image if it exists
+                    const airlineImagePreview = document.getElementById('airlineImagePreview');
+                    const airlineImagePreviewImg = document.getElementById('airlineImagePreviewImg');
+                    if (airline.image && airlineImagePreview && airlineImagePreviewImg) {
+                        airlineImagePreviewImg.src = airline.image;
+                        airlineImagePreview.style.display = 'block';
+                    } else if (airlineImagePreview) {
+                        airlineImagePreview.style.display = 'none';
+                    }
+                    
+                    const airlineImageInput = document.getElementById('airlineImage');
+                    if (airlineImageInput) {
+                        airlineImageInput.value = ''; // Clear file input
+                    }
+                }
+            } else {
+                modalTitle.textContent = 'Add Airline';
+                form.reset();
+                airlineId.value = '';
+                const airlineImagePreview = document.getElementById('airlineImagePreview');
+                if (airlineImagePreview) {
+                    airlineImagePreview.style.display = 'none';
+                }
+            }
+            
+            modal.style.display = 'flex';
+        }
+
+        function closeAirlineModal() {
+            const modal = document.getElementById('airlineModal');
+            const form = document.getElementById('airlineForm');
+            const airlineImagePreview = document.getElementById('airlineImagePreview');
+            
+            modal.style.display = 'none';
+            form.reset();
+            if (airlineImagePreview) {
+                airlineImagePreview.style.display = 'none';
+            }
+        }
+
+        function handleSaveAirline(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('airlineId').value || Date.now().toString();
+            const companyName = document.getElementById('airlineCompanyName').value.trim();
+            const contactNameValue = document.getElementById('airlineName').value.trim();
+            const email = document.getElementById('airlineEmail').value.trim();
+            const phone = document.getElementById('airlinePhone').value.trim();
+            const address = document.getElementById('airlineAddress').value.trim();
+            const formattedValue = document.getElementById('airlineFormattedValue').value.trim();
+            const awbp = document.getElementById('airlineAWBP').value.trim();
+            const airlineAbbreviation = document.getElementById('airlineAbbreviation').value.trim();
+            
+            if (!companyName) {
+                alert('Company Name is required.');
+                return;
+            }
+            
+            const contacts = getContacts();
+            const contactIndex = contacts.findIndex(c => c.id === id);
+            
+            const airline = {
+                id,
+                type: 'Airline',
+                companyName
+            };
+            
+            // Add optional fields
+            if (contactNameValue) airline.contactName = contactNameValue;
+            if (email) airline.email = email;
+            if (phone) airline.phone = phone;
+            if (address) airline.address = address;
+            if (formattedValue) airline.formattedValue = formattedValue;
+            if (awbp) airline.awbp = awbp;
+            if (airlineAbbreviation) airline.airlineAbbreviation = airlineAbbreviation;
+            
+            // Handle image upload
+            const airlineImageInput = document.getElementById('airlineImage');
+            const airlineImagePreviewImg = document.getElementById('airlineImagePreviewImg');
+            if (airlineImageInput && airlineImageInput.files && airlineImageInput.files[0]) {
+                // New image uploaded
+                const file = airlineImageInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    airline.image = e.target.result; // Store as base64
+                    saveAirlineWithImage(airline, contactIndex, contacts);
+                };
+                reader.readAsDataURL(file);
+                return; // Exit early, save will happen in reader.onload
+            } else if (airlineImagePreviewImg && airlineImagePreviewImg.src && airlineImagePreviewImg.src.startsWith('data:')) {
+                // Existing image (not removed)
+                airline.image = airlineImagePreviewImg.src;
+            }
+            // If image was removed (preview hidden), don't include image property
+            
+            if (contactIndex >= 0) {
+                contacts[contactIndex] = airline;
+            } else {
+                contacts.push(airline);
+            }
+            
+            if (saveContacts(contacts)) {
+                closeAirlineModal();
+                alert('✓ Airline saved successfully!');
+            }
+        }
+        
+        function saveAirlineWithImage(airline, contactIndex, contacts) {
+            if (contactIndex >= 0) {
+                contacts[contactIndex] = airline;
+            } else {
+                contacts.push(airline);
+            }
+            
+            if (saveContacts(contacts)) {
+                closeAirlineModal();
+                alert('✓ Airline saved successfully!');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Image upload preview functionality
+        const airlineImageInput = document.getElementById('airlineImage');
+        const airlineImagePreview = document.getElementById('airlineImagePreview');
+        const airlineImagePreviewImg = document.getElementById('airlineImagePreviewImg');
+        const removeAirlineImageBtn = document.getElementById('removeAirlineImageBtn');
+        
+        if (airlineImageInput) {
+            airlineImageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        airlineImagePreviewImg.src = e.target.result;
+                        airlineImagePreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    airlineImagePreview.style.display = 'none';
+                }
+            });
+        }
+        
+        if (removeAirlineImageBtn) {
+            removeAirlineImageBtn.addEventListener('click', function() {
+                if (airlineImageInput) {
+                    airlineImageInput.value = '';
+                }
+                if (airlineImagePreviewImg) {
+                    airlineImagePreviewImg.src = '';
+                }
+                if (airlineImagePreview) {
+                    airlineImagePreview.style.display = 'none';
+                }
+            });
+        }
+        
+        // Modal event handlers
+        document.getElementById('airlineForm').addEventListener('submit', handleSaveAirline);
+        document.getElementById('closeAirlineModal').addEventListener('click', closeAirlineModal);
+        document.getElementById('cancelAirlineBtn').addEventListener('click', closeAirlineModal);
+        
+        document.getElementById('airlineModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('airlineModal')) {
+                closeAirlineModal();
+            }
+        });
+
+        // Load airlines on page load and set admin permissions
+        function initializePage() {
+            loadAirlines();
+            
+            // Show/hide add button based on admin status
+            const isUserAdmin = isAdmin();
+            const addBtn = document.getElementById('addAirlineBtn');
+            if (addBtn) {
+                addBtn.style.display = isUserAdmin ? 'block' : 'none';
+            }
+        }
+        
+        // Initialize on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePage);
+        } else {
+            initializePage();
+        }
+    </script>
+</body>
+</html>

@@ -4,7 +4,8 @@ const ROLES = {
     ISSUING_CARRIER_AGENT: 'issuing-carrier-agent',
     CONSIGNEE: 'consignee',
     CUSTOMS_BROKER: 'customs-broker',
-    COURIER: 'courier'
+    COURIER: 'courier',
+    ADMIN: 'admin' // Hidden role - not visible in registration
 };
 
 const ROLE_LABELS = {
@@ -12,7 +13,8 @@ const ROLE_LABELS = {
     [ROLES.ISSUING_CARRIER_AGENT]: 'Issuing Carrier\'s Agent',
     [ROLES.CONSIGNEE]: 'Consignee',
     [ROLES.CUSTOMS_BROKER]: 'Customs Broker',
-    [ROLES.COURIER]: 'Courier'
+    [ROLES.COURIER]: 'Courier',
+    [ROLES.ADMIN]: 'Administrator'
 };
 
 // Role-based permissions
@@ -66,12 +68,34 @@ const PERMISSIONS = {
         canApprovePayment: false,
         canInviteUsers: false,
         allowedInviteRoles: []
+    },
+    [ROLES.ADMIN]: {
+        canCreateShipment: false, // Admins cannot create spaces
+        canViewShipments: true,
+        canEditShipment: true, // Admins can edit all shipments
+        canCreateAWB: false, // Admins cannot create AWBs
+        canAddFees: true,
+        canApprovePayment: true,
+        canInviteUsers: true,
+        canViewAllUsers: true,
+        canViewAllShipments: true,
+        canManageUsers: true,
+        allowedInviteRoles: [ROLES.SHIPPER, ROLES.ISSUING_CARRIER_AGENT, ROLES.CONSIGNEE, ROLES.CUSTOMS_BROKER, ROLES.COURIER, ROLES.ADMIN]
     }
 };
 
 // Check if user has permission
 function hasPermission(userRole, permission) {
-    if (!userRole || !PERMISSIONS[userRole]) {
+    if (!userRole) {
+        return false;
+    }
+    
+    // Admin has all permissions
+    if (userRole === ROLES.ADMIN) {
+        return true;
+    }
+    
+    if (!PERMISSIONS[userRole]) {
         return false;
     }
     return PERMISSIONS[userRole][permission] === true;
@@ -82,8 +106,13 @@ function getRoleLabel(role) {
     return ROLE_LABELS[role] || role;
 }
 
-// Get all roles (for dropdowns)
+// Get all roles (for dropdowns) - excludes admin
 function getAllRoles() {
+    return Object.values(ROLES).filter(role => role !== ROLES.ADMIN);
+}
+
+// Get all roles including admin (for admin use only)
+function getAllRolesIncludingAdmin() {
     return Object.values(ROLES);
 }
 
@@ -103,5 +132,6 @@ if (typeof window !== 'undefined') {
     window.hasPermission = hasPermission;
     window.getRoleLabel = getRoleLabel;
     window.getAllRoles = getAllRoles;
+    window.getAllRolesIncludingAdmin = getAllRolesIncludingAdmin;
     window.getAllowedInviteRoles = getAllowedInviteRoles;
 }

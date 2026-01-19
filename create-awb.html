@@ -672,8 +672,26 @@
                 }
                 
                 const user = getCurrentUser();
+                // Only agents can create AWBs, admins can view/edit but not create
                 if (!user || user.role !== 'issuing-carrier-agent') {
-                    return;
+                    // If admin, allow viewing/editing but prevent creation
+                    if (user && user.role === 'admin') {
+                        // Check if this is a new AWB creation (no spaceId means new)
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const spaceId = urlParams.get('spaceId') || sessionStorage.getItem('currentSpaceId');
+                        if (!spaceId) {
+                            alert('Administrators cannot create new AWBs. Please use an existing shipment space.');
+                            if (window.parent && window.parent !== window) {
+                                window.parent.document.getElementById('contentFrame').src = 'shipments/list.html';
+                            } else {
+                                window.location.href = 'shipments/list.html';
+                            }
+                            return;
+                        }
+                        // Admin can edit existing AWBs, so continue
+                    } else {
+                        return;
+                    }
                 }
                 
                 // Check if we have a spaceId
