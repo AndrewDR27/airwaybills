@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Shipment Space - Airway Bills</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .invited-participants {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .participant-tag {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .participant-tag .remove {
+            margin-left: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            margin-left: 10px;
+        }
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Create Shipment Space</h1>
+        
+        <div class="info-box">
+            <p><strong>Note:</strong> You can invite Consignees and Shippers to this space. Customs Brokers and Couriers cannot be invited at this time.</p>
+        </div>
+
+        <form id="createSpaceForm">
+            <div class="form-group">
+                <label for="shipperSelect">Invite Shipper (Optional)</label>
+                <select id="shipperSelect">
+                    <option value="">-- Select Shipper --</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="consigneeSelect">Invite Consignee (Optional)</label>
+                <select id="consigneeSelect">
+                    <option value="">-- Select Consignee --</option>
+                </select>
+            </div>
+
+            <div id="invitedParticipants" class="invited-participants" style="display: none;">
+                <strong>Invited Participants:</strong>
+                <div id="participantsList"></div>
+            </div>
+
+            <button type="submit" class="btn-primary">Create Shipment Space</button>
+            <button type="button" class="btn-secondary" onclick="goBack()">Cancel</button>
+        </form>
+    </div>
+
+    <script src="../models/user.js"></script>
+    <script src="../models/shipment.js"></script>
+    <script src="../js/roles.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/shipments.js"></script>
+
+    <script>
+        // Check authentication and role
+        if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
+            window.location.href = '../login.html';
+        }
+
+        const user = getCurrentUser();
+        if (!user || user.role !== 'issuing-carrier-agent') {
+            alert('Only Issuing Carrier Agents can create shipment spaces.');
+            goBack();
+        }
+
+        let invitedParticipants = [];
+
+        // Load users for invitation dropdowns
+        function loadUsers() {
+            const allUsers = getAllUsers();
+            
+            const shipperSelect = document.getElementById('shipperSelect');
+            const consigneeSelect = document.getElementById('consigneeSelect');
+            
+            // Filter users by role
+            const shippers = allUsers.filter(u => u.role === 'shipper' && u.isActive !== false);
+            const consignees = allUsers.filter(u => u.role === 'consignee' && u.isActive !== false);
+            
+            // Populate shipper dropdown
+            if (shippers.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = '-- No Shippers Available --';
+                shipperSelect.appendChild(option);
+            } else {
+                shippers.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = `${user.name}${user.company ? ' - ' + user.company : ''} (${user.email})`;
+                    shipperSelect.appendChild(option);
+                });
+            }
+            
+            // Populate consignee dropdown
+            if (consignees.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = '-- No Consignees Available --';
+                consigneeSelect.appendChild(option);
+            } else {
+                consignees.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = `${user.name}${user.company ? ' - ' + user.company : ''} (${user.email})`;
+                    consigneeSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Handle adding participants
+        document.getElementById('shipperSelect').addEventListener('change', function() {
+            const userId = this.value;
+            if (userId) {
+                const user = getUserById(userId);
+                if (user && user.role === 'shipper') {
+                    addParticipant(user.id, 'shipper', user.name || user.email);
+                } else {
+                    alert('Invalid user selected.');
+                    this.value = '';
+                }
+            }
+        });
+
+        document.getElementById('consigneeSelect').addEventListener('change', function() {
+            const userId = this.value;
+            if (userId) {
+                const user = getUserById(userId);
+                if (user && user.role === 'consignee') {
+                    addParticipant(user.id, 'consignee', user.name || user.email);
+                } else {
+                    alert('Invalid user selected.');
+                    this.value = '';
+                }
+            }
+        });
+
+        function addParticipant(userId, role, displayName) {
+            // Check if already added
+            if (invitedParticipants.find(p => p.userId === userId)) {
+                return;
+            }
+            
+            invitedParticipants.push({
+                userId: userId,
+                role: role,
+                displayName: displayName
+            });
+            
+            updateParticipantsDisplay();
+        }
+
+        function removeParticipant(userId) {
+            invitedParticipants = invitedParticipants.filter(p => p.userId !== userId);
+            updateParticipantsDisplay();
+            
+            // Reset dropdowns
+            document.getElementById('shipperSelect').value = '';
+            document.getElementById('consigneeSelect').value = '';
+        }
+
+        function updateParticipantsDisplay() {
+            const container = document.getElementById('invitedParticipants');
+            const list = document.getElementById('participantsList');
+            
+            if (invitedParticipants.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            
+            container.style.display = 'block';
+            list.innerHTML = invitedParticipants.map(p => {
+                const roleLabel = getRoleLabel ? getRoleLabel(p.role) : p.role;
+                return `<span class="participant-tag">${p.displayName} (${roleLabel}) <span class="remove" onclick="removeParticipant('${p.userId}')">×</span></span>`;
+            }).join('');
+        }
+
+        // Handle form submission
+        document.getElementById('createSpaceForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const result = createShipmentSpace(invitedParticipants);
+            
+            if (result.success) {
+                alert('Shipment space created successfully! Space ID: ' + result.shipment.spaceId);
+                // Redirect to the space detail page
+                if (window.parent && window.parent !== window) {
+                    // In iframe - path is relative to dashboard.html (root directory)
+                    window.parent.document.getElementById('contentFrame').src = `shipments/space.html?spaceId=${result.shipment.spaceId}`;
+                } else {
+                    // Not in iframe - path is relative to current file (shipments/ directory)
+                    window.location.href = `space.html?spaceId=${result.shipment.spaceId}`;
+                }
+            } else {
+                alert('Error creating shipment space: ' + result.message);
+            }
+        });
+
+        function goBack() {
+            if (window.parent && window.parent !== window) {
+                window.parent.document.getElementById('contentFrame').src = 'list.html';
+            } else {
+                window.location.href = 'list.html';
+            }
+        }
+
+        // Load users on page load
+        loadUsers();
+    </script>
+</body>
+</html>

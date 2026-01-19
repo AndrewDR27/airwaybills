@@ -208,16 +208,7 @@
                 <p id="userDisplay">User</p>
             </div>
             <ul class="nav-menu">
-                <li><a href="create-awb.html" class="active" target="contentFrame">
-                    <span>📋</span> <span class="menu-text">Create AWB</span>
-                </a></li>
-                <li><a href="contacts.html" target="contentFrame">
-                    <span>👥</span> <span class="menu-text">Contacts</span>
-                </a></li>
-                <li><a href="destinations.html" target="contentFrame">
-                    <span>🌍</span> <span class="menu-text">Destination List</span>
-                </a></li>
-                <!-- Add more menu items here as needed -->
+                <!-- Menu items are built dynamically based on user role -->
             </ul>
             <div class="user-section">
                 <div class="user-info">
@@ -267,7 +258,6 @@
         // Role-specific menu items
         const roleItems = {
             'issuing-carrier-agent': [
-                { href: 'create-awb.html', icon: '📋', text: 'Create AWB', roles: ['issuing-carrier-agent'] },
                 { href: 'contacts.html', icon: '👥', text: 'Contacts', roles: ['all'] },
                 { href: 'destinations.html', icon: '🌍', text: 'Destinations', roles: ['all'] }
             ],
@@ -292,24 +282,9 @@
         const itemsToShow = roleItems[user.role] || [];
         
         // Determine default page based on role
-        let defaultPage = 'shipments/list.html'; // Default to My Shipments for all roles
-        let defaultActiveItem = null;
-        
-        if (user.role === 'issuing-carrier-agent') {
-            // Issuing Carrier Agent defaults to Create AWB
-            defaultPage = 'create-awb.html';
-            defaultActiveItem = itemsToShow.find(item => item.href === 'create-awb.html');
-        } else if (user.role === 'consignee') {
-            // Consignee defaults to Pending Approvals
-            defaultPage = 'shipments/pending.html';
-            defaultActiveItem = itemsToShow.find(item => item.href === 'shipments/pending.html');
-        } else if (user.role === 'shipper') {
-            // Shipper defaults to My Shipments
-            defaultPage = 'shipments/list.html';
-        } else {
-            // All other roles default to My Shipments
-            defaultPage = 'shipments/list.html';
-        }
+        // All roles now default to My Shipments (shipments/list.html)
+        let defaultPage = 'shipments/list.html';
+        let defaultActiveItem = itemsToShow.find(item => item.href === 'shipments/list.html') || { href: 'shipments/list.html' };
         
         // Add "My Shipments" to all roles first
         const shipmentsItem = { href: 'shipments/list.html', icon: '📦', text: 'My Shipments' };

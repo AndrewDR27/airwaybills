@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipment Space - Airway Bills</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .space-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        .space-header h1 {
+            margin: 0;
+            color: #333;
+        }
+        .space-id {
+            font-size: 16px;
+            color: #999;
+            margin: 5px 0;
+        }
+        .awb-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-active { background: #d4edda; color: #155724; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
+        .status-shared { background: #fff3cd; color: #856404; }
+        .action-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .info-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .info-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .participants-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .participant-badge {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        .pdf-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+        .restricted-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+        }
+        .restricted-section p {
+            margin: 0;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="space-header">
+            <div>
+                <h1>Shipment Space</h1>
+                <div class="awb-number" id="awbDisplay" style="display: none;"></div>
+                <div class="space-id" id="spaceIdDisplay">Loading...</div>
+            </div>
+            <div>
+                <span class="status-badge" id="statusBadge">Loading...</span>
+            </div>
+        </div>
+
+        <div id="agentSection" style="display: none;">
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="createAWBBtn">Create AWB</button>
+                <button class="btn btn-success" id="shareAWBBtn" style="display: none;">Share AWB with Participants</button>
+                <button class="btn btn-warning" id="cancelBtn">Cancel Shipment</button>
+                <button class="btn btn-danger" id="deleteBtn" style="display: none;">Delete Shipment</button>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>Participants</h2>
+            <div class="participants-list" id="participantsList">Loading...</div>
+        </div>
+
+        <div id="pdfSection" class="pdf-section" style="display: none;">
+            <h2>AWB Document</h2>
+            <p id="pdfStatus">PDF is available for download.</p>
+            <button class="btn btn-success" id="downloadPDFBtn">Download AWB PDF</button>
+        </div>
+
+        <div id="restrictedSection" class="restricted-section" style="display: none;">
+            <p><strong>Access Restricted:</strong> Only the Issuing Carrier Agent can view and modify AWB form data. You can view and download the AWB PDF if it has been shared.</p>
+        </div>
+    </div>
+
+    <script src="../models/user.js"></script>
+    <script src="../models/shipment.js"></script>
+    <script src="../js/roles.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/shipments.js"></script>
+
+    <script>
+        // Check authentication
+        if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
+            window.location.href = '../login.html';
+        }
+
+        const user = getCurrentUser();
+        if (!user) {
+            window.location.href = '../login.html';
+        }
+
+        // Get spaceId from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const spaceId = urlParams.get('spaceId');
+        
+        if (!spaceId) {
+            alert('No shipment space ID provided.');
+            goBack();
+        }
+
+        let currentShipment = null;
+
+        // Load shipment space
+        function loadSpace() {
+            currentShipment = getShipmentBySpaceId(spaceId);
+            
+            if (!currentShipment) {
+                alert('Shipment space not found.');
+                goBack();
+                return;
+            }
+
+            // Check if user has access
+            const hasAccess = currentShipment.createdBy === user.id || 
+                            currentShipment.participants.some(p => p.userId === user.id);
+            
+            if (!hasAccess) {
+                alert('You do not have access to this shipment space.');
+                goBack();
+                return;
+            }
+
+            // Display space info - AWB number as primary, Space ID as secondary
+            if (currentShipment.awbNumber) {
+                document.getElementById('awbDisplay').textContent = `AWB: ${currentShipment.awbNumber}`;
+                document.getElementById('awbDisplay').style.display = 'block';
+                document.getElementById('spaceIdDisplay').textContent = `Space ID: ${currentShipment.spaceId}`;
+            } else {
+                // If no AWB yet, show Space ID as primary
+                document.getElementById('awbDisplay').style.display = 'none';
+                document.getElementById('spaceIdDisplay').textContent = `Space ID: ${currentShipment.spaceId}`;
+                document.getElementById('spaceIdDisplay').style.fontSize = '24px';
+                document.getElementById('spaceIdDisplay').style.fontWeight = 'bold';
+                document.getElementById('spaceIdDisplay').style.color = '#667eea';
+            }
+
+            // Status badge
+            const statusBadge = document.getElementById('statusBadge');
+            let statusText = currentShipment.status;
+            if (currentShipment.isShared && currentShipment.status === 'active') {
+                statusText = 'Shared';
+                statusBadge.className = 'status-badge status-shared';
+            } else {
+                statusBadge.className = `status-badge status-${currentShipment.status}`;
+            }
+            statusBadge.textContent = statusText;
+
+            // Show/hide sections based on role
+            const isAgent = user.role === 'issuing-carrier-agent';
+            const isCancelled = currentShipment.status === 'cancelled';
+            
+            if (isAgent) {
+                document.getElementById('agentSection').style.display = 'block';
+                
+                // Show Create AWB button only if AWB not created yet
+                if (!currentShipment.awbNumber) {
+                    document.getElementById('createAWBBtn').style.display = 'block';
+                } else {
+                    document.getElementById('createAWBBtn').style.display = 'none';
+                }
+                
+                // Show Share button only if AWB exists and not shared yet
+                if (currentShipment.awbNumber && !currentShipment.isShared) {
+                    document.getElementById('shareAWBBtn').style.display = 'block';
+                }
+                
+                // Show delete button only if cancelled
+                if (isCancelled) {
+                    document.getElementById('deleteBtn').style.display = 'block';
+                    document.getElementById('cancelBtn').textContent = 'Uncancel Shipment';
+                }
+            } else {
+                // Non-agents see restricted message
+                document.getElementById('restrictedSection').style.display = 'block';
+            }
+
+            // Show PDF section if available and shared (or if agent)
+            if (currentShipment.pdfBase64 && (isAgent || currentShipment.isShared)) {
+                document.getElementById('pdfSection').style.display = 'block';
+            }
+
+            // Load participants
+            loadParticipants();
+
+            // Disable actions if cancelled (except for agent)
+            if (isCancelled && !isAgent) {
+                // Non-agents can't do anything with cancelled shipments
+                document.getElementById('restrictedSection').innerHTML = '<p><strong>Cancelled:</strong> This shipment has been cancelled and is no longer accessible.</p>';
+            }
+        }
+
+        function loadParticipants() {
+            const participants = currentShipment.participants || [];
+            const list = document.getElementById('participantsList');
+            
+            if (participants.length === 0) {
+                list.innerHTML = '<p>No participants</p>';
+                return;
+            }
+
+            list.innerHTML = participants.map(p => {
+                const participantUser = getUserById(p.userId);
+                const roleLabel = getRoleLabel ? getRoleLabel(p.role) : p.role;
+                const name = participantUser ? participantUser.name : 'Unknown User';
+                return `<span class="participant-badge">${name} (${roleLabel})</span>`;
+            }).join('');
+        }
+
+        // Button handlers
+        document.getElementById('createAWBBtn').addEventListener('click', function() {
+            // Store spaceId and redirect to create-awb.html
+            sessionStorage.setItem('currentSpaceId', spaceId);
+            if (window.parent && window.parent !== window) {
+                window.parent.document.getElementById('contentFrame').src = '../create-awb.html?spaceId=' + spaceId;
+            } else {
+                window.location.href = '../create-awb.html?spaceId=' + spaceId;
+            }
+        });
+
+        document.getElementById('shareAWBBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to share this AWB with all participants? They will be able to view and download the PDF.')) {
+                const result = shareShipment(spaceId);
+                if (result.success) {
+                    alert('AWB shared successfully with participants!');
+                    loadSpace(); // Reload to update UI
+                } else {
+                    alert('Error sharing AWB: ' + result.message);
+                }
+            }
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', function() {
+            if (currentShipment.status === 'cancelled') {
+                // Uncancel
+                if (confirm('Are you sure you want to uncancel this shipment?')) {
+                    const result = uncancelShipment(spaceId);
+                    if (result.success) {
+                        alert('Shipment uncancelled successfully.');
+                        loadSpace();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                }
+            } else {
+                // Cancel
+                if (confirm('Are you sure you want to cancel this shipment? Participants will no longer be able to access it.')) {
+                    const result = cancelShipment(spaceId);
+                    if (result.success) {
+                        alert('Shipment cancelled successfully.');
+                        loadSpace();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                }
+            }
+        });
+
+        document.getElementById('deleteBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to permanently delete this shipment space? This action cannot be undone.')) {
+                if (confirm('This is your final confirmation. The shipment will be permanently deleted.')) {
+                    const result = deleteShipment(spaceId);
+                    if (result.success) {
+                        alert('Shipment deleted successfully.');
+                        goBack();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                }
+            }
+        });
+
+        document.getElementById('downloadPDFBtn').addEventListener('click', function() {
+            if (!currentShipment.pdfBase64) {
+                alert('PDF not available.');
+                return;
+            }
+
+            try {
+                const binaryString = atob(currentShipment.pdfBase64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                const blob = new Blob([bytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `AWB-${currentShipment.awbNumber || currentShipment.spaceId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Error downloading PDF:', error);
+                alert('Error downloading PDF: ' + error.message);
+            }
+        });
+
+        function goBack() {
+            if (window.parent && window.parent !== window) {
+                // In iframe - path is relative to dashboard.html (root directory)
+                window.parent.document.getElementById('contentFrame').src = 'shipments/list.html';
+            } else {
+                // Not in iframe - path is relative to current file (shipments/ directory)
+                window.location.href = 'list.html';
+            }
+        }
+
+        // Load space on page load
+        loadSpace();
+    </script>
+</body>
+</html>

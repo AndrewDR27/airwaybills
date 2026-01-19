@@ -1,10 +1,15 @@
 // Shipment data model (AWB-based)
 class Shipment {
     constructor(data = {}) {
-        this.awbNumber = data.awbNumber || this.generateAWBNumber();
+        this.spaceId = data.spaceId || this.generateSpaceId(); // 10-digit alphanumeric ID
+        this.awbNumber = data.awbNumber || null; // AWB number (set when AWB is created)
         this.createdBy = data.createdBy || '';
         this.createdAt = data.createdAt || new Date().toISOString();
-        this.status = data.status || 'draft'; // draft, in-progress, completed, cancelled
+        this.status = data.status || 'pending'; // pending, active, in-transit, cancelled, deleted
+        this.subStatus = data.subStatus || null; // at-destination, ready-for-pickup, delivered (for in-transit)
+        this.isConfirmed = data.isConfirmed || false; // Whether agent has confirmed the AWB
+        this.confirmedAt = data.confirmedAt || null; // When AWB was confirmed by agent
+        this.confirmedBy = data.confirmedBy || null; // Who confirmed the AWB
         this.participants = data.participants || [];
         this.formData = data.formData || {}; // All AWB form data from create-awb.html
         this.fees = data.fees || [];
@@ -14,6 +19,21 @@ class Shipment {
         this.notes = data.notes || '';
         this.pdfBase64 = data.pdfBase64 || null; // Store PDF as base64 string
         this.pdfCreatedAt = data.pdfCreatedAt || null;
+        this.isShared = data.isShared || false; // Whether AWB is marked as ready for participants
+        this.sharedAt = data.sharedAt || null; // When AWB was shared
+        this.factoryInvoice = data.factoryInvoice || null; // Factory invoice PDF as base64
+        this.factoryInvoiceUploadedAt = data.factoryInvoiceUploadedAt || null;
+        this.factoryInvoiceUploadedBy = data.factoryInvoiceUploadedBy || null;
+    }
+
+    generateSpaceId() {
+        // Generate 10-digit alphanumeric ID (numbers and capital letters)
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let result = '';
+        for (let i = 0; i < 10; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
     }
 
     generateAWBNumber() {
@@ -65,12 +85,47 @@ class Shipment {
         this.status = 'completed';
     }
 
+    cancel() {
+        this.status = 'cancelled';
+    }
+
+    uncancel() {
+        if (this.status === 'cancelled') {
+            this.status = 'active';
+        }
+    }
+
+    markAsShared() {
+        this.isShared = true;
+        this.sharedAt = new Date().toISOString();
+    }
+
+    confirmAWB(confirmedBy) {
+        this.isConfirmed = true;
+        this.confirmedAt = new Date().toISOString();
+        this.confirmedBy = confirmedBy;
+        // Move to active status when confirmed
+        if (this.status === 'pending') {
+            this.status = 'active';
+        }
+    }
+
+    setStatus(status, subStatus = null) {
+        this.status = status;
+        this.subStatus = subStatus;
+    }
+
     toJSON() {
         return {
+            spaceId: this.spaceId,
             awbNumber: this.awbNumber,
             createdBy: this.createdBy,
             createdAt: this.createdAt,
             status: this.status,
+            subStatus: this.subStatus,
+            isConfirmed: this.isConfirmed,
+            confirmedAt: this.confirmedAt,
+            confirmedBy: this.confirmedBy,
             participants: this.participants,
             formData: this.formData,
             fees: this.fees,
@@ -79,7 +134,12 @@ class Shipment {
             paidAt: this.paidAt,
             notes: this.notes,
             pdfBase64: this.pdfBase64,
-            pdfCreatedAt: this.pdfCreatedAt
+            pdfCreatedAt: this.pdfCreatedAt,
+            isShared: this.isShared,
+            sharedAt: this.sharedAt,
+            factoryInvoice: this.factoryInvoice,
+            factoryInvoiceUploadedAt: this.factoryInvoiceUploadedAt,
+            factoryInvoiceUploadedBy: this.factoryInvoiceUploadedBy
         };
     }
 
@@ -91,4 +151,7 @@ class Shipment {
 // Export for use in other files
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = Shipment;
+}
+if (typeof window !== 'undefined') {
+    window.Shipment = Shipment;
 }

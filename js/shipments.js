@@ -27,7 +27,17 @@ function getShipmentByAWB(awbNumber) {
     return shipments.find(s => s.awbNumber === awbNumber);
 }
 
-// Get shipments for current user
+// Get shipment by space ID
+function getShipmentBySpaceId(spaceId) {
+    const shipments = getAllShipments();
+    const shipment = shipments.find(s => s.spaceId === spaceId);
+    if (shipment && window.Shipment) {
+        return new Shipment(shipment);
+    }
+    return shipment;
+}
+
+// Get shipments for current user (excluding deleted)
 function getUserShipments(userId = null) {
     if (!userId) {
         const user = getCurrentUser();
@@ -36,10 +46,14 @@ function getUserShipments(userId = null) {
     }
     
     const shipments = getAllShipments();
-    return shipments.filter(s => 
-        s.createdBy === userId || 
-        s.participants.some(p => p.userId === userId)
-    );
+    return shipments.filter(s => {
+        // Exclude deleted shipments
+        if (s.status === 'deleted') return false;
+        
+        // Include if user is creator or participant
+        return s.createdBy === userId || 
+               s.participants.some(p => p.userId === userId);
+    });
 }
 
 // Create new shipment
@@ -137,10 +151,151 @@ function createShipment(formDataOrOptions = {}) {
     return { success: true, shipment: newShipment };
 }
 
-// Update shipment
-function updateShipment(awbNumber, updates) {
+// Create shipment space (without AWB initially)
+function createShipmentSpace(participants = []) {
+    const user = getCurrentUser();
+    if (!user) {
+        return { success: false, message: 'Not authenticated' };
+    }
+    
+    if (user.role !== 'issuing-carrier-agent') {
+        return { success: false, message: 'Only Issuing Carrier Agents can create shipment spaces' };
+    }
+    
+    // Try to get Shipment class from window, or use fallback
+    let Shipment = window.Shipment;
+    
+    // Helper function to generate space ID
+    const generateSpaceId = () => {
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let result = '';
+        for (let i = 0; i < 10; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    };
+    
+    // Fallback: create a simple shipment object if class not available
+    if (!Shipment) {
+        console.warn('Shipment class not found on window, using fallback implementation');
+        
+        const newShipment = {
+            spaceId: generateSpaceId(),
+            awbNumber: null,
+            createdBy: user.id,
+            createdAt: new Date().toISOString(),
+            status: 'pending',
+            subStatus: null,
+            isConfirmed: false,
+            confirmedAt: null,
+            confirmedBy: null,
+            participants: [],
+            formData: {},
+            fees: [],
+            totalFees: 0,
+            paidBy: null,
+            paidAt: null,
+            notes: '',
+            pdfBase64: null,
+            pdfCreatedAt: null,
+            isShared: false,
+            sharedAt: null,
+            factoryInvoice: null,
+            factoryInvoiceUploadedAt: null,
+            factoryInvoiceUploadedBy: null,
+            addParticipant: function(userId, role, invitedBy) {
+                const existing = this.participants.find(p => p.userId === userId);
+                if (!existing) {
+                    this.participants.push({
+                        userId: userId,
+                        role: role,
+                        invitedAt: new Date().toISOString(),
+                        invitedBy: invitedBy
+                    });
+                }
+            },
+            toJSON: function() {
+                return {
+                    spaceId: this.spaceId,
+                    awbNumber: this.awbNumber,
+                    createdBy: this.createdBy,
+                    createdAt: this.createdAt,
+                    status: this.status,
+                    subStatus: this.subStatus,
+                    isConfirmed: this.isConfirmed,
+                    confirmedAt: this.confirmedAt,
+                    confirmedBy: this.confirmedBy,
+                    participants: this.participants,
+                    formData: this.formData,
+                    fees: this.fees,
+                    totalFees: this.totalFees,
+                    paidBy: this.paidBy,
+                    paidAt: this.paidAt,
+                    notes: this.notes,
+                    pdfBase64: this.pdfBase64,
+                    pdfCreatedAt: this.pdfCreatedAt,
+                    isShared: this.isShared,
+                    sharedAt: this.sharedAt,
+                    factoryInvoice: this.factoryInvoice,
+                    factoryInvoiceUploadedAt: this.factoryInvoiceUploadedAt,
+                    factoryInvoiceUploadedBy: this.factoryInvoiceUploadedBy
+                };
+            }
+        };
+        
+        // Add creator as participant
+        newShipment.addParticipant(user.id, user.role, user.id);
+        
+        // Add invited participants
+        participants.forEach(participant => {
+            newShipment.addParticipant(participant.userId, participant.role, user.id);
+        });
+        
+        // Save shipment
+        const shipments = getAllShipments();
+        shipments.push(newShipment.toJSON());
+        localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+        
+        return { success: true, shipment: newShipment };
+    }
+    
+    // Use Shipment class if available
+    const newShipment = new Shipment({
+        createdBy: user.id,
+        status: 'pending'
+    });
+    
+    // Add creator as participant
+    newShipment.addParticipant(user.id, user.role, user.id);
+    
+    // Add invited participants
+    participants.forEach(participant => {
+        newShipment.addParticipant(participant.userId, participant.role, user.id);
+    });
+    
+    // Save shipment
     const shipments = getAllShipments();
-    const index = shipments.findIndex(s => s.awbNumber === awbNumber);
+    shipments.push(newShipment.toJSON());
+    localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+    
+    return { success: true, shipment: newShipment };
+}
+
+// Update shipment (by spaceId or awbNumber)
+function updateShipment(identifier, updates) {
+    const shipments = getAllShipments();
+    let index = -1;
+    
+    // Try to find by spaceId first, then by awbNumber
+    if (typeof identifier === 'string' && identifier.length === 10) {
+        // Likely a spaceId (10 characters)
+        index = shipments.findIndex(s => s.spaceId === identifier);
+    }
+    
+    if (index === -1) {
+        // Try by awbNumber
+        index = shipments.findIndex(s => s.awbNumber === identifier);
+    }
     
     if (index === -1) {
         return { success: false, message: 'Shipment not found' };
@@ -158,6 +313,192 @@ function updateShipment(awbNumber, updates) {
     localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
     
     return { success: true, shipment: shipments[index] };
+}
+
+// Cancel shipment
+function cancelShipment(spaceId) {
+    const shipment = getShipmentBySpaceId(spaceId);
+    if (!shipment) {
+        return { success: false, message: 'Shipment not found' };
+    }
+    
+    if (shipment.cancel) {
+        shipment.cancel();
+    } else {
+        shipment.status = 'cancelled';
+    }
+    
+    return updateShipment(spaceId, shipment.toJSON ? shipment.toJSON() : shipment);
+}
+
+// Uncancel shipment
+function uncancelShipment(spaceId) {
+    const shipment = getShipmentBySpaceId(spaceId);
+    if (!shipment) {
+        return { success: false, message: 'Shipment not found' };
+    }
+    
+    if (shipment.uncancel) {
+        shipment.uncancel();
+    } else {
+        shipment.status = 'active';
+    }
+    
+    return updateShipment(spaceId, shipment.toJSON ? shipment.toJSON() : shipment);
+}
+
+// Delete shipment (only cancelled ones, by Agent only)
+function deleteShipment(spaceId) {
+    const user = getCurrentUser();
+    if (!user || user.role !== 'issuing-carrier-agent') {
+        return { success: false, message: 'Only Issuing Carrier Agents can delete shipments' };
+    }
+    
+    const shipment = getShipmentBySpaceId(spaceId);
+    if (!shipment) {
+        return { success: false, message: 'Shipment not found' };
+    }
+    
+    if (shipment.status !== 'cancelled') {
+        return { success: false, message: 'Only cancelled shipments can be deleted' };
+    }
+    
+    // Mark as deleted
+    const shipments = getAllShipments();
+    const index = shipments.findIndex(s => s.spaceId === spaceId);
+    if (index !== -1) {
+        shipments[index].status = 'deleted';
+        shipments[index].deletedAt = new Date().toISOString();
+        shipments[index].deletedBy = user.id;
+        localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+        
+        // Remove from other participants' views by filtering in getUserShipments
+        return { success: true };
+    }
+    
+    return { success: false, message: 'Shipment not found' };
+}
+
+// Mark shipment as shared
+function shareShipment(spaceId) {
+    const shipment = getShipmentBySpaceId(spaceId);
+    if (!shipment) {
+        return { success: false, message: 'Shipment not found' };
+    }
+    
+    if (shipment.markAsShared) {
+        shipment.markAsShared();
+    } else {
+        shipment.isShared = true;
+        shipment.sharedAt = new Date().toISOString();
+    }
+    
+    return updateShipment(spaceId, shipment.toJSON ? shipment.toJSON() : shipment);
+}
+
+// Confirm AWB (Agent only)
+function confirmAWB(spaceId) {
+    const user = getCurrentUser();
+    if (!user || user.role !== 'issuing-carrier-agent') {
+        return { success: false, message: 'Only Issuing Carrier Agents can confirm AWBs' };
+    }
+    
+    const shipment = getShipmentBySpaceId(spaceId);
+    if (!shipment) {
+        return { success: false, message: 'Shipment not found' };
+    }
+    
+    if (!shipment.awbNumber) {
+        return { success: false, message: 'AWB number must be created before confirmation' };
+    }
+    
+    if (shipment.confirmAWB) {
+        shipment.confirmAWB(user.id);
+    } else {
+        shipment.isConfirmed = true;
+        shipment.confirmedAt = new Date().toISOString();
+        shipment.confirmedBy = user.id;
+        if (shipment.status === 'pending') {
+            shipment.status = 'active';
+        }
+    }
+    
+    return updateShipment(spaceId, shipment.toJSON ? shipment.toJSON() : shipment);
+}
+
+// Set shipment status
+function setShipmentStatus(spaceId, status, subStatus = null) {
+    const user = getCurrentUser();
+    if (!user) {
+        return { success: false, message: 'Not authenticated' };
+    }
+    
+    const shipment = getShipmentBySpaceId(spaceId);
+    if (!shipment) {
+        return { success: false, message: 'Shipment not found' };
+    }
+    
+    // Role-based permissions
+    if (status === 'in-transit') {
+        if (user.role !== 'issuing-carrier-agent') {
+            return { success: false, message: 'Only Agents can set status to In Transit' };
+        }
+    } else if (status === 'in-transit' && subStatus) {
+        // Setting substatus for in-transit shipments
+        // Status must already be in-transit or we're updating it
+        if (subStatus === 'at-destination') {
+            if (user.role !== 'consignee' && user.role !== 'issuing-carrier-agent') {
+                return { success: false, message: 'Only Consignees and Agents can set At Destination status' };
+            }
+        } else if (subStatus === 'ready-for-pickup') {
+            if (user.role !== 'consignee' && user.role !== 'issuing-carrier-agent') {
+                return { success: false, message: 'Only Consignees and Agents can set Ready for Pickup status' };
+            }
+        } else if (subStatus === 'delivered') {
+            if (user.role !== 'consignee' && user.role !== 'courier') {
+                return { success: false, message: 'Only Consignees and Couriers can set Delivered status' };
+            }
+        }
+        // When setting substatus, ensure status is in-transit
+        status = 'in-transit';
+    }
+    
+    if (shipment.setStatus) {
+        shipment.setStatus(status, subStatus);
+    } else {
+        shipment.status = status;
+        shipment.subStatus = subStatus;
+    }
+    
+    return updateShipment(spaceId, shipment.toJSON ? shipment.toJSON() : shipment);
+}
+
+// Upload factory invoice
+function uploadFactoryInvoice(spaceId, fileBase64) {
+    const user = getCurrentUser();
+    if (!user) {
+        return { success: false, message: 'Not authenticated' };
+    }
+    
+    // Only shipper, consignee, or agent can upload
+    if (user.role !== 'shipper' && user.role !== 'consignee' && user.role !== 'issuing-carrier-agent') {
+        return { success: false, message: 'You do not have permission to upload factory invoices' };
+    }
+    
+    const shipment = getShipmentBySpaceId(spaceId);
+    if (!shipment) {
+        return { success: false, message: 'Shipment not found' };
+    }
+    
+    if (shipment.status !== 'active' || !shipment.isConfirmed) {
+        return { success: false, message: 'Factory invoices can only be uploaded for confirmed active shipments' };
+    }
+    
+    shipment.factoryInvoice = fileBase64;
+    shipment.factoryInvoiceUploadedAt = new Date().toISOString();
+    shipment.factoryInvoiceUploadedBy = user.id;
+    
+    return updateShipment(spaceId, shipment.toJSON ? shipment.toJSON() : shipment);
 }
 
 // Save AWB form data to shipment
@@ -194,9 +535,18 @@ function addFeeToShipment(awbNumber, role, amount, description) {
 if (typeof window !== 'undefined') {
     window.getAllShipments = getAllShipments;
     window.getShipmentByAWB = getShipmentByAWB;
+    window.getShipmentBySpaceId = getShipmentBySpaceId;
     window.getUserShipments = getUserShipments;
     window.createShipment = createShipment;
+    window.createShipmentSpace = createShipmentSpace;
     window.updateShipment = updateShipment;
     window.saveAWBFormData = saveAWBFormData;
     window.addFeeToShipment = addFeeToShipment;
+    window.cancelShipment = cancelShipment;
+    window.uncancelShipment = uncancelShipment;
+    window.deleteShipment = deleteShipment;
+    window.shareShipment = shareShipment;
+    window.confirmAWB = confirmAWB;
+    window.setShipmentStatus = setShipmentStatus;
+    window.uploadFactoryInvoice = uploadFactoryInvoice;
 }

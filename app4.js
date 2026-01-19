@@ -472,15 +472,14 @@ function initializeApp() {
     // Auto-load default PDF if available (with small delay to ensure page is fully loaded)
     setTimeout(() => {
         loadDefaultPDF().then(() => {
-            // After PDF is loaded and form is generated, restore saved form data
-            setTimeout(() => {
-                restoreFormData();
-            }, 200);
+            // Don't auto-restore form data - form should start fresh
+            // restoreFormData() is only called explicitly when editing a shipment
+            console.log('PDF loaded - form ready for fresh input');
         });
     }, 100);
     
-    // Save form data whenever it changes
-    setupFormDataAutoSave();
+    // Don't auto-save form data on create page - only save when explicitly needed
+    // setupFormDataAutoSave(); // Disabled - form should start fresh each time
 }
 
 // Load default PDF (AWB1.pdf)
@@ -555,10 +554,8 @@ async function handlePDF(file) {
         hideLoading();
         showForm();
         
-        // Restore saved form data after form is generated
-        setTimeout(() => {
-            restoreFormData();
-        }, 100);
+        // Don't auto-restore form data - form should start fresh
+        // restoreFormData() is only called explicitly when editing a shipment
     } catch (err) {
         console.error('Error processing PDF:', err);
         showError('Error processing PDF: ' + err.message);
@@ -5567,22 +5564,24 @@ function showContactSection() {
 
 // Initialize tabs functionality (called after DOM is ready)
 function initializeTabs() {
-    // Restore last active tab from localStorage
-    const lastActiveTab = localStorage.getItem('awbLastActiveTab') || 'routing';
+    // Always default to contacts tab when opening Create AWB
+    const defaultTab = 'contacts';
     
     // Remove active class from all tabs and buttons
     document.querySelectorAll('.awb-tab-button').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.awb-tab-content').forEach(content => content.classList.remove('active'));
     
-    // Set the last active tab (or default to routing)
-    const tabButton = document.querySelector(`.awb-tab-button[data-tab="${lastActiveTab}"]`);
-    const tabContent = document.getElementById(`${lastActiveTab}-tab`);
+    // Set the contacts tab as active
+    const tabButton = document.querySelector(`.awb-tab-button[data-tab="${defaultTab}"]`);
+    const tabContent = document.getElementById(`${defaultTab}-tab`);
     
     if (tabButton && tabContent) {
         tabButton.classList.add('active');
         tabContent.classList.add('active');
+        // Save to localStorage so it persists if user switches tabs
+        localStorage.setItem('awbLastActiveTab', defaultTab);
     } else {
-        // Fallback to routing if saved tab doesn't exist
+        // Fallback to routing if contacts tab doesn't exist
         const routingButton = document.querySelector('.awb-tab-button[data-tab="routing"]');
         const routingContent = document.getElementById('routing-tab');
         if (routingButton) routingButton.classList.add('active');
@@ -5608,6 +5607,13 @@ function initializeTabs() {
             
             // Save active tab to localStorage
             localStorage.setItem('awbLastActiveTab', tabName);
+            
+            // If Preview AWB tab (form tab) is clicked, generate preview
+            if (tabName === 'form' && typeof window.generatePDFPreview === 'function') {
+                setTimeout(() => {
+                    window.generatePDFPreview();
+                }, 100);
+            }
         });
     });
     

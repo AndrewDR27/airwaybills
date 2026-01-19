@@ -55,15 +55,11 @@
                 
                 <!-- Tabs Navigation -->
                 <div class="awb-tabs">
-                    <button class="awb-tab-button" data-tab="form">
-                        Form
-                        <span class="tab-validation-indicator" id="form-validation-indicator"></span>
-                    </button>
-                    <button class="awb-tab-button" data-tab="contacts">
+                    <button class="awb-tab-button active" data-tab="contacts">
                         Contacts
                         <span class="tab-validation-indicator" id="contacts-validation-indicator"></span>
                     </button>
-                    <button class="awb-tab-button active" data-tab="routing">
+                    <button class="awb-tab-button" data-tab="routing">
                         Routing
                         <span class="tab-validation-indicator" id="routing-validation-indicator"></span>
                     </button>
@@ -71,18 +67,36 @@
                         DIMS & Billing
                         <span class="tab-validation-indicator" id="billing-validation-indicator"></span>
                     </button>
+                    <button class="awb-tab-button" data-tab="form">
+                        Preview AWB
+                        <span class="tab-validation-indicator" id="form-validation-indicator"></span>
+                    </button>
                 </div>
                 
-                <!-- Form Tab -->
+                <!-- Preview AWB Tab -->
                 <div id="form-tab" class="awb-tab-content">
                     <div class="form-header">
-                        <h2>Form Information</h2>
+                        <h2>Preview AWB</h2>
+                        <p style="color: #666; font-size: 14px; margin-top: 5px;">This preview shows how your AWB will look when downloaded (flattened PDF)</p>
                     </div>
-                    <p>Form fields will be displayed here.</p>
+                    <div style="display: flex; justify-content: center; align-items: center; margin-top: 20px;">
+                        <div id="pdfPreviewContainer" style="width: 100%; max-width: 900px; height: 700px; border: 2px solid #ddd; border-radius: 8px; background: #f5f5f5; overflow: hidden; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                            <div id="pdfPreviewLoading" style="text-align: center; color: #666; width: 100%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1;">
+                                <p>Fill out the form fields to see a preview of your AWB</p>
+                                <p style="font-size: 12px; margin-top: 10px;">Click "Refresh Preview" to update the preview</p>
+                            </div>
+                            <iframe id="pdfPreviewFrame" style="border: none; display: none; background: white; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 2;"></iframe>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; text-align: center;">
+                        <button type="button" id="refreshPreviewBtn" class="btn-secondary" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            Refresh Preview
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Contacts Tab -->
-                <div id="contacts-tab" class="awb-tab-content">
+                <div id="contacts-tab" class="awb-tab-content active">
                     <div class="contact-section" id="contactSection" style="display: none;">
                         <div class="contact-controls">
                             <div class="contact-select-group">
@@ -109,7 +123,7 @@
                 </div>
                 
                 <!-- Routing Tab -->
-                <div id="routing-tab" class="awb-tab-content active">
+                <div id="routing-tab" class="awb-tab-content">
                     <div class="routing-controls-section" id="routingControlsSection" style="display: none;">
                         <div class="routing-controls">
                             <div class="contact-select-group">
@@ -230,7 +244,7 @@
                 
                 <!-- Form Actions - Appears at bottom of all tabs -->
                 <div class="form-actions">
-                    <button type="button" class="btn-primary" id="fillAndFlattenBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">Create & Download AWB</button>
+                    <button type="button" class="btn-primary" id="fillAndFlattenBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">Create AWB</button>
                     <button type="button" class="btn-secondary" id="printPreviewBtn">Print Preview</button>
                     <button type="button" class="btn-secondary" id="submitBtn">View Form Data</button>
                 </div>
@@ -481,118 +495,178 @@
             }
         }
         
-        // Clear any edit mode flags - this is the CREATE page only
+        // Clear any edit mode flags and saved form data - this is the CREATE page only
         sessionStorage.removeItem('isEditingShipment');
         sessionStorage.removeItem('loadShipmentAWB');
-                    
-                    // Format the data to match what restoreFormData expects
-                    // restoreFormData expects: { formData: {...}, dropdownData: {...} }
-                    // shipment.formData might already be in the correct format, or it might just be formData
-                    let dataToRestore;
-                    
-                    if (shipment.formData.formData && shipment.formData.dropdownData) {
-                        // Already in correct format
-                        dataToRestore = shipment.formData;
-                    } else {
-                        // Need to wrap it - extract dropdown data if it exists
-                        dataToRestore = {
-                            formData: shipment.formData.formData || shipment.formData,
-                            dropdownData: shipment.formData.dropdownData || {
-                                shipperContactId: shipment.formData._shipperContactId || shipment.formData.shipperContactId || '',
-                                consigneeContactId: shipment.formData._consigneeContactId || shipment.formData.consigneeContactId || '',
-                                airlineId: shipment.formData._airlineId || shipment.formData.airlineId || '',
-                                destination: shipment.formData._destination || shipment.formData.destination || '',
-                                directFlight: shipment.formData._directFlight || shipment.formData.directFlight || '',
-                                interlineCarrier1: shipment.formData._interlineCarrier1 || shipment.formData.interlineCarrier1 || '',
-                                interlineCarrier2: shipment.formData._interlineCarrier2 || shipment.formData.interlineCarrier2 || ''
-                            },
-                            timestamp: Date.now()
-                        };
-                    }
-                    
-                    // Store in localStorage in the correct format
-                    localStorage.setItem('awbFormData', JSON.stringify(dataToRestore));
-                    console.log('Shipment data stored in localStorage, waiting for form to be generated...');
-                    
-                    // Wait for PDF to load and form to be generated
-                    // Check periodically if form is ready
-                    let attempts = 0;
-                    const maxAttempts = 30; // Try for 3 seconds
-                    
-                    const checkFormReady = setInterval(() => {
-                        attempts++;
-                        const generatedForm = document.getElementById('generatedForm');
-                        
-                        if (generatedForm && generatedForm.elements.length > 0) {
-                            clearInterval(checkFormReady);
-                            console.log('Form is ready, restoring data...');
-                            
-                            // Wait a bit more for all form elements to be fully initialized
-                            setTimeout(() => {
-                                if (typeof restoreFormData === 'function') {
-                                    restoreFormData();
-                                    sessionStorage.removeItem('loadShipmentAWB');
-                                    // Keep isEditingShipment flag for now (will be cleared when creating new shipment)
-                                    console.log('✅ Shipment form data restored for AWB:', loadAWB);
-                                    console.log('Edit mode active - template logic will be bypassed');
-                                } else {
-                                    console.error('restoreFormData function not available');
-                                }
-                            }, 500);
-                        } else if (attempts >= maxAttempts) {
-                            clearInterval(checkFormReady);
-                            console.warn('Form not ready after 3 seconds, attempting restore anyway...');
-                            if (typeof restoreFormData === 'function') {
-                                restoreFormData();
-                                sessionStorage.removeItem('loadShipmentAWB');
-                                console.log('Edit mode active - template logic will be bypassed');
-                            }
-                        }
-                    }, 100);
-                } else {
-                    console.warn('Shipment not found or has no formData for AWB:', loadAWB);
-                }
-            }
-        })();
         
-        // Hook into "Create & Download AWB" to capture PDF and create shipment
-        // Override handleFillPdf to capture PDF bytes and store in shipment
-        (function() {
-            let shipmentCreated = false; // Prevent duplicate creation
-            let lastPdfBytes = null; // Store PDF bytes when created
+        // Clear any saved form data to ensure form starts fresh
+        localStorage.removeItem('awbFormData');
+        console.log('✅ Cleared saved form data - form will start fresh');
+        
+        // PDF Preview functionality
+        let previewTimeout = null;
+        
+        // Function to generate and display PDF preview
+        window.generatePDFPreview = async function() {
+            const previewContainer = document.getElementById('pdfPreviewContainer');
+            const previewLoading = document.getElementById('pdfPreviewLoading');
+            const previewFrame = document.getElementById('pdfPreviewFrame');
             
-            // Override handleFillPdf to capture PDF bytes
-            if (typeof handleFillPdf !== 'undefined') {
-                const originalHandleFillPdf = window.handleFillPdf;
-                window.handleFillPdf = async function(flatten = false) {
-                    try {
-                        // Call original function to get PDF bytes
-                        // We need to intercept fillPdfWithData to get the bytes
-                        // For now, we'll regenerate the PDF after download
-                        
-                        await originalHandleFillPdf.call(this, flatten);
-                        
-                        // After PDF is downloaded, create shipment with PDF (only for flattened)
-                        if (flatten) {
-                            setTimeout(() => {
-                                createShipmentWithPDF();
-                            }, 1500); // Wait for download to complete
-                        }
-                    } catch (error) {
-                        throw error;
-                    }
-                };
+            if (!previewContainer || !previewLoading || !previewFrame) {
+                console.warn('Preview elements not found');
+                return;
             }
             
-            // Function to create shipment and store PDF
+            // Check if required functions are available
+            if (typeof collectFormData === 'undefined' || typeof fillPdfWithData === 'undefined') {
+                previewLoading.innerHTML = '<p style="color: #999;">PDF preview will be available after the form loads</p>';
+                return;
+            }
+            
+            try {
+                previewLoading.style.display = 'block';
+                previewFrame.style.display = 'none';
+                previewLoading.innerHTML = '<p>Generating preview...</p>';
+                
+                // Collect form data
+                const formData = collectFormData();
+                
+                // Generate flattened PDF
+                const pdfBytes = await fillPdfWithData(formData, true); // true = flattened
+                
+                // Create blob and display in iframe
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                
+                // Set iframe to fill the container and fit the document
+                previewFrame.style.width = '100%';
+                previewFrame.style.height = '100%';
+                previewFrame.style.display = 'block';
+                previewFrame.style.position = 'absolute';
+                previewFrame.style.top = '0';
+                previewFrame.style.left = '0';
+                previewFrame.style.border = 'none';
+                
+                // Use page-fit zoom to display entire document within the frame
+                previewFrame.src = url + '#zoom=page-fit&toolbar=0&navpanes=0&scrollbar=0';
+                
+                previewLoading.style.display = 'none';
+                
+                // Clean up old URL after a delay
+                if (previewFrame.dataset.oldUrl) {
+                    URL.revokeObjectURL(previewFrame.dataset.oldUrl);
+                }
+                previewFrame.dataset.oldUrl = url;
+                
+                console.log('✅ PDF preview generated and displayed');
+            } catch (error) {
+                console.error('Error generating PDF preview:', error);
+                previewLoading.innerHTML = `<p style="color: #dc3545;">Error generating preview: ${error.message}</p>`;
+                previewLoading.style.display = 'block';
+                previewFrame.style.display = 'none';
+            }
+        }
+        
+        // Refresh preview button handler
+        const refreshPreviewBtn = document.getElementById('refreshPreviewBtn');
+        if (refreshPreviewBtn) {
+            refreshPreviewBtn.addEventListener('click', async () => {
+                await generatePDFPreview();
+            });
+        }
+        
+        // Generate preview when Preview AWB tab is clicked
+        document.addEventListener('DOMContentLoaded', () => {
+            // Wait for tabs to be initialized
+            setTimeout(() => {
+                const formTabButton = document.querySelector('.awb-tab-button[data-tab="form"]');
+                if (formTabButton) {
+                    formTabButton.addEventListener('click', () => {
+                        // Debounce preview generation
+                        clearTimeout(previewTimeout);
+                        previewTimeout = setTimeout(() => {
+                            generatePDFPreview();
+                        }, 300);
+                    });
+                }
+            }, 500);
+        });
+        
+        // Also listen for tab changes via the existing tab system
+        // Hook into the tab switching to generate preview when form tab becomes active
+        const originalTabSwitch = window.addEventListener;
+        const observer = new MutationObserver((mutations) => {
+            const formTab = document.getElementById('form-tab');
+            if (formTab && formTab.classList.contains('active')) {
+                // Form tab is now active, generate preview
+                clearTimeout(previewTimeout);
+                previewTimeout = setTimeout(() => {
+                    generatePDFPreview();
+                }, 300);
+            }
+        });
+        
+        // Start observing when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                const formTab = document.getElementById('form-tab');
+                if (formTab) {
+                    observer.observe(formTab, { attributes: true, attributeFilter: ['class'] });
+                }
+            });
+        } else {
+            const formTab = document.getElementById('form-tab');
+            if (formTab) {
+                observer.observe(formTab, { attributes: true, attributeFilter: ['class'] });
+            }
+        }
+        
+        // Check if we're creating AWB for a shipment space
+        const urlParams = new URLSearchParams(window.location.search);
+        const spaceId = urlParams.get('spaceId') || sessionStorage.getItem('currentSpaceId');
+        
+        // Hook into "Create AWB" button to save PDF to shipment space without downloading
+        (function() {
+            let shipmentUpdated = false; // Prevent duplicate updates
+            
+            // Override the button click handler after app4.js sets it up
+            setTimeout(() => {
+                const createAWBBtn = document.getElementById('fillAndFlattenBtn');
+                if (createAWBBtn && spaceId) {
+                    // Remove all existing event listeners by cloning the button
+                    const newBtn = createAWBBtn.cloneNode(true);
+                    createAWBBtn.parentNode.replaceChild(newBtn, createAWBBtn);
+                    
+                    newBtn.addEventListener('click', async function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Check if we have a spaceId - if not, fall back to download behavior
+                        if (!spaceId) {
+                            console.log('No spaceId - falling back to download behavior');
+                            if (typeof handleFillPdf !== 'undefined') {
+                                await handleFillPdf(true);
+                            }
+                            return;
+                        }
+                        
+                        // Directly save to shipment space without downloading
+                        await createShipmentWithPDF();
+                    });
+                    
+                    console.log('✅ Create AWB button handler overridden for shipment space mode');
+                }
+            }, 1000); // Wait for app4.js to initialize
+            
+            // Function to update shipment space with AWB and PDF
             async function createShipmentWithPDF() {
-                if (shipmentCreated) {
+                if (shipmentUpdated) {
                     return;
                 }
                 
-                console.log('✅ Creating shipment with PDF...');
+                console.log('✅ Saving AWB to shipment space...');
                 
-                if (typeof getCurrentUser === 'undefined' || typeof collectFormData === 'undefined' || typeof createShipment === 'undefined' || typeof fillPdfWithData === 'undefined') {
+                if (typeof getCurrentUser === 'undefined' || typeof collectFormData === 'undefined' || typeof updateShipment === 'undefined' || typeof fillPdfWithData === 'undefined') {
                     console.error('Required functions not available');
                     return;
                 }
@@ -602,7 +676,22 @@
                     return;
                 }
                 
+                // Check if we have a spaceId
+                if (!spaceId) {
+                    console.log('No spaceId - creating new shipment (legacy mode)');
+                    // Fall back to old behavior - create new shipment
+                    await createNewShipment();
+                    return;
+                }
+                
                 try {
+                    // Get the existing shipment space
+                    const shipment = getShipmentBySpaceId(spaceId);
+                    if (!shipment) {
+                        console.error('Shipment space not found:', spaceId);
+                        return;
+                    }
+                    
                     // Collect COMPLETE form data including dropdowns
                     const completeFormData = collectCompleteFormData();
                     const formData = completeFormData.formData; // For PDF generation
@@ -646,8 +735,74 @@
                         }
                     }
                     
-                    const shipmentOptions = { 
+                    // Update the shipment space with AWB data
+                    const updates = {
                         formData: completeFormData, // Save COMPLETE data structure with dropdowns
+                        pdfBase64: pdfBase64,
+                        pdfCreatedAt: new Date().toISOString()
+                    };
+                    if (awbNumberFromForm) {
+                        updates.awbNumber = awbNumberFromForm;
+                    }
+                    
+                    const result = updateShipment(spaceId, updates);
+                    if (result.success) {
+                        shipmentUpdated = true;
+                        sessionStorage.setItem('currentShipmentAWB', result.shipment.awbNumber);
+                        console.log('✅✅✅ SHIPMENT SPACE UPDATED WITH AWB:', result.shipment.awbNumber);
+                        console.log('All form fields, dropdowns, and PDF stored in space:', spaceId);
+                        
+                        // Show success message and redirect back to space
+                        alert('AWB created successfully and saved to shipment space! Redirecting...');
+                        setTimeout(() => {
+                            if (window.parent && window.parent !== window) {
+                                window.parent.document.getElementById('contentFrame').src = `shipments/space.html?spaceId=${spaceId}`;
+                            } else {
+                                window.location.href = `shipments/space.html?spaceId=${spaceId}`;
+                            }
+                        }, 500);
+                    } else {
+                        console.error('Error updating shipment:', result.message);
+                        alert('Error saving AWB: ' + result.message);
+                    }
+                } catch (saveError) {
+                    console.error('Error saving AWB to shipment space:', saveError);
+                }
+            }
+            
+            // Legacy function for creating new shipment (when no spaceId)
+            async function createNewShipment() {
+                if (typeof createShipment === 'undefined') {
+                    return;
+                }
+                
+                try {
+                    const completeFormData = collectCompleteFormData();
+                    const formData = completeFormData.formData;
+                    const pdfBytes = await fillPdfWithData(formData, true);
+                    
+                    const uint8Array = new Uint8Array(pdfBytes);
+                    let binaryString = '';
+                    const chunkSize = 8192;
+                    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                        const chunk = uint8Array.slice(i, i + chunkSize);
+                        binaryString += String.fromCharCode.apply(null, chunk);
+                    }
+                    const pdfBase64 = btoa(binaryString);
+                    
+                    let awbNumberFromForm = null;
+                    for (const key in formData) {
+                        if (key.startsWith('101') && formData[key]) {
+                            const value = String(formData[key]).trim();
+                            if (value && value.includes('-')) {
+                                awbNumberFromForm = value;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    const shipmentOptions = { 
+                        formData: completeFormData,
                         pdfBase64: pdfBase64,
                         pdfCreatedAt: new Date().toISOString()
                     };
@@ -655,44 +810,16 @@
                         shipmentOptions.awbNumber = awbNumberFromForm;
                     }
                     
-                        const result = createShipment(shipmentOptions);
-                        if (result.success) {
-                            shipmentCreated = true;
-                            sessionStorage.setItem('currentShipmentAWB', result.shipment.awbNumber);
-                            console.log('✅✅✅ SHIPMENT CREATED WITH COMPLETE DATA:', result.shipment.awbNumber);
-                            console.log('All form fields, dropdowns, and PDF stored');
-                        }
-                } catch (saveError) {
-                    console.error('Error creating shipment with PDF:', saveError);
+                    const result = createShipment(shipmentOptions);
+                    if (result.success) {
+                        shipmentUpdated = true;
+                        console.log('✅ Shipment created (legacy mode):', result.shipment.awbNumber);
+                    }
+                } catch (error) {
+                    console.error('Error creating shipment:', error);
                 }
             }
             
-            // Set up MutationObserver as backup (in case override doesn't work)
-            setTimeout(() => {
-                const errorDiv = document.getElementById('error');
-                if (errorDiv) {
-                    const observer = new MutationObserver((mutations) => {
-                        const text = errorDiv.textContent || '';
-                        // Look for "Clean PDF" or "flattened" in success message
-                        if (text.includes('downloaded successfully') && (text.includes('Clean PDF') || text.includes('flattened'))) {
-                            console.log('✅ Detected PDF download success message (backup trigger)');
-                            // Only trigger if shipment not already created
-                            if (!shipmentCreated) {
-                                setTimeout(() => {
-                                    createShipmentWithPDF();
-                                }, 500);
-                            }
-                        }
-                    });
-                    
-                    observer.observe(errorDiv, { 
-                        childList: true, 
-                        subtree: true, 
-                        characterData: true 
-                    });
-                    console.log('✅ Shipment creation observer active (backup)');
-                }
-            }, 2000);
         })();
     </script>
 </body>

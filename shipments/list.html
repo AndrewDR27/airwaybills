@@ -24,66 +24,175 @@
             margin-top: 0;
             color: #333;
         }
+        .status-tabs {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 0;
+        }
+        .status-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+            position: relative;
+            top: 2px;
+        }
+        .status-tab:hover {
+            color: #667eea;
+        }
+        .status-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+        .status-tab .count {
+            background: #e0e0e0;
+            color: #666;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 8px;
+            font-weight: normal;
+        }
+        .status-tab.active .count {
+            background: #667eea;
+            color: white;
+        }
         .shipments-list {
             margin-top: 20px;
         }
         .shipment-item {
             border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            transition: box-shadow 0.3s;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            transition: box-shadow 0.2s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
         }
         .shipment-item:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: #f9f9f9;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
         }
-        .shipment-header {
+        .shipment-content {
+            flex: 1;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            gap: 15px;
+            min-width: 0;
+        }
+        .shipment-main {
+            flex: 1;
+            min-width: 0;
+        }
+        .shipment-header-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 2px;
+            flex-wrap: wrap;
         }
         .shipment-awb {
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 14px;
+            font-weight: 600;
             color: #667eea;
         }
-        .shipment-status {
-            padding: 5px 15px;
-            border-radius: 20px;
+        .shipment-space-id {
+            font-size: 11px;
+            color: #999;
+            margin-top: 1px;
+        }
+        .shipment-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             font-size: 12px;
+            color: #666;
+            flex-wrap: wrap;
+        }
+        .shipment-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .shipment-meta-item strong {
+            color: #333;
+            font-weight: 500;
+        }
+        .shipment-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
+            white-space: nowrap;
         }
-        .status-draft { background: #f0f0f0; color: #666; }
-        .status-in-progress { background: #fff3cd; color: #856404; }
-        .status-completed { background: #d4edda; color: #155724; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-active { background: #d4edda; color: #155724; }
+        .status-in-transit { background: #cfe2ff; color: #084298; }
         .status-cancelled { background: #f8d7da; color: #721c24; }
-        .shipment-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-            font-size: 14px;
-            color: #666;
+        .substatus-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 500;
+            margin-left: 6px;
+            background: #e7f3ff;
+            color: #0066cc;
         }
-        .info-item strong {
-            color: #333;
-            display: block;
-            margin-bottom: 5px;
+        .shipment-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .btn-view, .btn-success, .btn-warning, .btn-danger {
+            border: none;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: all 0.2s;
         }
         .btn-view {
             background: #667eea;
             color: white;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-top: 15px;
         }
         .btn-view:hover {
             background: #5568d3;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
         }
         .empty-state {
             text-align: center;
@@ -94,11 +203,95 @@
             color: #666;
             margin-bottom: 10px;
         }
+        .factory-invoice-section {
+            margin-top: 4px;
+            padding: 6px 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+            font-size: 11px;
+        }
+        .factory-invoice-section h4 {
+            margin: 0 0 6px 0;
+            color: #333;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        .file-input-label {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #667eea;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .file-input-label:hover {
+            background: #5568d3;
+        }
+        .invoice-download {
+            display: inline-block;
+        }
+        .status-actions {
+            margin-top: 4px;
+            padding-top: 4px;
+            border-top: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .status-actions label {
+            font-size: 10px;
+            color: #666;
+            font-weight: 500;
+            margin-right: 4px;
+        }
+        .status-select {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .compact-info {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>My Shipments</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="margin: 0;">My Shipments</h1>
+            <button id="createSpaceBtn" class="btn-view" style="display: none; background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">+ Create Shipment Space</button>
+        </div>
+        
+        <div class="status-tabs">
+            <button class="status-tab active" data-status="pending" onclick="switchTab('pending')">
+                Pending
+                <span class="count" id="pending-count">0</span>
+            </button>
+            <button class="status-tab" data-status="active" onclick="switchTab('active')">
+                Active
+                <span class="count" id="active-count">0</span>
+            </button>
+            <button class="status-tab" data-status="in-transit" onclick="switchTab('in-transit')">
+                In Transit
+                <span class="count" id="in-transit-count">0</span>
+            </button>
+        </div>
+        
         <div id="shipmentsList" class="shipments-list">
             <div class="empty-state">
                 <h2>Loading shipments...</h2>
@@ -114,150 +307,443 @@
     <script src="../js/shipments.js"></script>
     
     <script>
-        // Check authentication
-        if (!requireAuth()) {
-            exit;
-        }
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication with error handling
+            let user = null;
+            try {
+                if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
+                    window.location.href = '../login.html';
+                    return;
+                }
 
-        const user = getCurrentUser();
-        if (!user) {
-            window.location.href = '../login.html';
-            exit;
-        }
-
-        // Load and display shipments
-        function loadShipments() {
-            const shipments = getUserShipments(user.id);
-            const container = document.getElementById('shipmentsList');
-            
-            if (shipments.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <h2>No shipments yet</h2>
-                        <p>${user.role === 'issuing-carrier-agent' ? 'Create your first AWB to get started!' : 'You haven\'t been invited to any shipments yet.'}</p>
-                    </div>
-                `;
+                user = getCurrentUser();
+                if (!user) {
+                    console.error('No user found');
+                    window.location.href = '../login.html';
+                    return;
+                }
+            } catch (error) {
+                console.error('Authentication error:', error);
+                window.location.href = '../login.html';
                 return;
             }
+
+            let currentTab = 'pending';
+
+            // Show Create Space button for Issuing Carrier Agent
+            try {
+                const createSpaceBtn = document.getElementById('createSpaceBtn');
+                if (createSpaceBtn && user && user.role === 'issuing-carrier-agent') {
+                    createSpaceBtn.style.display = 'block';
+                    createSpaceBtn.addEventListener('click', function() {
+                        if (window.parent && window.parent !== window) {
+                            window.parent.document.getElementById('contentFrame').src = 'shipments/create-space.html';
+                        } else {
+                            window.location.href = 'create-space.html';
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error setting up create space button:', error);
+            }
+
+            // Switch between status tabs
+            function switchTab(status) {
+                currentTab = status;
+                
+                // Update tab buttons
+                document.querySelectorAll('.status-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelector(`.status-tab[data-status="${status}"]`).classList.add('active');
+                
+                // Reload shipments
+                loadShipments();
+            }
             
-            container.innerHTML = shipments.map(shipment => {
-                const createdDate = new Date(shipment.createdAt).toLocaleDateString();
+            // Expose functions to global scope for onclick handlers
+            window.switchTab = switchTab;
+            window.viewShipmentSpace = viewShipmentSpace;
+            window.confirmShipmentAWB = confirmShipmentAWB;
+            window.setStatus = setStatus;
+            window.downloadFactoryInvoice = downloadFactoryInvoice;
+            window.uploadFactoryInvoiceFile = uploadFactoryInvoiceFile;
+            window.downloadShipmentPDF = downloadShipmentPDF;
+
+            // Load and display shipments
+            function loadShipments() {
+                if (!user || !user.id) {
+                    console.error('User not available for loading shipments');
+                    return;
+                }
+                
+                let shipments = [];
+                try {
+                    shipments = getUserShipments(user.id);
+                } catch (error) {
+                    console.error('Error getting user shipments:', error);
+                    shipments = [];
+                }
+                
+                const container = document.getElementById('shipmentsList');
+                if (!container) {
+                    console.error('Shipments list container not found');
+                    return;
+                }
+                
+                // Filter by status
+                // Pending: status is 'pending' OR (status is 'active' but not confirmed) OR any other status that's not cancelled/deleted/in-transit
+                // Active: status is 'active' AND isConfirmed is true
+                // In Transit: status is 'in-transit'
+                const pendingShipments = shipments.filter(s => {
+                    if (s.status === 'cancelled' || s.status === 'deleted') return false;
+                    if (s.status === 'in-transit') return false;
+                    // Handle undefined isConfirmed - treat as false (not confirmed)
+                    const isConfirmed = s.isConfirmed === true;
+                    // Include pending, active (not confirmed), or any other status
+                    return s.status === 'pending' || (s.status === 'active' && !isConfirmed) || (s.status !== 'active' && s.status !== 'in-transit');
+                });
+                
+                const activeShipments = shipments.filter(s => {
+                    if (s.status === 'cancelled' || s.status === 'deleted') return false;
+                    // Only show if explicitly confirmed
+                    return s.status === 'active' && s.isConfirmed === true;
+                });
+                
+                const inTransitShipments = shipments.filter(s => {
+                    if (s.status === 'cancelled' || s.status === 'deleted') return false;
+                    return s.status === 'in-transit';
+                });
+                
+                // Update counts
+                document.getElementById('pending-count').textContent = pendingShipments.length;
+                document.getElementById('active-count').textContent = activeShipments.length;
+                document.getElementById('in-transit-count').textContent = inTransitShipments.length;
+                
+                // Get shipments for current tab
+                let displayShipments = [];
+                if (currentTab === 'pending') {
+                    displayShipments = pendingShipments;
+                } else if (currentTab === 'active') {
+                    displayShipments = activeShipments;
+                } else if (currentTab === 'in-transit') {
+                    displayShipments = inTransitShipments;
+                }
+                
+                // Fallback: Show all non-cancelled/non-deleted shipments in pending if they don't match any category
+                // This handles edge cases where shipments might have unexpected status values or missing isConfirmed
+                if (displayShipments.length === 0 && shipments.length > 0 && currentTab === 'pending') {
+                    // Get all shipments that aren't cancelled or deleted and aren't already in a category
+                    const allValidShipments = shipments.filter(s => {
+                        if (s.status === 'cancelled' || s.status === 'deleted') return false;
+                        // Check if already categorized
+                        const inPending = s.status === 'pending' || (s.status === 'active' && s.isConfirmed !== true) || (s.status !== 'active' && s.status !== 'in-transit');
+                        const inActive = s.status === 'active' && s.isConfirmed === true;
+                        const inTransit = s.status === 'in-transit';
+                        return !inPending && !inActive && !inTransit;
+                    });
+                    
+                    // If we have valid shipments but they're not showing, add them to pending
+                    if (allValidShipments.length > 0) {
+                        displayShipments = [...pendingShipments, ...allValidShipments];
+                        console.log('Fallback: Added', allValidShipments.length, 'unmatched shipments to pending tab');
+                    }
+                }
+                
+                if (displayShipments.length === 0) {
+                    const messages = {
+                        'pending': 'No pending shipments',
+                        'active': 'No active shipments',
+                        'in-transit': 'No shipments in transit'
+                    };
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h2>${messages[currentTab]}</h2>
+                            <p>${user.role === 'issuing-carrier-agent' && currentTab === 'pending' ? 'Create your first shipment space to get started!' : 'Shipments will appear here when available.'}</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = displayShipments.map(shipment => renderShipmentItem(shipment)).join('');
+                container.innerHTML = html;
+            }
+            
+            function renderShipmentItem(shipment) {
                 const participants = shipment.participants || [];
-                const fees = shipment.fees || [];
-                const totalFees = shipment.totalFees || 0;
+                const spaceId = shipment.spaceId || 'N/A';
+                const awbNumber = shipment.awbNumber || 'Not created yet';
+                const isAgent = user.role === 'issuing-carrier-agent';
+                const isConsignee = user.role === 'consignee';
+                const isCourier = user.role === 'courier';
+                const isShipper = user.role === 'shipper';
+                
+                // Determine effective status for display
+                let displayStatus = shipment.status;
+                if (shipment.status === 'active' && !shipment.isConfirmed) {
+                    displayStatus = 'pending';
+                }
+                
+                let buttons = '';
+                let statusActions = '';
+                let factoryInvoiceSection = '';
+            
+                // Pending tab actions
+                if (currentTab === 'pending') {
+                    // Agent can confirm AWB if it exists
+                    const confirmButton = (isAgent && shipment.awbNumber && !shipment.isConfirmed) 
+                        ? `<button class="btn-success" onclick="confirmShipmentAWB('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">Confirm</button>` 
+                        : '';
+                    
+                    statusActions = `
+                        <div class="status-actions">
+                            <button class="btn-view" onclick="viewShipmentSpace('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">View</button>
+                            ${confirmButton}
+                        </div>
+                    `;
+                }
+                
+                // Active tab actions
+                if (currentTab === 'active') {
+                    if (shipment.pdfBase64 && shipment.isShared) {
+                        buttons += `<button class="btn-success" onclick="downloadShipmentPDF('${spaceId}')">Download PDF</button>`;
+                    }
+                    
+                    // Export invoice upload (Shipper, Consignee, Agent)
+                    if (isShipper || isConsignee || isAgent) {
+                        factoryInvoiceSection = `
+                            <div class="factory-invoice-section">
+                                ${shipment.factoryInvoice ? `
+                                    <span style="color: #666;">Export Invoice: </span>
+                                    <button class="btn-view" onclick="downloadFactoryInvoice('${spaceId}')" style="background: #28a745; padding: 4px 10px; font-size: 11px;">Download</button>
+                                    <span style="margin-left: 8px; color: #999; font-size: 11px;">
+                                        ${shipment.factoryInvoiceUploadedAt ? new Date(shipment.factoryInvoiceUploadedAt).toLocaleDateString() : ''}
+                                    </span>
+                                ` : `
+                                    <span style="color: #666;">Export Invoice: </span>
+                                    <div class="file-input-wrapper" style="display: inline-block;">
+                                        <input type="file" id="invoice-${spaceId}" accept=".pdf,.jpg,.jpeg,.png" onchange="uploadFactoryInvoiceFile('${spaceId}', this)">
+                                        <label for="invoice-${spaceId}" class="file-input-label">Upload</label>
+                                    </div>
+                                `}
+                            </div>
+                        `;
+                    }
+                    
+                    // Status change actions for Active shipments
+                    statusActions = `
+                        <div class="status-actions">
+                            <button class="btn-view" onclick="viewShipmentSpace('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">View</button>
+                            ${isAgent ? `<button class="btn-warning" onclick="setStatus('${spaceId}', 'in-transit', null)" style="padding: 4px 10px; font-size: 11px;">Mark as In Transit</button>` : ''}
+                        </div>
+                    `;
+                }
+                
+                // In Transit tab actions
+                if (currentTab === 'in-transit') {
+                    if (shipment.pdfBase64 && shipment.isShared) {
+                        buttons += `<button class="btn-success" onclick="downloadShipmentPDF('${spaceId}')">Download PDF</button>`;
+                    }
+                    
+                    // Substatus actions for In Transit
+                    statusActions = `
+                        <div class="status-actions">
+                            <button class="btn-view" onclick="viewShipmentSpace('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">View</button>
+                            ${(isConsignee || isAgent) ? `<button class="btn-warning" onclick="setStatus('${spaceId}', 'in-transit', 'at-destination')" style="padding: 4px 10px; font-size: 11px;">At Destination</button>` : ''}
+                            ${(isConsignee || isAgent) ? `<button class="btn-warning" onclick="setStatus('${spaceId}', 'in-transit', 'ready-for-pickup')" style="padding: 4px 10px; font-size: 11px;">Ready for Pickup</button>` : ''}
+                            ${(isConsignee || isCourier) ? `<button class="btn-success" onclick="setStatus('${spaceId}', 'in-transit', 'delivered')" style="padding: 4px 10px; font-size: 11px;">Delivered</button>` : ''}
+                        </div>
+                    `;
+                }
+                
+                // Build substatus display
+                let substatusDisplay = '';
+                if (shipment.subStatus) {
+                    const substatusLabels = {
+                        'at-destination': 'At Destination',
+                        'ready-for-pickup': 'Ready for Pickup',
+                        'delivered': 'Delivered'
+                    };
+                    substatusDisplay = `<span class="substatus-badge">${substatusLabels[shipment.subStatus] || shipment.subStatus}</span>`;
+                }
                 
                 return `
                     <div class="shipment-item">
-                        <div class="shipment-header">
-                            <div class="shipment-awb">AWB: ${shipment.awbNumber}</div>
-                            <span class="shipment-status status-${shipment.status}">${shipment.status}</span>
+                        <div class="shipment-content">
+                            <div class="shipment-main">
+                                <div>
+                                    <div class="shipment-header-row">
+                                        <div class="shipment-awb">
+                                            ${awbNumber !== 'Not created yet' ? `AWB: ${awbNumber}` : `Space ID: ${spaceId}`}
+                                        </div>
+                                        <span class="shipment-status status-${displayStatus}">${displayStatus.replace('-', ' ')}</span>
+                                        ${substatusDisplay}
+                                        <span class="shipment-meta-item">
+                                            <strong>Participants:</strong> ${participants.length}
+                                        </span>
+                                        ${shipment.isShared ? '<span class="shipment-meta-item"><strong>Shared</strong></span>' : ''}
+                                        ${shipment.isConfirmed ? '<span class="shipment-meta-item" style="color: #28a745;"><strong>✓ Confirmed</strong></span>' : '<span class="shipment-meta-item" style="color: #ffc107;"><strong>Not Confirmed</strong></span>'}
+                                    </div>
+                                    ${awbNumber !== 'Not created yet' ? `<div class="shipment-space-id">Space ID: ${spaceId}</div>` : ''}
+                                </div>
+                                ${factoryInvoiceSection}
+                                ${statusActions}
+                            </div>
                         </div>
-                        <div class="shipment-info">
-                            <div class="info-item">
-                                <strong>Created:</strong>
-                                ${createdDate}
-                            </div>
-                            <div class="info-item">
-                                <strong>Participants:</strong>
-                                ${participants.length} user(s)
-                            </div>
-                            <div class="info-item">
-                                <strong>Total Fees:</strong>
-                                $${totalFees.toFixed(2)}
-                            </div>
-                            <div class="info-item">
-                                <strong>Fees Count:</strong>
-                                ${fees.length} fee(s)
-                            </div>
+                        <div class="shipment-actions">
+                            ${buttons}
                         </div>
-                        <button class="btn-view" onclick="viewShipment('${shipment.awbNumber}')">View/Edit</button>
-                        ${shipment.pdfBase64 ? `<button class="btn-view" onclick="downloadShipmentPDF('${shipment.awbNumber}')" style="background: #28a745; margin-left: 10px;">Download PDF</button>` : ''}
-                        <button class="btn-view" onclick="deleteShipment('${shipment.awbNumber}')" style="background: #dc3545; margin-left: 10px;">Delete</button>
                     </div>
                 `;
-            }).join('');
-        }
+            }
         
-        function viewShipment(awbNumber) {
-            // Store the AWB number to load the data
-            sessionStorage.setItem('currentShipmentAWB', awbNumber);
-            sessionStorage.setItem('loadShipmentAWB', awbNumber);
-            
-            // Load in parent iframe if available (dashboard), otherwise redirect
-            if (window.parent && window.parent !== window) {
-                // We're in an iframe - tell parent to load edit page
-                // Path must be relative to dashboard.html (which is in root)
-                const editUrl = `shipments/edit.html?awb=${encodeURIComponent(awbNumber)}`;
-                console.log('Loading edit page:', editUrl);
-                
-                const contentFrame = window.parent.document.getElementById('contentFrame');
-                if (contentFrame) {
-                    contentFrame.src = editUrl;
-                    // Keep shipments nav item active
-                    const parentNavLinks = window.parent.document.querySelectorAll('.nav-menu a');
-                    parentNavLinks.forEach(link => link.classList.remove('active'));
-                    const shipmentsLink = Array.from(parentNavLinks).find(link => 
-                        link.getAttribute('href') && link.getAttribute('href').includes('shipments')
-                    );
-                    if (shipmentsLink) {
-                        shipmentsLink.classList.add('active');
+            function viewShipmentSpace(spaceId) {
+                if (window.parent && window.parent !== window) {
+                    const contentFrame = window.parent.document.getElementById('contentFrame');
+                    if (contentFrame) {
+                        contentFrame.src = `shipments/space.html?spaceId=${encodeURIComponent(spaceId)}`;
+                    } else {
+                        window.parent.location.href = `shipments/space.html?spaceId=${spaceId}`;
                     }
                 } else {
-                    // Fallback: redirect parent
-                    console.log('Redirecting parent to:', editUrl);
-                    window.parent.location.href = editUrl;
+                    window.location.href = `space.html?spaceId=${spaceId}`;
                 }
-            } else {
-                // Not in iframe - redirect current window (we're already in shipments/ directory)
-                const editUrl = `edit.html?awb=${encodeURIComponent(awbNumber)}`;
-                console.log('Redirecting to:', editUrl);
-                window.location.href = editUrl;
-            }
-        }
-        
-        function downloadShipmentPDF(awbNumber) {
-            const shipment = getShipmentByAWB(awbNumber);
-            if (!shipment || !shipment.pdfBase64) {
-                alert('PDF not available for this shipment.');
-                return;
             }
             
-            try {
-                // Convert base64 to blob
-                const binaryString = atob(shipment.pdfBase64);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
+            function confirmShipmentAWB(spaceId) {
+                if (confirm('Are you sure you want to confirm this AWB? Once confirmed, it will move to Active status.')) {
+                    const result = window.confirmAWB(spaceId);
+                    if (result.success) {
+                        alert('AWB confirmed successfully!');
+                        loadShipments();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
                 }
-                const blob = new Blob([bytes], { type: 'application/pdf' });
+            }
+            
+            function setStatus(spaceId, status, subStatus) {
+                const result = window.setShipmentStatus(spaceId, status, subStatus);
+                if (result.success) {
+                    alert('Status updated successfully!');
+                    loadShipments();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            }
+            
+            function uploadFactoryInvoiceFile(spaceId, input) {
+                const file = input.files[0];
+                if (!file) return;
                 
-                // Create download link
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `AWB-${awbNumber}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                // Check file size (max 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('File size must be less than 10MB');
+                    input.value = '';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64 = e.target.result.split(',')[1]; // Remove data:type;base64, prefix
+                    const result = window.uploadFactoryInvoice(spaceId, base64);
+                    if (result.success) {
+                        alert('Factory invoice uploaded successfully!');
+                        loadShipments();
+                    } else {
+                        alert('Error: ' + result.message);
+                        input.value = '';
+                    }
+                };
+                reader.onerror = function() {
+                    alert('Error reading file');
+                    input.value = '';
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            function downloadFactoryInvoice(spaceId) {
+                const shipment = getShipmentBySpaceId(spaceId);
+                if (!shipment || !shipment.factoryInvoice) {
+                    alert('Factory invoice not available');
+                    return;
+                }
+                
+                try {
+                    const binaryString = atob(shipment.factoryInvoice);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    const blob = new Blob([bytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Factory_Invoice_${shipment.awbNumber || shipment.spaceId}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('Error downloading invoice:', error);
+                    alert('Error downloading invoice: ' + error.message);
+                }
+            }
+            
+            function downloadShipmentPDF(identifier) {
+                let shipment = getShipmentBySpaceId(identifier);
+                if (!shipment) {
+                    shipment = getShipmentByAWB(identifier);
+                }
+                
+                if (!shipment || !shipment.pdfBase64) {
+                    alert('PDF not available for this shipment.');
+                    return;
+                }
+                
+                try {
+                    const binaryString = atob(shipment.pdfBase64);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    const blob = new Blob([bytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const awbNumber = shipment.awbNumber || shipment.spaceId;
+                    a.download = `AWB-${awbNumber}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('Error downloading PDF:', error);
+                    alert('Error downloading PDF: ' + error.message);
+                }
+            }
+            
+            // Load shipments on page load
+            try {
+                if (user && user.id) {
+                    loadShipments();
+                } else {
+                    console.error('Cannot load shipments: user not available');
+                }
             } catch (error) {
-                console.error('Error downloading PDF:', error);
-                alert('Error downloading PDF: ' + error.message);
+                console.error('Error loading shipments:', error);
+                const container = document.getElementById('shipmentsList');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h2>Error loading shipments</h2>
+                            <p>Please refresh the page. If the problem persists, check the browser console.</p>
+                        </div>
+                    `;
+                }
             }
-        }
-        
-        function deleteShipment(awbNumber) {
-            if (confirm(`Are you sure you want to delete shipment ${awbNumber}? This cannot be undone.`)) {
-                const shipments = getAllShipments();
-                const filtered = shipments.filter(s => s.awbNumber !== awbNumber);
-                localStorage.setItem('awb_shipments', JSON.stringify(filtered));
-                alert('Shipment deleted.');
-                loadShipments(); // Reload list
-            }
-        }
-        
-        // Load shipments on page load
-        loadShipments();
+        }); // End DOMContentLoaded
     </script>
 </body>
 </html>
