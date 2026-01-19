@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Shipment - Airway Bills</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        .edit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        .edit-header h1 {
+            margin: 0;
+            color: #333;
+        }
+        .back-button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .back-button:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="edit-header">
+            <h1>Edit Airway Bill</h1>
+            <button class="back-button" onclick="goBackToShipments()">← Back to Shipments</button>
+        </div>
+
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading shipment data...</p>
+        </div>
+
+        <div class="error" id="error" style="display: none;"></div>
+
+        <div class="content-wrapper" id="contentWrapper" style="display: none;">
+            <div class="form-section" id="formSection">
+                <!-- Tabs Navigation -->
+                <div class="awb-tabs">
+                    <button class="awb-tab-button" data-tab="form">
+                        Form
+                        <span class="tab-validation-indicator" id="form-validation-indicator"></span>
+                    </button>
+                    <button class="awb-tab-button" data-tab="contacts">
+                        Contacts
+                        <span class="tab-validation-indicator" id="contacts-validation-indicator"></span>
+                    </button>
+                    <button class="awb-tab-button active" data-tab="routing">
+                        Routing
+                        <span class="tab-validation-indicator" id="routing-validation-indicator"></span>
+                    </button>
+                    <button class="awb-tab-button" data-tab="billing">
+                        DIMS & Billing
+                        <span class="tab-validation-indicator" id="billing-validation-indicator"></span>
+                    </button>
+                </div>
+
+                <!-- Form Tab -->
+                <div id="form-tab" class="awb-tab-content">
+                    <div class="form-header">
+                        <h2>Form Information</h2>
+                    </div>
+                    <p>Form fields will be displayed here.</p>
+                </div>
+                
+                <!-- Contacts Tab -->
+                <div id="contacts-tab" class="awb-tab-content">
+                    <div class="contact-section" id="contactSection" style="display: none;">
+                        <div class="contact-controls">
+                            <div class="contact-select-group">
+                                <label for="shipperSelect">Shipper (04. SNA):</label>
+                                <select id="shipperSelect" class="contact-select">
+                                    <option value="">-- Select Shipper --</option>
+                                </select>
+                                <button type="button" class="btn-contact-small" id="addShipperBtn">+ Add</button>
+                            </div>
+                            <div class="contact-select-group">
+                                <label for="consigneeSelect">Consignee (05. CNA):</label>
+                                <select id="consigneeSelect" class="contact-select">
+                                    <option value="">-- Select Consignee --</option>
+                                </select>
+                                <button type="button" class="btn-contact-small" id="addConsigneeBtn">+ Add</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="contact-fields-container" id="contactFieldsContainer">
+                        <form id="contactFieldsForm" onsubmit="return false;">
+                            <!-- Fields 04, 05, 06, 07 will be displayed here -->
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Routing Tab -->
+                <div id="routing-tab" class="awb-tab-content active">
+                    <div class="routing-controls-section" id="routingControlsSection" style="display: none;">
+                        <div class="routing-controls">
+                            <div class="contact-select-group">
+                                <label for="airlineSelect1">Issuing Carrier:</label>
+                                <select id="airlineSelect1" class="contact-select">
+                                    <option value="">-- Select Airline --</option>
+                                </select>
+                                <button type="button" class="btn-contact-small" id="addAirlineBtn1">+ Add</button>
+                            </div>
+                            <div class="contact-select-group">
+                                <label for="destinationSelect">Destination:</label>
+                                <select id="destinationSelect" class="contact-select" required>
+                                    <option value="">-- Select Destination --</option>
+                                </select>
+                                <button type="button" class="btn-contact-small" id="addDestinationBtn">+ Add</button>
+                            </div>
+                            <div class="contact-select-group">
+                                <label for="directFlightSelect">Direct Flight:</label>
+                                <select id="directFlightSelect" class="contact-select">
+                                    <option value="">-- Select --</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                            <div class="contact-select-group">
+                                <label for="interlineShipmentSelect">Interline Shipment:</label>
+                                <select id="interlineShipmentSelect" class="contact-select">
+                                    <option value="">-- Select --</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                            <div class="contact-select-group" id="interlineCarrierGroup" style="display: none;">
+                                <label for="interlineCarrierSelect1">Interline Carrier 1:</label>
+                                <select id="interlineCarrierSelect1" class="contact-select">
+                                    <option value="">-- Select Airline --</option>
+                                </select>
+                            </div>
+                            <div class="contact-select-group" id="addInterlineCarrier2BtnGroup" style="display: none; justify-content: center;">
+                                <button type="button" class="btn-contact-small" id="addInterlineCarrier2Btn">+ Add Interline Carrier 2</button>
+                            </div>
+                            <div class="contact-select-group" id="interlineCarrierGroup2" style="display: none;">
+                                <label for="interlineCarrierSelect2">Interline Carrier 2:</label>
+                                <select id="interlineCarrierSelect2" class="contact-select">
+                                    <option value="">-- Select Airline --</option>
+                                </select>
+                            </div>
+                            <div class="contact-select-group">
+                                <label for="dangerousGoodsSelect" style="color: red;">Dangerous Goods: *</label>
+                                <select id="dangerousGoodsSelect" class="contact-select" required>
+                                    <option value="">-- Select --</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-header">
+                        <h2>Routing Information</h2>
+                    </div>
+                    <form id="generatedForm" onsubmit="return false;">
+                        <!-- Dynamically generated form fields will appear here -->
+                    </form>
+                </div>
+                
+                <!-- DIMS & Billing Tab -->
+                <div id="billing-tab" class="awb-tab-content">
+                    <div class="billing-controls-section" id="billingControlsSection" style="display: block;">
+                        <div class="routing-controls">
+                            <div class="contact-select-group">
+                                <label for="declaredValuesSelect">Declared Values:</label>
+                                <select id="declaredValuesSelect" class="contact-select">
+                                    <option value="">-- Select --</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                            <div class="contact-select-group">
+                                <label for="insuranceSelect">Insurance:</label>
+                                <select id="insuranceSelect" class="contact-select">
+                                    <option value="">-- Select --</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                            <div class="prepaid-dimensions-wrapper">
+                                <div class="contact-select-group">
+                                    <label for="prepaidCollectSelect">Prepaid or Collect:</label>
+                                    <select id="prepaidCollectSelect" class="contact-select">
+                                        <option value="">-- Select --</option>
+                                        <option value="Prepaid">Prepaid</option>
+                                        <option value="Collect">Collect</option>
+                                    </select>
+                                </div>
+                                <div class="contact-select-group dimensions-group">
+                                    <label>Dimensions:</label>
+                                    <div class="dimensions-container" id="dimensionsContainer">
+                                        <div class="dimensions-row" data-row-index="0" style="position: relative;">
+                                            <button type="button" class="dim-minimize-btn" id="minimizeDimensionsBtn" style="display: none;">▼</button>
+                                            <input type="number" class="dim-input dim-length" placeholder="L (cm)" min="0" step="0.1">
+                                            <input type="number" class="dim-input dim-width" placeholder="W (cm)" min="0" step="0.1">
+                                            <input type="number" class="dim-input dim-height" placeholder="H (cm)" min="0" step="0.1">
+                                            <input type="number" class="dim-input dim-qty" placeholder="QTY" min="1" step="1">
+                                            <button type="button" class="dim-add-box-btn" id="addDimensionsBoxBtn">+ Add Box</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-header">
+                        <h2>DIMS & Billing Information</h2>
+                    </div>
+                    <form id="billingFieldsForm">
+                        <!-- Dynamically generated billing fields will appear here -->
+                    </form>
+                </div>
+                
+                <!-- Form Actions - Appears at bottom of all tabs -->
+                <div class="form-actions">
+                    <button type="button" class="btn-primary" id="fillAndFlattenBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">Update & Download AWB</button>
+                    <button type="button" class="btn-secondary" id="printPreviewBtn">Print Preview</button>
+                    <button type="button" class="btn-secondary" id="submitBtn">View Form Data</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="../app4.js"></script>
+    
+    <!-- Load shipment management scripts -->
+    <script src="../models/user.js"></script>
+    <script src="../models/shipment.js"></script>
+    <script src="../js/roles.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/shipments.js"></script>
+    
+    <script>
+        // Wrap everything in an IIFE to avoid top-level return statements
+        (function() {
+            // Check authentication
+            if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
+                window.location.href = '../login.html';
+                return;
+            }
+
+            // Get AWB number from URL or sessionStorage
+            const urlParams = new URLSearchParams(window.location.search);
+            let awbNumber = urlParams.get('awb') || sessionStorage.getItem('loadShipmentAWB');
+            
+            if (!awbNumber) {
+                alert('No shipment AWB number provided.');
+                setTimeout(() => {
+                    if (window.parent && window.parent !== window) {
+                        const contentFrame = window.parent.document.getElementById('contentFrame');
+                        if (contentFrame) {
+                            contentFrame.src = 'list.html';
+                        } else {
+                            window.parent.location.href = 'list.html';
+                        }
+                    } else {
+                        window.location.href = 'list.html';
+                    }
+                }, 100);
+                return;
+            }
+            
+            console.log('Loading shipment edit page for AWB:', awbNumber);
+
+            // Store AWB for later use
+            sessionStorage.setItem('loadShipmentAWB', awbNumber);
+            sessionStorage.setItem('currentShipmentAWB', awbNumber);
+
+        // Function to go back to shipments
+        function goBackToShipments() {
+            if (window.parent && window.parent !== window) {
+                // We're in an iframe - tell parent to load shipments list
+                const contentFrame = window.parent.document.getElementById('contentFrame');
+                if (contentFrame) {
+                    contentFrame.src = 'list.html';
+                    // Update active nav item
+                    const parentNavLinks = window.parent.document.querySelectorAll('.nav-menu a');
+                    parentNavLinks.forEach(link => link.classList.remove('active'));
+                    const shipmentsLink = Array.from(parentNavLinks).find(link => 
+                        link.getAttribute('href') && link.getAttribute('href').includes('shipments')
+                    );
+                    if (shipmentsLink) {
+                        shipmentsLink.classList.add('active');
+                    }
+                }
+            } else {
+                // Not in iframe - redirect
+                window.location.href = 'list.html';
+            }
+        }
+        
+        // Check authentication
+        if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
+            window.location.href = '../login.html';
+        }
+
+        // Get AWB number from URL or sessionStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        let awbNumber = urlParams.get('awb') || sessionStorage.getItem('loadShipmentAWB');
+        
+        if (!awbNumber) {
+            alert('No shipment AWB number provided.');
+            setTimeout(() => {
+                goBackToShipments();
+            }, 100);
+        } else {
+            console.log('Loading shipment edit page for AWB:', awbNumber);
+
+            // Store AWB for later use
+            sessionStorage.setItem('loadShipmentAWB', awbNumber);
+            sessionStorage.setItem('currentShipmentAWB', awbNumber);
+
+        // Tab switching functionality
+        document.querySelectorAll('.awb-tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.getAttribute('data-tab');
+                
+                // Update active tab button
+                document.querySelectorAll('.awb-tab-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Update active tab content
+                document.querySelectorAll('.awb-tab-content').forEach(content => content.classList.remove('active'));
+                document.getElementById(`${tabName}-tab`).classList.add('active');
+            });
+        });
+
+        // Override handleFillPdf to update shipment instead of creating new one
+        (function() {
+            let shipmentUpdated = false;
+            
+            if (typeof handleFillPdf !== 'undefined') {
+                const originalHandleFillPdf = window.handleFillPdf;
+                window.handleFillPdf = async function(flatten = false) {
+                    try {
+                        await originalHandleFillPdf.call(this, flatten);
+                        
+                        // After PDF is downloaded, update shipment (only for flattened)
+                        if (flatten) {
+                            setTimeout(() => {
+                                updateShipmentWithPDF();
+                            }, 1500);
+                        }
+                    } catch (error) {
+                        throw error;
+                    }
+                };
+            }
+            
+            // Function to update shipment with PDF
+            async function updateShipmentWithPDF() {
+                if (shipmentUpdated) {
+                    return;
+                }
+                
+                console.log('✅ Updating shipment with PDF...');
+                
+                if (typeof getCurrentUser === 'undefined' || typeof collectFormData === 'undefined' || typeof updateShipment === 'undefined' || typeof fillPdfWithData === 'undefined') {
+                    console.error('Required functions not available');
+                    return;
+                }
+                
+                const user = getCurrentUser();
+                if (!user || user.role !== 'issuing-carrier-agent') {
+                    return;
+                }
+                
+                try {
+                    // Collect COMPLETE form data including dropdowns
+                    const completeFormData = collectCompleteFormData();
+                    const formData = completeFormData.formData;
+                    
+                    console.log('Complete form data collected (including dropdowns):', completeFormData);
+                    
+                    // Regenerate PDF to get bytes
+                    console.log('Generating PDF to store in shipment...');
+                    const pdfBytes = await fillPdfWithData(formData, true);
+                    
+                    // Convert PDF bytes to base64
+                    const uint8Array = new Uint8Array(pdfBytes);
+                    let binaryString = '';
+                    const chunkSize = 8192;
+                    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                        const chunk = uint8Array.slice(i, i + chunkSize);
+                        binaryString += String.fromCharCode.apply(null, chunk);
+                    }
+                    const pdfBase64 = btoa(binaryString);
+                    
+                    console.log('PDF converted to base64, size:', (pdfBase64.length / 1024).toFixed(2), 'KB');
+                    
+                    // Update shipment
+                    const updates = {
+                        formData: completeFormData,
+                        pdfBase64: pdfBase64,
+                        pdfCreatedAt: new Date().toISOString()
+                    };
+                    
+                    const result = updateShipment(awbNumber, updates);
+                    if (result.success) {
+                        shipmentUpdated = true;
+                        console.log('✅✅✅ SHIPMENT UPDATED:', awbNumber);
+                        console.log('All form fields, dropdowns, and PDF updated');
+                        
+                        // Show success message
+                        const errorDiv = document.getElementById('error');
+                        if (errorDiv && typeof showError === 'function') {
+                            showError('✓ Shipment updated successfully!');
+                            setTimeout(() => {
+                                if (typeof hideError === 'function') hideError();
+                            }, 3000);
+                        }
+                    } else {
+                        console.error('Failed to update shipment:', result.message);
+                    }
+                } catch (saveError) {
+                    console.error('Error updating shipment with PDF:', saveError);
+                }
+            }
+            
+            // Function to collect complete form data including dropdowns, dimensions, and dangerous goods
+            function collectCompleteFormData() {
+                const formData = typeof collectFormData === 'function' ? collectFormData() : {};
+                
+                // Collect ALL dropdown selections
+                const dropdownData = {};
+                
+                // Contact dropdowns
+                const shipperSelect = document.getElementById('shipperSelect');
+                const consigneeSelect = document.getElementById('consigneeSelect');
+                if (shipperSelect) dropdownData.shipperContactId = shipperSelect.value || '';
+                if (consigneeSelect) dropdownData.consigneeContactId = consigneeSelect.value || '';
+                
+                // Routing dropdowns
+                const airlineSelect1 = document.getElementById('airlineSelect1');
+                const destinationSelect = document.getElementById('destinationSelect');
+                const directFlightSelect = document.getElementById('directFlightSelect');
+                const interlineCarrierSelect1 = document.getElementById('interlineCarrierSelect1');
+                const interlineCarrierSelect2 = document.getElementById('interlineCarrierSelect2');
+                if (airlineSelect1) dropdownData.airlineId = airlineSelect1.value || '';
+                if (destinationSelect) dropdownData.destination = destinationSelect.value || '';
+                if (directFlightSelect) dropdownData.directFlight = directFlightSelect.value || '';
+                if (interlineCarrierSelect1) dropdownData.interlineCarrier1 = interlineCarrierSelect1.value || '';
+                if (interlineCarrierSelect2) dropdownData.interlineCarrier2 = interlineCarrierSelect2.value || '';
+                
+                // Billing dropdowns
+                const declaredValuesSelect = document.getElementById('declaredValuesSelect');
+                const insuranceSelect = document.getElementById('insuranceSelect');
+                const prepaidCollectSelect = document.getElementById('prepaidCollectSelect');
+                if (declaredValuesSelect) dropdownData.declaredValues = declaredValuesSelect.value || '';
+                if (insuranceSelect) dropdownData.insurance = insuranceSelect.value || '';
+                if (prepaidCollectSelect) dropdownData.prepaidCollect = prepaidCollectSelect.value || '';
+                
+                // Dangerous Goods dropdown
+                const dangerousGoodsSelect = document.getElementById('dangerousGoodsSelect');
+                if (dangerousGoodsSelect) dropdownData.dangerousGoods = dangerousGoodsSelect.value || '';
+                
+                // Collect dimensions data (including QTY for shipments)
+                const dimensionsData = [];
+                const dimensionsContainer = document.getElementById('dimensionsContainer');
+                if (dimensionsContainer) {
+                    const dimensionsRows = dimensionsContainer.querySelectorAll('.dimensions-row');
+                    dimensionsRows.forEach((row) => {
+                        const lengthInput = row.querySelector('.dim-length');
+                        const widthInput = row.querySelector('.dim-width');
+                        const heightInput = row.querySelector('.dim-height');
+                        const qtyInput = row.querySelector('.dim-qty');
+                        
+                        if (lengthInput || widthInput || heightInput || qtyInput) {
+                            dimensionsData.push({
+                                length: lengthInput ? lengthInput.value : '',
+                                width: widthInput ? widthInput.value : '',
+                                height: heightInput ? heightInput.value : '',
+                                qty: qtyInput ? qtyInput.value : ''
+                            });
+                        }
+                    });
+                }
+                if (dimensionsData.length > 0) {
+                    dropdownData.dimensions = dimensionsData;
+                }
+                
+                return {
+                    formData: formData,
+                    dropdownData: dropdownData
+                };
+            }
+        })();
+
+        // Load shipment data after PDF and form are ready
+        (function() {
+            if (typeof getShipmentByAWB === 'undefined') {
+                console.error('getShipmentByAWB function not available');
+                return;
+            }
+            
+            const shipment = getShipmentByAWB(awbNumber);
+            if (!shipment) {
+                alert('Shipment not found for AWB: ' + awbNumber);
+                goBackToShipments();
+                return;
+            }
+            
+            if (!shipment.formData) {
+                alert('Shipment has no form data.');
+                goBackToShipments();
+                return;
+            }
+            
+            console.log('✅ Shipment found, preparing to load form data for AWB:', awbNumber);
+            console.log('Shipment formData:', shipment.formData);
+            
+            // Format the data to match what restoreFormData expects
+            let dataToRestore;
+            
+            if (shipment.formData.formData && shipment.formData.dropdownData) {
+                // Already in correct format
+                dataToRestore = shipment.formData;
+            } else {
+                // Need to wrap it - extract dropdown data if it exists
+                dataToRestore = {
+                    formData: shipment.formData.formData || shipment.formData,
+                    dropdownData: shipment.formData.dropdownData || {
+                        shipperContactId: shipment.formData._shipperContactId || shipment.formData.shipperContactId || '',
+                        consigneeContactId: shipment.formData._consigneeContactId || shipment.formData.consigneeContactId || '',
+                        airlineId: shipment.formData._airlineId || shipment.formData.airlineId || '',
+                        destination: shipment.formData._destination || shipment.formData.destination || '',
+                        directFlight: shipment.formData._directFlight || shipment.formData.directFlight || '',
+                        interlineCarrier1: shipment.formData._interlineCarrier1 || shipment.formData.interlineCarrier1 || '',
+                        interlineCarrier2: shipment.formData._interlineCarrier2 || shipment.formData.interlineCarrier2 || '',
+                        declaredValues: shipment.formData._declaredValues || shipment.formData.declaredValues || '',
+                        insurance: shipment.formData._insurance || shipment.formData.insurance || '',
+                        prepaidCollect: shipment.formData._prepaidCollect || shipment.formData.prepaidCollect || '',
+                        dangerousGoods: shipment.formData._dangerousGoods || shipment.formData.dangerousGoods || '',
+                        dimensions: shipment.formData._dimensions || shipment.formData.dimensions || null
+                    },
+                    timestamp: Date.now()
+                };
+            }
+            
+            // Store in localStorage in the correct format
+            localStorage.setItem('awbFormData', JSON.stringify(dataToRestore));
+            console.log('✅ Shipment data stored in localStorage, waiting for PDF to load and form to be generated...');
+            console.log('Data structure:', Object.keys(dataToRestore));
+            console.log('Form data keys:', Object.keys(dataToRestore.formData || {}));
+            console.log('Dropdown data keys:', Object.keys(dataToRestore.dropdownData || {}));
+            
+            // Wait for PDF to load and form to be generated
+            // The initializeApp() function will call loadDefaultPDF() which loads the PDF and generates the form
+            let attempts = 0;
+            const maxAttempts = 60; // Wait up to 6 seconds for PDF to load
+            
+            const checkFormReady = setInterval(() => {
+                attempts++;
+                const generatedForm = document.getElementById('generatedForm');
+                const contentWrapper = document.getElementById('contentWrapper');
+                
+                // Check if form is visible and has elements
+                if (generatedForm && generatedForm.elements.length > 0 && contentWrapper && contentWrapper.style.display !== 'none') {
+                    clearInterval(checkFormReady);
+                    console.log('✅ Form is ready, restoring shipment data...');
+                    
+                    // Wait a bit more for all form elements to be fully initialized
+                    setTimeout(() => {
+                        if (typeof restoreFormData === 'function') {
+                            restoreFormData();
+                            sessionStorage.removeItem('loadShipmentAWB');
+                            console.log('✅✅✅ Shipment form data restored for AWB:', awbNumber);
+                        } else {
+                            console.error('restoreFormData function not available');
+                        }
+                    }, 1000); // Give more time for all elements to be ready
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkFormReady);
+                    console.warn('⚠️ Form not ready after 6 seconds, attempting restore anyway...');
+                    if (typeof restoreFormData === 'function') {
+                        restoreFormData();
+                        sessionStorage.removeItem('loadShipmentAWB');
+                    } else {
+                        console.error('restoreFormData function still not available');
+                    }
+                } else {
+                    // Log progress every 10 attempts
+                    if (attempts % 10 === 0) {
+                        console.log(`Waiting for form to be ready... (attempt ${attempts}/${maxAttempts})`);
+                    }
+                }
+            }, 100);
+        })();
+    </script>
+</body>
+</html>

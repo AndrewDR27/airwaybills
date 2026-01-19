@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Shipment Creation</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { padding: 10px 20px; margin: 5px; }
+        pre { background: #f0f0f0; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Shipment Debug Tool</h1>
+    <button onclick="checkShipments()">Check All Shipments</button>
+    <button onclick="clearShipments()">Clear All Shipments</button>
+    <button onclick="testCreate()">Test Create Shipment</button>
+    <pre id="output">Click a button to test</pre>
+
+    <script src="models/user.js"></script>
+    <script src="models/shipment.js"></script>
+    <script src="js/roles.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/shipments.js"></script>
+    
+    <script>
+        function checkShipments() {
+            const shipments = getAllShipments();
+            const user = getCurrentUser();
+            const userShipments = getUserShipments();
+            
+            document.getElementById('output').textContent = `
+All Shipments (${shipments.length}):
+${JSON.stringify(shipments, null, 2)}
+
+Current User: ${user ? JSON.stringify(user, null, 2) : 'Not logged in'}
+
+User Shipments (${userShipments.length}):
+${JSON.stringify(userShipments, null, 2)}
+
+LocalStorage Keys:
+${Object.keys(localStorage).filter(k => k.includes('shipment') || k.includes('awb')).join('\n')}
+            `;
+        }
+        
+        function clearShipments() {
+            if (confirm('Clear all shipments?')) {
+                localStorage.removeItem('awb_shipments');
+                alert('Cleared!');
+                checkShipments();
+            }
+        }
+        
+        function testCreate() {
+            const user = getCurrentUser();
+            if (!user) {
+                alert('Please log in first');
+                return;
+            }
+            
+            const testData = {
+                '01': '123-45678901',
+                '03': '123-45678901',
+                'test': 'test value'
+            };
+            
+            const result = createShipment({ formData: testData, awbNumber: '123-45678901' });
+            document.getElementById('output').textContent = `
+Test Create Result:
+${JSON.stringify(result, null, 2)}
+
+All Shipments Now:
+${JSON.stringify(getAllShipments(), null, 2)}
+            `;
+        }
+        
+        checkShipments();
+    </script>
+</body>
+</html>

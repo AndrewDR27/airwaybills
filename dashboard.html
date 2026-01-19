@@ -188,6 +188,14 @@
             border-radius: 8px;
             background: white;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: block;
+        }
+        /* Ensure sidebar is always visible and on top */
+        .sidebar {
+            z-index: 1000;
+        }
+        .main-content {
+            z-index: 1;
         }
     </style>
 </head>
@@ -215,24 +223,121 @@
                 <div class="user-info">
                     Logged in as: <strong id="usernameDisplay"></strong>
                 </div>
-                <button class="btn-logout" onclick="logout()">Logout</button>
+                <button class="btn-logout" onclick="window.dashboardLogout()">Logout</button>
             </div>
         </nav>
         <main class="main-content">
-            <iframe id="contentFrame" name="contentFrame" src="create-awb.html" class="content-frame"></iframe>
+            <iframe id="contentFrame" name="contentFrame" src="" class="content-frame"></iframe>
         </main>
     </div>
 
+    <!-- Load required scripts -->
+    <script src="models/user.js"></script>
+    <script src="js/roles.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/shipments.js"></script>
+    
     <script>
         // Check authentication
-        if (localStorage.getItem('isAuthenticated') !== 'true') {
-            window.location.href = 'login.html';
+        if (!requireAuth()) {
+            // Redirect handled by requireAuth
+            exit;
         }
 
-        // Display username
-        const username = localStorage.getItem('username') || 'User';
-        document.getElementById('usernameDisplay').textContent = username;
-        document.getElementById('userDisplay').textContent = username;
+        const user = getCurrentUser();
+        if (!user) {
+            window.location.href = 'login.html';
+            exit;
+        }
+
+        // Display user info
+        document.getElementById('usernameDisplay').textContent = user.name || user.email;
+        document.getElementById('userDisplay').textContent = `${user.name || user.email} (${getRoleLabel(user.role)})`;
+        document.querySelector('.sidebar-header h2').textContent = '📄 Airway Bills';
+
+        // Build role-based navigation
+        const navMenu = document.querySelector('.nav-menu');
+        navMenu.innerHTML = ''; // Clear existing menu
+
+        // Common menu items (all roles)
+        const commonItems = [
+            { href: 'shipments/list.html', icon: '📦', text: 'My Shipments', roles: ['all'] }
+        ];
+
+        // Role-specific menu items
+        const roleItems = {
+            'issuing-carrier-agent': [
+                { href: 'create-awb.html', icon: '📋', text: 'Create AWB', roles: ['issuing-carrier-agent'] },
+                { href: 'contacts.html', icon: '👥', text: 'Contacts', roles: ['all'] },
+                { href: 'destinations.html', icon: '🌍', text: 'Destinations', roles: ['all'] }
+            ],
+            'shipper': [
+                { href: 'shipments/create.html', icon: '➕', text: 'Create Shipment', roles: ['shipper'] },
+                { href: 'contacts.html', icon: '👥', text: 'Contacts', roles: ['all'] }
+            ],
+            'consignee': [
+                { href: 'shipments/pending.html', icon: '⏳', text: 'Pending Approvals', roles: ['consignee'] },
+                { href: 'billing/payment.html', icon: '💳', text: 'Payment Center', roles: ['consignee'] }
+            ],
+            'customs-broker': [
+                { href: 'shipments/customs.html', icon: '📄', text: 'Customs Documentation', roles: ['customs-broker'] }
+            ],
+            'courier': [
+                { href: 'shipments/deliveries.html', icon: '🚚', text: 'Active Deliveries', roles: ['courier'] },
+                { href: 'shipments/tracking.html', icon: '📍', text: 'Tracking', roles: ['courier'] }
+            ]
+        };
+
+        // Add role-specific items
+        const itemsToShow = roleItems[user.role] || [];
+        
+        // Determine default page based on role
+        let defaultPage = 'shipments/list.html'; // Default to My Shipments for all roles
+        let defaultActiveItem = null;
+        
+        if (user.role === 'issuing-carrier-agent') {
+            // Issuing Carrier Agent defaults to Create AWB
+            defaultPage = 'create-awb.html';
+            defaultActiveItem = itemsToShow.find(item => item.href === 'create-awb.html');
+        } else if (user.role === 'consignee') {
+            // Consignee defaults to Pending Approvals
+            defaultPage = 'shipments/pending.html';
+            defaultActiveItem = itemsToShow.find(item => item.href === 'shipments/pending.html');
+        } else if (user.role === 'shipper') {
+            // Shipper defaults to My Shipments
+            defaultPage = 'shipments/list.html';
+        } else {
+            // All other roles default to My Shipments
+            defaultPage = 'shipments/list.html';
+        }
+        
+        // Add "My Shipments" to all roles first
+        const shipmentsItem = { href: 'shipments/list.html', icon: '📦', text: 'My Shipments' };
+        const liShipments = document.createElement('li');
+        const isShipmentsActive = defaultPage === 'shipments/list.html' ? 'active' : '';
+        liShipments.innerHTML = `<a href="${shipmentsItem.href}" class="${isShipmentsActive}" target="contentFrame">
+            <span>${shipmentsItem.icon}</span> <span class="menu-text">${shipmentsItem.text}</span>
+        </a>`;
+        navMenu.appendChild(liShipments);
+        
+        // Add role-specific menu items
+        itemsToShow.forEach(item => {
+            // Skip if it's My Shipments (already added above)
+            if (item.href === 'shipments/list.html') {
+                return;
+            }
+            
+            const li = document.createElement('li');
+            const isActive = (defaultActiveItem && item.href === defaultActiveItem.href) || 
+                           (defaultPage === item.href) ? 'active' : '';
+            li.innerHTML = `<a href="${item.href}" class="${isActive}" target="contentFrame">
+                <span>${item.icon}</span> <span class="menu-text">${item.text}</span>
+            </a>`;
+            navMenu.appendChild(li);
+        });
+        
+        // Set default iframe source based on role
+        document.getElementById('contentFrame').src = defaultPage;
 
         // Handle navigation
         document.querySelectorAll('.nav-menu a').forEach(link => {
@@ -243,12 +348,15 @@
             });
         });
 
-        // Logout function
-        function logout() {
+        // Logout function - simple direct implementation to avoid recursion
+        window.dashboardLogout = function() {
+            // Clear all auth data
+            localStorage.removeItem('awb_auth');
             localStorage.removeItem('isAuthenticated');
             localStorage.removeItem('username');
+            // Redirect to login
             window.location.href = 'login.html';
-        }
+        };
 
         // Sidebar toggle functionality
         const sidebar = document.getElementById('sidebar');

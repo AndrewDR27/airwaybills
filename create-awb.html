@@ -9,8 +9,17 @@
 <body>
     <div class="container">
         <header>
-            <h1>Create Airway Bill</h1>
-            <p>Fill out the form below to generate your completed PDF</p>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <div>
+                    <h1 style="margin: 0;">Create Airway Bill</h1>
+                    <p style="margin: 5px 0 0 0;">Fill out the form below to generate your completed PDF</p>
+                </div>
+                <div id="iframeNavigation" style="display: none;">
+                    <button onclick="goBackToShipments()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                        ← Back to Shipments
+                    </button>
+                </div>
+            </div>
         </header>
 
         <div class="loading" id="loading" style="display: none;">
@@ -23,8 +32,8 @@
         <div class="content-wrapper" id="contentWrapper" style="display: none;">
             <div class="form-section" id="formSection">
                 <div class="template-section" id="templateSection">
-                    <div class="template-controls">
-                        <div class="template-select-group">
+                    <div class="template-controls" id="templateControls">
+                        <div class="template-select-group" id="templateSelectGroup">
                             <label for="templateSelect">Template:</label>
                             <select id="templateSelect" class="template-select">
                                 <option value="">-- Select Template --</option>
@@ -34,13 +43,14 @@
                             <label for="templateNameInput">Template Name:</label>
                             <input type="text" id="templateNameInput" class="template-name-input" placeholder="Enter template name">
                         </div>
-                        <div class="template-buttons">
+                        <div class="template-buttons" id="templateButtons">
                             <button type="button" class="btn-template" id="saveTemplateBtn">Save Template</button>
                             <button type="button" class="btn-template" id="deleteTemplateBtn" style="display: none;">Delete</button>
                             <button type="button" class="btn-template" id="renameTemplateBtn" style="display: none;">Rename</button>
                             <button type="button" class="btn-template btn-clear" id="clearFormBtn">Clear Form</button>
                         </div>
                     </div>
+                    <!-- Template from Shipment button (shown only when editing) -->
                 </div>
                 
                 <!-- Tabs Navigation -->
@@ -220,8 +230,7 @@
                 
                 <!-- Form Actions - Appears at bottom of all tabs -->
                 <div class="form-actions">
-                    <button type="button" class="btn-primary" id="fillPdfBtn">Fill PDF & Download</button>
-                    <button type="button" class="btn-primary" id="fillAndFlattenBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">Download Clean PDF (Flattened)</button>
+                    <button type="button" class="btn-primary" id="fillAndFlattenBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">Create & Download AWB</button>
                     <button type="button" class="btn-secondary" id="printPreviewBtn">Print Preview</button>
                     <button type="button" class="btn-secondary" id="submitBtn">View Form Data</button>
                 </div>
@@ -355,6 +364,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <script src="app4.js"></script>
+    
+    <!-- Load shipment management scripts (for saving AWB data) -->
+    <script src="models/user.js"></script>
+    <script src="models/shipment.js"></script>
+    <script src="js/roles.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/shipments.js"></script>
+    
     <script>
         // Tab switching functionality
         document.querySelectorAll('.awb-tab-button').forEach(button => {
@@ -370,6 +387,313 @@
                 document.getElementById(`${tabName}-tab`).classList.add('active');
             });
         });
+
+        // This is the CREATE page - no edit mode logic needed
+        
+        // Function to collect complete form data including dropdowns, dimensions, and dangerous goods
+        function collectCompleteFormData() {
+            const formData = typeof collectFormData === 'function' ? collectFormData() : {};
+            
+            // Collect ALL dropdown selections
+            const dropdownData = {};
+            
+            // Contact dropdowns
+            const shipperSelect = document.getElementById('shipperSelect');
+            const consigneeSelect = document.getElementById('consigneeSelect');
+            if (shipperSelect) dropdownData.shipperContactId = shipperSelect.value || '';
+            if (consigneeSelect) dropdownData.consigneeContactId = consigneeSelect.value || '';
+            
+            // Routing dropdowns
+            const airlineSelect1 = document.getElementById('airlineSelect1');
+            const destinationSelect = document.getElementById('destinationSelect');
+            const directFlightSelect = document.getElementById('directFlightSelect');
+            const interlineCarrierSelect1 = document.getElementById('interlineCarrierSelect1');
+            const interlineCarrierSelect2 = document.getElementById('interlineCarrierSelect2');
+            if (airlineSelect1) dropdownData.airlineId = airlineSelect1.value || '';
+            if (destinationSelect) dropdownData.destination = destinationSelect.value || '';
+            if (directFlightSelect) dropdownData.directFlight = directFlightSelect.value || '';
+            if (interlineCarrierSelect1) dropdownData.interlineCarrier1 = interlineCarrierSelect1.value || '';
+            if (interlineCarrierSelect2) dropdownData.interlineCarrier2 = interlineCarrierSelect2.value || '';
+            
+            // Billing dropdowns
+            const declaredValuesSelect = document.getElementById('declaredValuesSelect');
+            const insuranceSelect = document.getElementById('insuranceSelect');
+            const prepaidCollectSelect = document.getElementById('prepaidCollectSelect');
+            if (declaredValuesSelect) dropdownData.declaredValues = declaredValuesSelect.value || '';
+            if (insuranceSelect) dropdownData.insurance = insuranceSelect.value || '';
+            if (prepaidCollectSelect) dropdownData.prepaidCollect = prepaidCollectSelect.value || '';
+            
+            // Dangerous Goods dropdown
+            const dangerousGoodsSelect = document.getElementById('dangerousGoodsSelect');
+            if (dangerousGoodsSelect) dropdownData.dangerousGoods = dangerousGoodsSelect.value || '';
+            
+            // Collect dimensions data (including QTY for shipments)
+            const dimensionsData = [];
+            const dimensionsContainer = document.getElementById('dimensionsContainer');
+            if (dimensionsContainer) {
+                const dimensionsRows = dimensionsContainer.querySelectorAll('.dimensions-row');
+                dimensionsRows.forEach((row) => {
+                    const lengthInput = row.querySelector('.dim-length');
+                    const widthInput = row.querySelector('.dim-width');
+                    const heightInput = row.querySelector('.dim-height');
+                    const qtyInput = row.querySelector('.dim-qty');
+                    
+                    if (lengthInput || widthInput || heightInput || qtyInput) {
+                        dimensionsData.push({
+                            length: lengthInput ? lengthInput.value : '',
+                            width: widthInput ? widthInput.value : '',
+                            height: heightInput ? heightInput.value : '',
+                            qty: qtyInput ? qtyInput.value : '' // Include QTY for shipments
+                        });
+                    }
+                });
+            }
+            if (dimensionsData.length > 0) {
+                dropdownData.dimensions = dimensionsData;
+            }
+            
+            return {
+                formData: formData,
+                dropdownData: dropdownData
+            };
+        }
+        
+        // Function to go back to shipments
+        function goBackToShipments() {
+            if (window.parent && window.parent !== window) {
+                // We're in an iframe - tell parent to load shipments list
+                const contentFrame = window.parent.document.getElementById('contentFrame');
+                if (contentFrame) {
+                    contentFrame.src = 'shipments/list.html';
+                    // Update active nav item
+                    const parentNavLinks = window.parent.document.querySelectorAll('.nav-menu a');
+                    parentNavLinks.forEach(link => link.classList.remove('active'));
+                    const shipmentsLink = Array.from(parentNavLinks).find(link => 
+                        link.getAttribute('href') && link.getAttribute('href').includes('shipments')
+                    );
+                    if (shipmentsLink) {
+                        shipmentsLink.classList.add('active');
+                    }
+                }
+            } else {
+                // Not in iframe - redirect
+                window.location.href = 'shipments/list.html';
+            }
+        }
+        
+        // Clear any edit mode flags - this is the CREATE page only
+        sessionStorage.removeItem('isEditingShipment');
+        sessionStorage.removeItem('loadShipmentAWB');
+                    
+                    // Format the data to match what restoreFormData expects
+                    // restoreFormData expects: { formData: {...}, dropdownData: {...} }
+                    // shipment.formData might already be in the correct format, or it might just be formData
+                    let dataToRestore;
+                    
+                    if (shipment.formData.formData && shipment.formData.dropdownData) {
+                        // Already in correct format
+                        dataToRestore = shipment.formData;
+                    } else {
+                        // Need to wrap it - extract dropdown data if it exists
+                        dataToRestore = {
+                            formData: shipment.formData.formData || shipment.formData,
+                            dropdownData: shipment.formData.dropdownData || {
+                                shipperContactId: shipment.formData._shipperContactId || shipment.formData.shipperContactId || '',
+                                consigneeContactId: shipment.formData._consigneeContactId || shipment.formData.consigneeContactId || '',
+                                airlineId: shipment.formData._airlineId || shipment.formData.airlineId || '',
+                                destination: shipment.formData._destination || shipment.formData.destination || '',
+                                directFlight: shipment.formData._directFlight || shipment.formData.directFlight || '',
+                                interlineCarrier1: shipment.formData._interlineCarrier1 || shipment.formData.interlineCarrier1 || '',
+                                interlineCarrier2: shipment.formData._interlineCarrier2 || shipment.formData.interlineCarrier2 || ''
+                            },
+                            timestamp: Date.now()
+                        };
+                    }
+                    
+                    // Store in localStorage in the correct format
+                    localStorage.setItem('awbFormData', JSON.stringify(dataToRestore));
+                    console.log('Shipment data stored in localStorage, waiting for form to be generated...');
+                    
+                    // Wait for PDF to load and form to be generated
+                    // Check periodically if form is ready
+                    let attempts = 0;
+                    const maxAttempts = 30; // Try for 3 seconds
+                    
+                    const checkFormReady = setInterval(() => {
+                        attempts++;
+                        const generatedForm = document.getElementById('generatedForm');
+                        
+                        if (generatedForm && generatedForm.elements.length > 0) {
+                            clearInterval(checkFormReady);
+                            console.log('Form is ready, restoring data...');
+                            
+                            // Wait a bit more for all form elements to be fully initialized
+                            setTimeout(() => {
+                                if (typeof restoreFormData === 'function') {
+                                    restoreFormData();
+                                    sessionStorage.removeItem('loadShipmentAWB');
+                                    // Keep isEditingShipment flag for now (will be cleared when creating new shipment)
+                                    console.log('✅ Shipment form data restored for AWB:', loadAWB);
+                                    console.log('Edit mode active - template logic will be bypassed');
+                                } else {
+                                    console.error('restoreFormData function not available');
+                                }
+                            }, 500);
+                        } else if (attempts >= maxAttempts) {
+                            clearInterval(checkFormReady);
+                            console.warn('Form not ready after 3 seconds, attempting restore anyway...');
+                            if (typeof restoreFormData === 'function') {
+                                restoreFormData();
+                                sessionStorage.removeItem('loadShipmentAWB');
+                                console.log('Edit mode active - template logic will be bypassed');
+                            }
+                        }
+                    }, 100);
+                } else {
+                    console.warn('Shipment not found or has no formData for AWB:', loadAWB);
+                }
+            }
+        })();
+        
+        // Hook into "Create & Download AWB" to capture PDF and create shipment
+        // Override handleFillPdf to capture PDF bytes and store in shipment
+        (function() {
+            let shipmentCreated = false; // Prevent duplicate creation
+            let lastPdfBytes = null; // Store PDF bytes when created
+            
+            // Override handleFillPdf to capture PDF bytes
+            if (typeof handleFillPdf !== 'undefined') {
+                const originalHandleFillPdf = window.handleFillPdf;
+                window.handleFillPdf = async function(flatten = false) {
+                    try {
+                        // Call original function to get PDF bytes
+                        // We need to intercept fillPdfWithData to get the bytes
+                        // For now, we'll regenerate the PDF after download
+                        
+                        await originalHandleFillPdf.call(this, flatten);
+                        
+                        // After PDF is downloaded, create shipment with PDF (only for flattened)
+                        if (flatten) {
+                            setTimeout(() => {
+                                createShipmentWithPDF();
+                            }, 1500); // Wait for download to complete
+                        }
+                    } catch (error) {
+                        throw error;
+                    }
+                };
+            }
+            
+            // Function to create shipment and store PDF
+            async function createShipmentWithPDF() {
+                if (shipmentCreated) {
+                    return;
+                }
+                
+                console.log('✅ Creating shipment with PDF...');
+                
+                if (typeof getCurrentUser === 'undefined' || typeof collectFormData === 'undefined' || typeof createShipment === 'undefined' || typeof fillPdfWithData === 'undefined') {
+                    console.error('Required functions not available');
+                    return;
+                }
+                
+                const user = getCurrentUser();
+                if (!user || user.role !== 'issuing-carrier-agent') {
+                    return;
+                }
+                
+                try {
+                    // Collect COMPLETE form data including dropdowns
+                    const completeFormData = collectCompleteFormData();
+                    const formData = completeFormData.formData; // For PDF generation
+                    
+                    console.log('Complete form data collected (including dropdowns):', completeFormData);
+                    
+                    // Regenerate PDF to get bytes (since we can't intercept the original)
+                    console.log('Generating PDF to store in shipment...');
+                    const pdfBytes = await fillPdfWithData(formData, true); // true = flattened
+                    
+                    // Convert PDF bytes to base64 for storage
+                    const uint8Array = new Uint8Array(pdfBytes);
+                    let binaryString = '';
+                    const chunkSize = 8192; // Process in chunks to avoid stack overflow
+                    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                        const chunk = uint8Array.slice(i, i + chunkSize);
+                        binaryString += String.fromCharCode.apply(null, chunk);
+                    }
+                    const pdfBase64 = btoa(binaryString);
+                    
+                    console.log('PDF converted to base64, size:', (pdfBase64.length / 1024).toFixed(2), 'KB');
+                    
+                    // Extract AWB number (prioritize field 101)
+                    let awbNumberFromForm = null;
+                    for (const key in formData) {
+                        if (key.startsWith('101') && formData[key]) {
+                            const value = String(formData[key]).trim();
+                            if (value && value.includes('-')) {
+                                awbNumberFromForm = value;
+                                console.log('✅ Found AWB in field 101:', awbNumberFromForm);
+                                break;
+                            }
+                        }
+                    }
+                    if (!awbNumberFromForm) {
+                        for (const key in formData) {
+                            if (key.startsWith('01') && formData[key]) {
+                                awbNumberFromForm = String(formData[key]).trim();
+                                break;
+                            }
+                        }
+                    }
+                    
+                    const shipmentOptions = { 
+                        formData: completeFormData, // Save COMPLETE data structure with dropdowns
+                        pdfBase64: pdfBase64,
+                        pdfCreatedAt: new Date().toISOString()
+                    };
+                    if (awbNumberFromForm) {
+                        shipmentOptions.awbNumber = awbNumberFromForm;
+                    }
+                    
+                        const result = createShipment(shipmentOptions);
+                        if (result.success) {
+                            shipmentCreated = true;
+                            sessionStorage.setItem('currentShipmentAWB', result.shipment.awbNumber);
+                            console.log('✅✅✅ SHIPMENT CREATED WITH COMPLETE DATA:', result.shipment.awbNumber);
+                            console.log('All form fields, dropdowns, and PDF stored');
+                        }
+                } catch (saveError) {
+                    console.error('Error creating shipment with PDF:', saveError);
+                }
+            }
+            
+            // Set up MutationObserver as backup (in case override doesn't work)
+            setTimeout(() => {
+                const errorDiv = document.getElementById('error');
+                if (errorDiv) {
+                    const observer = new MutationObserver((mutations) => {
+                        const text = errorDiv.textContent || '';
+                        // Look for "Clean PDF" or "flattened" in success message
+                        if (text.includes('downloaded successfully') && (text.includes('Clean PDF') || text.includes('flattened'))) {
+                            console.log('✅ Detected PDF download success message (backup trigger)');
+                            // Only trigger if shipment not already created
+                            if (!shipmentCreated) {
+                                setTimeout(() => {
+                                    createShipmentWithPDF();
+                                }, 500);
+                            }
+                        }
+                    });
+                    
+                    observer.observe(errorDiv, { 
+                        childList: true, 
+                        subtree: true, 
+                        characterData: true 
+                    });
+                    console.log('✅ Shipment creation observer active (backup)');
+                }
+            }, 2000);
+        })();
     </script>
 </body>
 </html>

@@ -116,8 +116,8 @@ function initializeApp() {
         });
         console.log('Fill PDF button event listener attached');
     } else {
-        console.error('fillPdfBtn not found');
-        showError('Error: Fill PDF button not found on page.');
+        // fillPdfBtn is optional - edit page doesn't have it, only has fillAndFlattenBtn
+        console.log('Fill PDF button not found (this is OK for edit page)');
     }
     
     if (fillAndFlattenBtn) {
@@ -492,15 +492,22 @@ async function loadDefaultPDF() {
         return;
     }
     
+    // Determine correct path based on current page location
+    // If we're in a subdirectory (like shipments/), go up one level
+    let pdfPath = 'AWB1.pdf';
+    if (window.location.pathname.includes('/shipments/')) {
+        pdfPath = '../AWB1.pdf';
+    }
+    
     try {
-        const response = await fetch('AWB1.pdf');
+        const response = await fetch(pdfPath);
         if (response.ok) {
             const blob = await response.blob();
             const file = new File([blob], 'AWB1.pdf', { type: 'application/pdf' });
-            console.log('Loading default PDF: AWB1.pdf');
+            console.log('Loading default PDF:', pdfPath);
             handlePDF(file);
         } else {
-            console.log('Default PDF (AWB1.pdf) not found');
+            console.log('Default PDF (' + pdfPath + ') not found');
         }
     } catch (error) {
         console.log('Could not load default PDF:', error.message);
@@ -4437,6 +4444,88 @@ function restoreFormData() {
         if (dropdownData.interlineCarrier2 && interlineCarrierSelect2) {
             interlineCarrierSelect2.value = dropdownData.interlineCarrier2;
             interlineCarrierSelect2.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        
+        // Restore billing dropdowns
+        const declaredValuesSelect = document.getElementById('declaredValuesSelect');
+        const insuranceSelect = document.getElementById('insuranceSelect');
+        const prepaidCollectSelect = document.getElementById('prepaidCollectSelect');
+        if (dropdownData.declaredValues && declaredValuesSelect) {
+            declaredValuesSelect.value = dropdownData.declaredValues;
+            declaredValuesSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (dropdownData.insurance && insuranceSelect) {
+            insuranceSelect.value = dropdownData.insurance;
+            insuranceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (dropdownData.prepaidCollect && prepaidCollectSelect) {
+            prepaidCollectSelect.value = dropdownData.prepaidCollect;
+            prepaidCollectSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        
+        // Restore Dangerous Goods dropdown
+        const dangerousGoodsSelect = document.getElementById('dangerousGoodsSelect');
+        if (dropdownData.dangerousGoods && dangerousGoodsSelect) {
+            dangerousGoodsSelect.value = dropdownData.dangerousGoods;
+            dangerousGoodsSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        
+        // Restore dimensions data (including QTY)
+        if (dropdownData.dimensions && Array.isArray(dropdownData.dimensions)) {
+            const dimensionsContainer = document.getElementById('dimensionsContainer');
+            if (dimensionsContainer) {
+                const dimensionsData = dropdownData.dimensions;
+                const existingRows = dimensionsContainer.querySelectorAll('.dimensions-row');
+                
+                // Clear existing rows except the first one
+                for (let i = existingRows.length - 1; i > 0; i--) {
+                    existingRows[i].remove();
+                }
+                
+                // Restore dimensions to rows
+                dimensionsData.forEach((dimData, index) => {
+                    let row;
+                    if (index === 0) {
+                        // Use first row
+                        row = dimensionsContainer.querySelector('.dimensions-row');
+                    } else {
+                        // Create new row for additional dimensions
+                        if (dimensionsContainer.querySelectorAll('.dimensions-row').length < 6) {
+                            if (typeof addDimensionsRow === 'function') {
+                                addDimensionsRow();
+                                row = dimensionsContainer.querySelectorAll('.dimensions-row')[index];
+                            } else {
+                                return; // Function not available
+                            }
+                        } else {
+                            return; // Max 6 rows
+                        }
+                    }
+                    
+                    if (row) {
+                        const lengthInput = row.querySelector('.dim-length');
+                        const widthInput = row.querySelector('.dim-width');
+                        const heightInput = row.querySelector('.dim-height');
+                        const qtyInput = row.querySelector('.dim-qty');
+                        
+                        if (lengthInput && dimData.length) lengthInput.value = dimData.length;
+                        if (widthInput && dimData.width) widthInput.value = dimData.width;
+                        if (heightInput && dimData.height) heightInput.value = dimData.height;
+                        if (qtyInput && dimData.qty) qtyInput.value = dimData.qty;
+                        
+                        // Trigger update events
+                        if (lengthInput) lengthInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        if (widthInput) widthInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        if (heightInput) heightInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        if (qtyInput) qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                });
+                
+                // Update button states
+                if (typeof updateDimensionsAddButton === 'function') {
+                    updateDimensionsAddButton();
+                }
+            }
         }
         
         // Update validation indicators
