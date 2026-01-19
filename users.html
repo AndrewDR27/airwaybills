@@ -533,6 +533,7 @@
         </div>
     </div>
 
+    <script type="module" src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/roles.js"></script>
     <script src="models/user.js"></script>
@@ -578,9 +579,9 @@
             }
         }
 
-        function loadMyUsers() {
+        async function loadMyUsers() {
             const userIds = getMyUserList();
-            const allUsers = getAllUsers();
+            const allUsers = await getAllUsers();
             const myUsers = allUsers.filter(u => userIds.includes(u.id));
             
             // Update count
@@ -675,11 +676,11 @@
             }
         }
 
-        function loadAvailableUsersForMyList() {
+        async function loadAvailableUsersForMyList() {
             const currentUser = getCurrentUser();
             if (!currentUser) return;
             
-            const allUsers = getAllUsers();
+            const allUsers = await getAllUsers();
             const myUserIds = getMyUserList();
             
             // Filter out current user and users already in the list
@@ -734,10 +735,11 @@
             
             if (saveMyUserList(myUserIds)) {
                 closeAddUserToListModal();
-                const users = getAllUsers();
-                const user = users.find(u => u.id === userId);
-                const userName = user ? (user.name || user.email) : 'User';
-                alert(`✓ ${userName} has been added to your list!`);
+                getAllUsers().then(users => {
+                    const user = users.find(u => u.id === userId);
+                    const userName = user ? (user.name || user.email) : 'User';
+                    alert(`✓ ${userName} has been added to your list!`);
+                });
             }
         }
 
@@ -750,20 +752,21 @@
             const filtered = myUserIds.filter(id => id !== userId);
             
             if (saveMyUserList(filtered)) {
-                const users = getAllUsers();
-                const user = users.find(u => u.id === userId);
-                const userName = user ? (user.name || user.email) : 'User';
-                alert(`✓ ${userName} has been removed from your list.`);
+                getAllUsers().then(users => {
+                    const user = users.find(u => u.id === userId);
+                    const userName = user ? (user.name || user.email) : 'User';
+                    alert(`✓ ${userName} has been removed from your list.`);
+                });
             }
         }
 
         // ==================== Users Who Added Me Functions ====================
         
-        function getUsersWhoAddedMe() {
+        async function getUsersWhoAddedMe() {
             const currentUser = getCurrentUser();
             if (!currentUser) return [];
             
-            const allUsers = getAllUsers();
+            const allUsers = await getAllUsers();
             const myUserIds = getMyUserList();
             const usersWhoAddedMe = [];
             
@@ -792,8 +795,8 @@
             return usersWhoAddedMe;
         }
 
-        function loadUsersWhoAddedMe() {
-            const users = getUsersWhoAddedMe();
+        async function loadUsersWhoAddedMe() {
+            const users = await getUsersWhoAddedMe();
             
             // Update count
             const countElement = document.getElementById('added-me-count');
@@ -876,10 +879,11 @@
                 loadMyUsers();
                 loadUsersWhoAddedMe();
                 
-                const users = getAllUsers();
-                const user = users.find(u => u.id === userId);
-                const userName = user ? (user.name || user.email) : 'User';
-                alert(`✓ ${userName} has been added to your list!`);
+                getAllUsers().then(users => {
+                    const user = users.find(u => u.id === userId);
+                    const userName = user ? (user.name || user.email) : 'User';
+                    alert(`✓ ${userName} has been added to your list!`);
+                });
             }
         }
 
@@ -948,8 +952,8 @@
             usersList.innerHTML = tableHTML;
         }
 
-        function loadUsers() {
-            const users = getAllUsers();
+        async function loadUsers() {
+            const users = await getAllUsers();
             
             // Filter users by role
             const allUsers = users;
@@ -988,7 +992,7 @@
         }
 
 
-        function openUserAccountModal(userIdToEdit, defaultRole = null) {
+        async function openUserAccountModal(userIdToEdit, defaultRole = null) {
             console.log('openUserAccountModal called with userIdToEdit:', userIdToEdit, 'defaultRole:', defaultRole);
             
             // Check if user is admin
@@ -1042,7 +1046,7 @@
             const roleSelect = document.getElementById('userRoleSelect');
             
             if (userIdToEdit) {
-                const users = getAllUsers();
+                const users = await getAllUsers();
                 const userToEdit = users.find(u => u.id === userIdToEdit);
                 
                 if (userToEdit) {
@@ -1115,7 +1119,7 @@
             form.reset();
         }
 
-        function deleteUserAccount(userId) {
+        async function deleteUserAccount(userId) {
             // Prevent users from deleting themselves
             const currentUser = getCurrentUser();
             if (currentUser && currentUser.id === userId) {
@@ -1127,18 +1131,33 @@
                 return;
             }
             
-            const users = getAllUsers();
+            // Delete from database via API
+            if (usersAPI) {
+                try {
+                    await usersAPI.delete(userId);
+                    await loadUsers();
+                    alert('User account deleted successfully!');
+                    return;
+                } catch (error) {
+                    console.error('Error deleting user:', error);
+                    alert('Error deleting user. Please try again.');
+                    return;
+                }
+            }
+            
+            // Fallback to localStorage
+            const users = await getAllUsers();
             const filtered = users.filter(u => u.id !== userId);
             
             // Also remove password
             localStorage.removeItem(`user_password_${userId}`);
             
             localStorage.setItem('awb_users', JSON.stringify(filtered));
-            loadUsers();
+            await loadUsers();
             alert('User account deleted successfully!');
         }
 
-        function handleSaveContact(e) {
+        async function handleSaveContact(e) {
             e.preventDefault();
             
             const type = document.getElementById('contactType').value;
@@ -1219,9 +1238,8 @@
                     }
                 }
                 
-                const users = getAllUsers();
-                
-                // Check if email already exists (for new users or if email changed)
+                // Check if email already exists
+                const users = await getAllUsers();
                 if (!isEdit || (isEdit && users.find(u => u.id === userId) && email !== users.find(u => u.id === userId).email)) {
                     if (users.some(u => u.email === email && u.id !== userId)) {
                         alert('Email already registered to another user.');
@@ -1229,6 +1247,52 @@
                     }
                 }
                 
+                // Use API if available
+                if (usersAPI) {
+                    try {
+                        if (isEdit) {
+                            // Update existing user
+                            const userToUpdate = {
+                                id: userId,
+                                name: contactNameValue,
+                                email: email,
+                                role: userRole,
+                                company: companyName
+                            };
+                            
+                            // Include password if provided
+                            if (password) {
+                                userToUpdate.password = password;
+                            }
+                            
+                            await usersAPI.update(userToUpdate);
+                            await loadUsers();
+                            closeContactModal();
+                            alert('✓ User account updated successfully!');
+                        } else {
+                            // Create new user
+                            const newUserData = {
+                                name: contactNameValue,
+                                email: email,
+                                role: userRole,
+                                company: companyName,
+                                password: password
+                            };
+                            
+                            await usersAPI.register(newUserData);
+                            await loadUsers();
+                            closeContactModal();
+                            alert('✓ User account created successfully!');
+                        }
+                        return true;
+                    } catch (error) {
+                        console.error('Error saving user:', error);
+                        alert('Error saving user. Please try again.');
+                        return false;
+                    }
+                }
+                
+                // Fallback to localStorage
                 if (isEdit) {
                     // Update existing user
                     const userIndex = users.findIndex(u => u.id === userId);
@@ -1244,7 +1308,7 @@
                         }
                         
                         localStorage.setItem('awb_users', JSON.stringify(users));
-                        loadUsers();
+                        await loadUsers();
                         closeContactModal();
                         alert('✓ User account updated successfully!');
                     }
@@ -1275,7 +1339,7 @@
                     localStorage.setItem('awb_users', JSON.stringify(users));
                     localStorage.setItem(`user_password_${newUser.id}`, password);
                     
-                    loadUsers();
+                    await loadUsers();
                     closeContactModal();
                     alert('✓ User account created successfully!');
                 }
@@ -1303,6 +1367,8 @@
                     loadMyUsers();
                 } else if (tabName === 'added-me') {
                     loadUsersWhoAddedMe();
+                } else if (tabName === 'all' || tabName === 'shipper' || tabName === 'issuing-carrier-agent' || tabName === 'consignee' || tabName === 'customs-broker' || tabName === 'courier' || tabName === 'admin') {
+                    loadUsers();
                 }
             });
         });
