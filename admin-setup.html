@@ -162,8 +162,24 @@
             usersAPI = {
                 async getAll() {
                     try {
-                        const response = await fetch(`${window.location.origin}/api/users?action=all`);
-                        if (!response.ok) throw new Error('Failed to fetch');
+                        const url = `${window.location.origin}/api/users?action=all`;
+                        console.log('Fetching users from:', url);
+                        const response = await fetch(url);
+                        console.log('Response status:', response.status, response.statusText);
+                        
+                        if (!response.ok) {
+                            const text = await response.text();
+                            console.error('API error response:', text);
+                            throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+                        }
+                        
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            const text = await response.text();
+                            console.error('Non-JSON response:', text.substring(0, 200));
+                            throw new Error('Server returned non-JSON response');
+                        }
+                        
                         return await response.json();
                     } catch (e) {
                         console.error('API error:', e);
@@ -180,15 +196,30 @@
                     }
                 },
                 async register(userData) {
-                    const response = await fetch(`${window.location.origin}/api/users?action=register`, {
+                    const url = `${window.location.origin}/api/users?action=register`;
+                    console.log('Registering user at:', url);
+                    console.log('User data:', { ...userData, password: '***' });
+                    
+                    const response = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(userData)
                     });
-                    if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.error || 'Registration failed');
+                    
+                    console.log('Register response status:', response.status, response.statusText);
+                    
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        const text = await response.text();
+                        console.error('Non-JSON response from register:', text.substring(0, 500));
+                        throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}`);
                     }
+                    
+                    if (!response.ok) {
+                        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+                        throw new Error(error.error || error.message || 'Registration failed');
+                    }
+                    
                     return await response.json();
                 }
             };
