@@ -126,18 +126,35 @@ export default async function handler(req, res) {
             } else if (action === 'login') {
                 // Login - check credentials
                 const users = await redis.get(USERS_KEY) || [];
-                const user = users.find(u => u.email === req.body.email);
+                console.log('Login attempt for email:', req.body.email);
+                console.log('Total users in database:', users.length);
+                
+                // Case-insensitive email matching
+                const user = users.find(u => u.email && u.email.toLowerCase() === req.body.email.toLowerCase());
                 
                 if (!user) {
+                    console.log('User not found in database');
+                    console.log('Available emails:', users.map(u => u.email).filter(Boolean));
                     res.status(401).json({ success: false, message: 'Invalid email or password' });
                     return;
                 }
 
+                console.log('User found:', user.email, 'role:', user.role);
                 const storedPassword = await redis.get(`user_password_${user.id}`);
-                if (storedPassword !== req.body.password) {
+                
+                if (!storedPassword) {
+                    console.log('No password stored for user:', user.id);
                     res.status(401).json({ success: false, message: 'Invalid email or password' });
                     return;
                 }
+                
+                if (storedPassword !== req.body.password) {
+                    console.log('Password mismatch');
+                    res.status(401).json({ success: false, message: 'Invalid email or password' });
+                    return;
+                }
+                
+                console.log('Login successful for:', user.email);
 
                 // Set auth session
                 const authData = {
