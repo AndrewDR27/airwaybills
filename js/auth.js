@@ -214,7 +214,7 @@ async function register(userData) {
 
 // Register using localStorage (fallback)
 function registerLocalStorage(userData) {
-    const users = getAllUsers();
+    const users = getAllUsersLocalStorage(); // Use synchronous version
     
     if (users.some(u => u.email === userData.email)) {
         return { success: false, message: 'Email already registered' };
