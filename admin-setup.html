@@ -216,8 +216,19 @@
                     }
                     
                     if (!response.ok) {
-                        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-                        throw new Error(error.error || error.message || 'Registration failed');
+                        let error;
+                        try {
+                            error = await response.json();
+                        } catch (e) {
+                            error = { error: `Server error: ${response.status} ${response.statusText}` };
+                        }
+                        
+                        // Check for database configuration error
+                        if (response.status === 503 && error.message && error.message.includes('Database not configured')) {
+                            throw new Error('Database not configured. Please set up Upstash Redis in Vercel project settings. Go to Settings → Environment Variables and add UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.');
+                        }
+                        
+                        throw new Error(error.error || error.message || `Registration failed (${response.status})`);
                     }
                     
                     return await response.json();
