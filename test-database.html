@@ -220,7 +220,13 @@
                     result += `Error: ${JSON.stringify(error, null, 2)}`;
                     resultDiv.innerHTML = `<div class="result error">${escapeHtml(result)}</div>`;
                 } else {
-                    const error = await writeResponse.json().catch(() => ({ error: await writeResponse.text() }));
+                    let error;
+                    try {
+                        error = await writeResponse.json();
+                    } catch (e) {
+                        const text = await writeResponse.text();
+                        error = { error: text };
+                    }
                     result += `⚠️ Write failed\n`;
                     result += `Error: ${JSON.stringify(error, null, 2)}`;
                     resultDiv.innerHTML = `<div class="result error">${escapeHtml(result)}</div>`;
