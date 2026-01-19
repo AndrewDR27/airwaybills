@@ -149,10 +149,51 @@
     <script src="js/roles.js"></script>
     <script src="js/auth.js"></script>
     <script type="module">
-        import { usersAPI } from './js/api.js';
+        let usersAPI = null;
         
-        // Make usersAPI available globally
-        window.usersAPI = usersAPI;
+        try {
+            const apiModule = await import('./js/api.js');
+            usersAPI = apiModule.usersAPI;
+            window.usersAPI = usersAPI;
+            console.log('✅ usersAPI loaded successfully');
+        } catch (error) {
+            console.error('❌ Failed to load usersAPI:', error);
+            // Create a fallback API that uses fetch directly
+            usersAPI = {
+                async getAll() {
+                    try {
+                        const response = await fetch(`${window.location.origin}/api/users?action=all`);
+                        if (!response.ok) throw new Error('Failed to fetch');
+                        return await response.json();
+                    } catch (e) {
+                        console.error('API error:', e);
+                        return [];
+                    }
+                },
+                async getByEmail(email) {
+                    try {
+                        const response = await fetch(`${window.location.origin}/api/users?email=${encodeURIComponent(email)}`);
+                        if (!response.ok) throw new Error('Failed to fetch');
+                        return await response.json();
+                    } catch (e) {
+                        throw e;
+                    }
+                },
+                async register(userData) {
+                    const response = await fetch(`${window.location.origin}/api/users?action=register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(userData)
+                    });
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Registration failed');
+                    }
+                    return await response.json();
+                }
+            };
+            window.usersAPI = usersAPI;
+        }
         
         // Also expose checkForAdmins globally for debugging
         window.checkForAdmins = async function() {
