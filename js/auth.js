@@ -153,8 +153,14 @@ async function login(email, password) {
 // Login using localStorage (fallback)
 function loginLocalStorage(email, password) {
     console.log('loginLocalStorage called for:', email);
-    const users = getAllUsers();
-    console.log('Found users in localStorage:', users.length);
+    const users = getAllUsersLocalStorage(); // Use synchronous version
+    console.log('Found users in localStorage:', users ? users.length : 0);
+    
+    if (!Array.isArray(users)) {
+        console.error('users is not an array:', typeof users, users);
+        return { success: false, message: 'Error accessing user data' };
+    }
+    
     const user = users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
     
     if (!user) {
