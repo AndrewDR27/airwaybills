@@ -411,11 +411,31 @@
             // Collect ALL dropdown selections
             const dropdownData = {};
             
-            // Contact dropdowns
+            // Contact dropdowns - also capture linked user IDs
             const shipperSelect = document.getElementById('shipperSelect');
             const consigneeSelect = document.getElementById('consigneeSelect');
-            if (shipperSelect) dropdownData.shipperContactId = shipperSelect.value || '';
-            if (consigneeSelect) dropdownData.consigneeContactId = consigneeSelect.value || '';
+            if (shipperSelect) {
+                dropdownData.shipperContactId = shipperSelect.value || '';
+                // Find linked user if contact is selected
+                if (shipperSelect.value) {
+                    const contacts = typeof getContacts === 'function' ? getContacts() : [];
+                    const shipperContact = contacts.find(c => c.id === shipperSelect.value);
+                    if (shipperContact && shipperContact.linkedUserId) {
+                        dropdownData.shipperUserId = shipperContact.linkedUserId;
+                    }
+                }
+            }
+            if (consigneeSelect) {
+                dropdownData.consigneeContactId = consigneeSelect.value || '';
+                // Find linked user if contact is selected
+                if (consigneeSelect.value) {
+                    const contacts = typeof getContacts === 'function' ? getContacts() : [];
+                    const consigneeContact = contacts.find(c => c.id === consigneeSelect.value);
+                    if (consigneeContact && consigneeContact.linkedUserId) {
+                        dropdownData.consigneeUserId = consigneeContact.linkedUserId;
+                    }
+                }
+            }
             
             // Routing dropdowns
             const airlineSelect1 = document.getElementById('airlineSelect1');
@@ -753,6 +773,38 @@
                         }
                     }
                     
+                    // Auto-add linked users as participants
+                    const participantsToAdd = [];
+                    const dropdownData = completeFormData.dropdownData || {};
+                    
+                    // Check for shipper user
+                    if (dropdownData.shipperUserId) {
+                        const users = typeof getAllUsers === 'function' ? getAllUsers() : [];
+                        const shipperUser = users.find(u => u.id === dropdownData.shipperUserId);
+                        if (shipperUser) {
+                            participantsToAdd.push({
+                                userId: shipperUser.id,
+                                role: shipperUser.role,
+                                invitedBy: user.id
+                            });
+                            console.log('✅ Auto-adding shipper user as participant:', shipperUser.name);
+                        }
+                    }
+                    
+                    // Check for consignee user
+                    if (dropdownData.consigneeUserId) {
+                        const users = typeof getAllUsers === 'function' ? getAllUsers() : [];
+                        const consigneeUser = users.find(u => u.id === dropdownData.consigneeUserId);
+                        if (consigneeUser) {
+                            participantsToAdd.push({
+                                userId: consigneeUser.id,
+                                role: consigneeUser.role,
+                                invitedBy: user.id
+                            });
+                            console.log('✅ Auto-adding consignee user as participant:', consigneeUser.name);
+                        }
+                    }
+                    
                     // Update the shipment space with AWB data
                     const updates = {
                         formData: completeFormData, // Save COMPLETE data structure with dropdowns
@@ -761,6 +813,35 @@
                     };
                     if (awbNumberFromForm) {
                         updates.awbNumber = awbNumberFromForm;
+                    }
+                    
+                    // Add participants if any
+                    if (participantsToAdd.length > 0) {
+                        // Get current shipment to add participants
+                        const currentShipment = getShipmentBySpaceId(spaceId);
+                        if (currentShipment) {
+                            participantsToAdd.forEach(participant => {
+                                if (currentShipment.addParticipant) {
+                                    currentShipment.addParticipant(participant.userId, participant.role, participant.invitedBy);
+                                } else {
+                                    // Fallback if addParticipant method doesn't exist
+                                    if (!currentShipment.participants) {
+                                        currentShipment.participants = [];
+                                    }
+                                    const existing = currentShipment.participants.find(p => p.userId === participant.userId);
+                                    if (!existing) {
+                                        currentShipment.participants.push({
+                                            userId: participant.userId,
+                                            role: participant.role,
+                                            invitedAt: new Date().toISOString(),
+                                            invitedBy: participant.invitedBy
+                                        });
+                                    }
+                                }
+                            });
+                            // Update participants in the updates object
+                            updates.participants = currentShipment.participants;
+                        }
                     }
                     
                     const result = updateShipment(spaceId, updates);

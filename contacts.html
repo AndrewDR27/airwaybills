@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contacts - Airway Bills</title>
+    <title>AWB Contacts - Airway Bills</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         body {
@@ -234,7 +234,7 @@
 <body>
     <div class="contacts-container">
         <div class="contacts-header">
-            <h1>👥 Contacts Management</h1>
+            <h1>👥 AWB Contacts Management</h1>
             <p>Manage your shippers, consignees, and user profile</p>
         </div>
         
@@ -243,13 +243,14 @@
                 <button class="tab-button active" data-tab="all">All <span class="tab-count" id="all-count">(0)</span></button>
                 <button class="tab-button" data-tab="shippers">Shippers <span class="tab-count" id="shippers-count">(0)</span></button>
                 <button class="tab-button" data-tab="consignees">Consignees <span class="tab-count" id="consignees-count">(0)</span></button>
+                <button class="tab-button" data-tab="users" id="usersTabBtn" style="display: none;">Users <span class="tab-count" id="users-count">(0)</span></button>
                 <button class="tab-button" data-tab="profile">My Profile</button>
             </div>
             
             <!-- All Tab -->
             <div id="all-tab" class="tab-content active">
                 <div class="contacts-actions">
-                    <h2>All Contacts</h2>
+                    <h2>All AWB Contacts</h2>
                 </div>
                 <div id="all-list" class="contacts-list">
                     <!-- All contacts will be loaded here -->
@@ -259,7 +260,7 @@
             <!-- Shippers Tab -->
             <div id="shippers-tab" class="tab-content">
                 <div class="contacts-actions">
-                    <h2>Shipper Contacts</h2>
+                    <h2>Shipper AWB Contacts</h2>
                     <button class="btn-add" onclick="openContactModal('Shipper', null)">+ Add Shipper</button>
                 </div>
                 <div id="shippers-list" class="contacts-list">
@@ -270,11 +271,22 @@
             <!-- Consignees Tab -->
             <div id="consignees-tab" class="tab-content">
                 <div class="contacts-actions">
-                    <h2>Consignee Contacts</h2>
+                    <h2>Consignee AWB Contacts</h2>
                     <button class="btn-add" onclick="openContactModal('Consignee', null)">+ Add Consignee</button>
                 </div>
                 <div id="consignees-list" class="contacts-list">
                     <!-- Consignees will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Users Tab (Admin Only) -->
+            <div id="users-tab" class="tab-content">
+                <div class="contacts-actions">
+                    <h2>User Accounts</h2>
+                    <button class="btn-add" onclick="openUserAccountModal(null)">+ Create User Account</button>
+                </div>
+                <div id="users-list" class="contacts-list">
+                    <!-- Users will be loaded here -->
                 </div>
             </div>
             
@@ -301,38 +313,23 @@
                 <button type="button" class="modal-close" id="closeContactModal">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="contactForm">
+                <form id="contactForm" novalidate>
                     <input type="hidden" id="contactId" value="">
                     <input type="hidden" id="contactType" value="">
                     
                     <div class="form-group">
-                        <label for="contactCompanyName">Company Name *</label>
-                        <input type="text" id="contactCompanyName" required>
+                        <label for="contactCompanyName">Company Name</label>
+                        <input type="text" id="contactCompanyName">
                     </div>
                     
                     <div class="form-group">
-                        <label for="contactName">Contact Name *</label>
-                        <input type="text" id="contactName" required>
+                        <label for="contactEmail">Email</label>
+                        <input type="email" id="contactEmail">
                     </div>
                     
                     <div class="form-group">
-                        <label for="contactEmail">Email *</label>
-                        <input type="email" id="contactEmail" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="contactPhone">Phone Number *</label>
-                        <input type="tel" id="contactPhone" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="contactAddress">Address *</label>
-                        <textarea id="contactAddress" rows="3" required></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="contactFormattedValue">Formatted Field Value *</label>
-                        <textarea id="contactFormattedValue" rows="4" required placeholder="This will be used to fill the form field. Format: Company Name\nContact Name\nEmail\nPhone\nAddress"></textarea>
+                        <label for="contactFormattedValue" id="formattedValueLabel">Formatted Field Value</label>
+                        <textarea id="contactFormattedValue" rows="4" placeholder="Enter name and address information"></textarea>
                         <small>This value will be used to fill the form field. Use line breaks (\n) to format.</small>
                     </div>
                     
@@ -340,6 +337,32 @@
                         <label for="contactAccountInfo">Account Info (07. ACCNT INFO)</label>
                         <textarea id="contactAccountInfo" rows="3" placeholder="Enter account information for this consignee"></textarea>
                         <small>This will be used to fill field 07. ACCNT INFO when this consignee is selected.</small>
+                    </div>
+                    
+                    <!-- Agent-only custom fields (only visible to agents) -->
+                    <div class="form-group" id="agentCustomFieldsGroup" style="display: none;">
+                        <h3 style="margin-top: 20px; margin-bottom: 10px; color: #667eea;">Agent-Only Fields</h3>
+                        <small style="color: #666; display: block; margin-bottom: 15px;">These fields are only visible to agents and won't appear in the user's profile.</small>
+                        
+                        <div class="form-group">
+                            <label for="agentSpecialInstructions">Special Instructions</label>
+                            <textarea id="agentSpecialInstructions" rows="3" placeholder="Add any special instructions or notes for this contact"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="agentPreferredCarrier">Preferred Carrier</label>
+                            <input type="text" id="agentPreferredCarrier" placeholder="Preferred carrier or airline">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="agentCustomNotes">Custom Notes</label>
+                            <textarea id="agentCustomNotes" rows="2" placeholder="Additional notes or information"></textarea>
+                        </div>
+                        
+                        <div id="linkedUserInfo" style="display: none; padding: 10px; background: #f0f7ff; border-radius: 5px; margin-top: 10px;">
+                            <small style="color: #667eea; font-weight: bold;">✓ Linked to User Account</small>
+                            <div id="linkedUserDetails" style="margin-top: 5px; font-size: 0.9em; color: #666;"></div>
+                        </div>
                     </div>
                     
                     <div class="modal-actions">
@@ -351,12 +374,46 @@
         </div>
     </div>
 
+    <script src="models/user.js"></script>
+    <script src="js/roles.js"></script>
+    <script src="js/auth.js"></script>
     <script>
         // Contact management functions (shared with create-awb.html)
         function getContacts() {
             try {
                 const contactsJson = localStorage.getItem('awbContacts');
-                return contactsJson ? JSON.parse(contactsJson) : [];
+                const contacts = contactsJson ? JSON.parse(contactsJson) : [];
+                
+                // Migrate old contacts to new structure (remove contactName, phone, address if they exist)
+                // and ensure required fields exist
+                const migratedContacts = contacts.map(contact => {
+                    if (!contact) return null;
+                    
+                    // Create new contact object with only the fields we need
+                    const migrated = {
+                        id: contact.id,
+                        type: contact.type,
+                        companyName: contact.companyName || '',
+                        email: contact.email || '',
+                        formattedValue: contact.formattedValue || '',
+                        linkedUserId: contact.linkedUserId || null,
+                        agentCustomFields: contact.agentCustomFields || {}
+                    };
+                    
+                    // Preserve accountInfo for Consignees
+                    if (contact.type === 'Consignee' && contact.accountInfo) {
+                        migrated.accountInfo = contact.accountInfo;
+                    }
+                    
+                    return migrated;
+                }).filter(c => c !== null && c.id && c.type); // Remove invalid contacts
+                
+                // Save migrated contacts back if they were changed
+                if (migratedContacts.length !== contacts.length || JSON.stringify(migratedContacts) !== JSON.stringify(contacts)) {
+                    localStorage.setItem('awbContacts', JSON.stringify(migratedContacts));
+                }
+                
+                return migratedContacts;
             } catch (error) {
                 console.warn('Could not read contacts from localStorage:', error);
                 return [];
@@ -399,15 +456,33 @@
 
         function loadContacts() {
             const contacts = getContacts();
+            console.log('Loaded contacts:', contacts);
+            
             // Filter out airlines - they're on a separate page
-            const userContacts = contacts.filter(c => c.type !== 'Airline');
+            // Also filter out invalid contacts (must have id and type)
+            const userContacts = contacts.filter(c => c && c.id && c.type && c.type !== 'Airline');
             const shippers = userContacts.filter(c => c.type === 'Shipper');
             const consignees = userContacts.filter(c => c.type === 'Consignee');
+            
+            console.log('Filtered contacts:', { userContacts, shippers, consignees });
             
             // Update tab counts (excluding airlines)
             document.getElementById('all-count').textContent = `(${userContacts.length})`;
             document.getElementById('shippers-count').textContent = `(${shippers.length})`;
             document.getElementById('consignees-count').textContent = `(${consignees.length})`;
+            
+            // Check if user is admin and show/hide Users tab
+            const user = getCurrentUser();
+            const isAdmin = user && user.role === 'admin';
+            const usersTabBtn = document.getElementById('usersTabBtn');
+            if (usersTabBtn) {
+                usersTabBtn.style.display = isAdmin ? 'block' : 'none';
+            }
+            
+            // Load users if admin
+            if (isAdmin) {
+                loadUsers();
+            }
             
             // Sort all contacts by type, then by company name
             const allContacts = [...userContacts].sort((a, b) => {
@@ -447,6 +522,10 @@
         }
 
         function createContactsTable(contacts, showTypeBadge = false) {
+            if (!contacts || !Array.isArray(contacts) || contacts.length === 0) {
+                return '<div class="empty-state"><h3>No Contacts</h3><p>Click "+ Add" buttons to create your first contacts.</p></div>';
+            }
+            
             let tableHTML = `
                 <table class="contacts-table">
                     <thead>
@@ -460,23 +539,31 @@
             `;
             
             contacts.forEach(contact => {
+                // Skip invalid contacts
+                if (!contact || !contact.id) {
+                    return;
+                }
+                
                 let badgeClass = 'badge-shipper';
                 if (contact.type === 'Consignee') {
                     badgeClass = 'badge-consignee';
                 }
                 
+                const companyName = contact.companyName || 'No Company Name';
+                const contactType = contact.type || 'Unknown';
+                
                 tableHTML += `
                     <tr>
                         <td>
                             <div>
-                                <strong>${escapeHtml(contact.companyName)}</strong>
-                                ${!showTypeBadge ? `<br><span class="contact-type-badge ${badgeClass}">${contact.type}</span>` : ''}
+                                <strong>${escapeHtml(companyName)}</strong>
+                                ${!showTypeBadge ? `<br><span class="contact-type-badge ${badgeClass}">${contactType}</span>` : ''}
                             </div>
                         </td>
-                        ${showTypeBadge ? `<td><span class="contact-type-badge ${badgeClass}">${contact.type}</span></td>` : ''}
+                        ${showTypeBadge ? `<td><span class="contact-type-badge ${badgeClass}">${contactType}</span></td>` : ''}
                         <td>
                             <div class="contact-actions">
-                                <button class="btn-edit" onclick="openContactModal('${contact.type}', '${contact.id}')">Edit</button>
+                                <button class="btn-edit" onclick="openContactModal('${contactType}', '${contact.id}')">Edit</button>
                                 <button class="btn-delete" onclick="deleteContact('${contact.id}')">Delete</button>
                             </div>
                         </td>
@@ -490,6 +577,72 @@
             `;
             
             return tableHTML;
+        }
+
+        function loadUsers() {
+            const users = getAllUsers();
+            const usersList = document.getElementById('users-list');
+            const usersCount = document.getElementById('users-count');
+            
+            // Update count
+            if (usersCount) {
+                usersCount.textContent = `(${users.length})`;
+            }
+            
+            if (!usersList) return;
+            
+            if (users.length === 0) {
+                usersList.innerHTML = '<div class="empty-state"><h3>No User Accounts</h3><p>Click "+ Create User Account" to create your first user account.</p></div>';
+                return;
+            }
+            
+            // Filter out admin users from display
+            const displayUsers = users.filter(u => u.role !== 'admin');
+            
+            let tableHTML = `
+                <table class="contacts-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Company</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            displayUsers.forEach(user => {
+                const roleLabel = getRoleLabel(user.role);
+                const statusBadge = user.isActive 
+                    ? '<span class="badge badge-active">Active</span>' 
+                    : '<span class="badge badge-inactive">Inactive</span>';
+                
+                tableHTML += `
+                    <tr>
+                        <td><strong>${escapeHtml(user.name || 'N/A')}</strong></td>
+                        <td>${escapeHtml(user.email || 'N/A')}</td>
+                        <td>${escapeHtml(roleLabel)}</td>
+                        <td>${escapeHtml(user.company || 'N/A')}</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <div class="contact-actions">
+                                <button class="btn-edit" onclick="openUserAccountModal('${user.id}')">Edit</button>
+                                <button class="btn-delete" onclick="deleteUserAccount('${user.id}')">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+            
+            usersList.innerHTML = tableHTML;
         }
 
         function loadUserProfile() {
@@ -547,18 +700,9 @@
             
             // Get form field elements
             const contactCompanyName = document.getElementById('contactCompanyName');
-            const contactName = document.getElementById('contactName');
             const contactEmail = document.getElementById('contactEmail');
-            const contactPhone = document.getElementById('contactPhone');
-            const contactAddress = document.getElementById('contactAddress');
             const contactFormattedValue = document.getElementById('contactFormattedValue');
-            
-            // Get label elements
-            const contactNameLabel = contactName ? contactName.previousElementSibling : null;
-            const contactEmailLabel = contactEmail ? contactEmail.previousElementSibling : null;
-            const contactPhoneLabel = contactPhone ? contactPhone.previousElementSibling : null;
-            const contactAddressLabel = contactAddress ? contactAddress.previousElementSibling : null;
-            const contactFormattedValueLabel = contactFormattedValue ? contactFormattedValue.previousElementSibling : null;
+            const formattedValueLabel = document.getElementById('formattedValueLabel');
             
             contactType.value = type;
             contactId.value = contactIdToEdit || '';
@@ -568,19 +712,16 @@
                 accountInfoGroup.style.display = type === 'Consignee' ? 'block' : 'none';
             }
             
-            // Make fields required for all contact types
-            if (contactName) contactName.required = true;
-            if (contactEmail) contactEmail.required = true;
-            if (contactPhone) contactPhone.required = true;
-            if (contactAddress) contactAddress.required = true;
-            if (contactFormattedValue) contactFormattedValue.required = true;
+            // Make all fields optional
+            if (contactEmail) contactEmail.required = false;
+            if (contactFormattedValue) contactFormattedValue.required = false;
             
-            // Update labels to add asterisks
-            if (contactNameLabel) contactNameLabel.textContent = 'Contact Name *';
-            if (contactEmailLabel) contactEmailLabel.textContent = 'Email *';
-            if (contactPhoneLabel) contactPhoneLabel.textContent = 'Phone Number *';
-            if (contactAddressLabel) contactAddressLabel.textContent = 'Address *';
-            if (contactFormattedValueLabel) contactFormattedValueLabel.textContent = 'Formatted Field Value *';
+            // Update formatted value label based on contact type
+            if (formattedValueLabel && type && type !== 'User' && type !== 'UserAccount') {
+                formattedValueLabel.textContent = `${type}'s name and address`;
+            } else if (formattedValueLabel) {
+                formattedValueLabel.textContent = 'Formatted Field Value';
+            }
             
             if (contactIdToEdit) {
                 const contacts = getContacts();
@@ -588,10 +729,7 @@
                 if (contact) {
                     modalTitle.textContent = `Edit ${type}`;
                     contactCompanyName.value = contact.companyName || '';
-                    if (contactName) contactName.value = contact.contactName || '';
                     if (contactEmail) contactEmail.value = contact.email || '';
-                    if (contactPhone) contactPhone.value = contact.phone || '';
-                    if (contactAddress) contactAddress.value = contact.address || '';
                     if (contactFormattedValue) contactFormattedValue.value = contact.formattedValue || '';
                     if (document.getElementById('contactAccountInfo')) {
                         document.getElementById('contactAccountInfo').value = contact.accountInfo || '';
@@ -636,11 +774,196 @@
             
             modal.style.display = 'flex';
         }
+        
+        function openUserAccountModal(userIdToEdit) {
+            // Check if user is admin
+            const user = getCurrentUser();
+            if (!user || user.role !== 'admin') {
+                alert('Only administrators can create or edit user accounts.');
+                return;
+            }
+            
+            const modal = document.getElementById('contactModal');
+            const form = document.getElementById('contactForm');
+            const contactId = document.getElementById('contactId');
+            const contactType = document.getElementById('contactType');
+            const modalTitle = document.getElementById('modalTitle');
+            const accountInfoGroup = document.getElementById('accountInfoGroup');
+            
+            // Hide account info for user accounts
+            if (accountInfoGroup) {
+                accountInfoGroup.style.display = 'none';
+            }
+            
+            // Make all contact fields optional (including for user accounts)
+            const contactEmail = document.getElementById('contactEmail');
+            const contactFormattedValue = document.getElementById('contactFormattedValue');
+            const contactCompanyName = document.getElementById('contactCompanyName');
+            const contactName = document.getElementById('contactName'); // May be dynamically added for UserAccount
+            
+            // All fields are optional (except Name for UserAccount which is required)
+            if (contactEmail) contactEmail.required = false;
+            if (contactCompanyName) contactCompanyName.required = false;
+            if (contactFormattedValue) contactFormattedValue.required = false;
+            // Name is required for UserAccount, but we'll set that when the field is added
+            
+            contactType.value = 'UserAccount';
+            contactId.value = userIdToEdit || '';
+            
+            // Add Name field dynamically for UserAccount (since it was removed from main form)
+            // contactEmail already declared above
+            let contactNameField = document.getElementById('contactName');
+            if (!contactNameField && contactEmail) {
+                const nameGroup = document.createElement('div');
+                nameGroup.className = 'form-group';
+                nameGroup.innerHTML = `
+                    <label for="contactName">Name *</label>
+                    <input type="text" id="contactName" required>
+                `;
+                contactEmail.parentElement.insertBefore(nameGroup, contactEmail.parentElement);
+                contactNameField = document.getElementById('contactName');
+            }
+            
+            // Remove any existing dynamic fields first
+            const existingRoleSelect = document.getElementById('userRoleSelect');
+            const existingPasswordGroup = document.getElementById('userPasswordGroup');
+            const existingConfirmPassword = document.getElementById('userConfirmPassword');
+            
+            if (existingRoleSelect && existingRoleSelect.parentElement) {
+                existingRoleSelect.parentElement.remove();
+            }
+            if (existingPasswordGroup) {
+                existingPasswordGroup.remove();
+            }
+            if (existingConfirmPassword && existingConfirmPassword.parentElement) {
+                existingConfirmPassword.parentElement.remove();
+            }
+            
+            if (userIdToEdit) {
+                const users = getAllUsers();
+                const userToEdit = users.find(u => u.id === userIdToEdit);
+                if (userToEdit) {
+                    modalTitle.textContent = 'Edit User Account';
+                    const contactCompanyName = document.getElementById('contactCompanyName');
+                    const contactEmail = document.getElementById('contactEmail');
+                    const contactFormattedValue = document.getElementById('contactFormattedValue');
+                    if (contactCompanyName) contactCompanyName.value = userToEdit.company || '';
+                    if (contactNameField) contactNameField.value = userToEdit.name || '';
+                    if (contactEmail) contactEmail.value = userToEdit.email || '';
+                    if (contactFormattedValue) contactFormattedValue.value = '';
+                    
+                    // Add role selection before formatted value field
+                    // contactFormattedValue already declared above
+                    const parent = contactFormattedValue.parentElement;
+                    parent.insertAdjacentHTML('beforebegin', `
+                        <div class="form-group">
+                            <label for="userRoleSelect">Role *</label>
+                            <select id="userRoleSelect" required>
+                                <option value="">-- Select Role --</option>
+                                <option value="shipper" ${userToEdit.role === 'shipper' ? 'selected' : ''}>Shipper</option>
+                                <option value="issuing-carrier-agent" ${userToEdit.role === 'issuing-carrier-agent' ? 'selected' : ''}>Issuing Carrier's Agent</option>
+                                <option value="consignee" ${userToEdit.role === 'consignee' ? 'selected' : ''}>Consignee</option>
+                                <option value="customs-broker" ${userToEdit.role === 'customs-broker' ? 'selected' : ''}>Customs Broker</option>
+                                <option value="courier" ${userToEdit.role === 'courier' ? 'selected' : ''}>Courier</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="userPasswordGroup">
+                            <label for="userPassword">New Password (leave blank to keep current)</label>
+                            <input type="password" id="userPassword" autocomplete="new-password" minlength="6">
+                            <small>Only fill this if you want to change the user's password</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="userConfirmPassword">Confirm New Password</label>
+                            <input type="password" id="userConfirmPassword" autocomplete="new-password" minlength="6">
+                        </div>
+                    `);
+                }
+            } else {
+                modalTitle.textContent = 'Create User Account';
+                form.reset();
+                contactId.value = '';
+                contactType.value = 'UserAccount';
+                
+                // Add role selection and password fields before formatted value field
+                const contactFormattedValue = document.getElementById('contactFormattedValue');
+                const parent = contactFormattedValue.parentElement;
+                parent.insertAdjacentHTML('beforebegin', `
+                    <div class="form-group">
+                        <label for="userRoleSelect">Role *</label>
+                        <select id="userRoleSelect" required>
+                            <option value="">-- Select Role --</option>
+                            <option value="shipper">Shipper</option>
+                            <option value="issuing-carrier-agent">Issuing Carrier's Agent</option>
+                            <option value="consignee">Consignee</option>
+                            <option value="customs-broker">Customs Broker</option>
+                            <option value="courier">Courier</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="userPasswordGroup">
+                        <label for="userPassword">Password *</label>
+                        <input type="password" id="userPassword" required autocomplete="new-password" minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="userConfirmPassword">Confirm Password *</label>
+                        <input type="password" id="userConfirmPassword" required autocomplete="new-password" minlength="6">
+                    </div>
+                `);
+            }
+            
+            modal.style.display = 'flex';
+        }
+        
+        function deleteUserAccount(userId) {
+            if (!confirm('Are you sure you want to delete this user account? This action cannot be undone.')) {
+                return;
+            }
+            
+            const users = getAllUsers();
+            const filtered = users.filter(u => u.id !== userId);
+            
+            // Also remove password
+            localStorage.removeItem(`user_password_${userId}`);
+            
+            localStorage.setItem('awb_users', JSON.stringify(filtered));
+            loadUsers();
+            alert('User account deleted successfully!');
+        }
 
         function closeContactModal() {
             const modal = document.getElementById('contactModal');
             const form = document.getElementById('contactForm');
             const accountInfoGroup = document.getElementById('accountInfoGroup');
+            
+            // Remove dynamically added user account fields
+            const userRoleSelectGroup = document.getElementById('userRoleSelectGroup');
+            const userRoleSelect = document.getElementById('userRoleSelect');
+            const userPasswordGroup = document.getElementById('userPasswordGroup');
+            const userConfirmPassword = document.getElementById('userConfirmPassword');
+            
+            if (userRoleSelect && userRoleSelect.parentElement) {
+                userRoleSelect.parentElement.remove();
+            }
+            if (userPasswordGroup) {
+                userPasswordGroup.remove();
+            }
+            if (userConfirmPassword && userConfirmPassword.parentElement) {
+                userConfirmPassword.parentElement.remove();
+            }
+            
+            // Remove dynamically added Name field for UserAccount
+            const contactName = document.getElementById('contactName');
+            if (contactName && contactName.parentElement) {
+                contactName.parentElement.remove();
+            }
+            
+            // Restore visibility of formatted value field if it was hidden
+            const contactFormattedValue = document.getElementById('contactFormattedValue');
+            if (contactFormattedValue && contactFormattedValue.parentElement) contactFormattedValue.parentElement.style.display = '';
+            
+            // Restore optional attributes (all fields remain optional)
+            if (contactFormattedValue) contactFormattedValue.required = false;
+            const contactCompanyName = document.getElementById('contactCompanyName');
+            if (contactCompanyName) contactCompanyName.required = false;
             
             modal.style.display = 'none';
             form.reset();
@@ -655,25 +978,24 @@
             const type = document.getElementById('contactType').value;
             const id = document.getElementById('contactId').value || Date.now().toString();
             const companyName = document.getElementById('contactCompanyName').value.trim();
-            const contactNameValue = document.getElementById('contactName').value.trim();
             const email = document.getElementById('contactEmail').value.trim();
-            const phone = document.getElementById('contactPhone').value.trim();
-            const address = document.getElementById('contactAddress').value.trim();
             const formattedValue = document.getElementById('contactFormattedValue').value.trim();
             const accountInfo = document.getElementById('contactAccountInfo') ? document.getElementById('contactAccountInfo').value.trim() : '';
             
-            // Validation
-            if (!companyName) {
-                alert('Company Name is required.');
-                return;
-            }
+            // For User profile, still need contactName (from user profile context)
+            const contactNameElement = document.getElementById('contactName');
+            const contactNameValue = contactNameElement ? contactNameElement.value.trim() : '';
             
-            if (!contactNameValue || !email || !phone || !address || !formattedValue) {
-                alert('Please fill in all required fields.');
-                return;
-            }
+            // No validation for contact fields - all are optional
+            // UserAccount type has its own validation
             
             if (type === 'User') {
+                // For User profile, get phone and address if they exist (legacy support)
+                const contactPhoneElement = document.getElementById('contactPhone');
+                const contactAddressElement = document.getElementById('contactAddress');
+                const phone = contactPhoneElement ? contactPhoneElement.value.trim() : '';
+                const address = contactAddressElement ? contactAddressElement.value.trim() : '';
+                
                 const profile = {
                     companyName,
                     contactName: contactNameValue,
@@ -687,19 +1009,182 @@
                     closeContactModal();
                     alert('✓ User profile saved successfully!');
                 }
+            } else if (type === 'UserAccount') {
+                // Create or update user account
+                // Validation for user accounts
+                if (!contactNameValue) {
+                    alert('Name is required.');
+                    e.preventDefault();
+                    return false;
+                }
+                if (!email) {
+                    alert('Email is required.');
+                    e.preventDefault();
+                    return false;
+                }
+                
+                const userRoleSelect = document.getElementById('userRoleSelect');
+                const userPassword = document.getElementById('userPassword');
+                const userConfirmPassword = document.getElementById('userConfirmPassword');
+                
+                const userRole = userRoleSelect ? userRoleSelect.value : '';
+                const password = userPassword ? userPassword.value.trim() : '';
+                const confirmPassword = userConfirmPassword ? userConfirmPassword.value.trim() : '';
+                
+                if (!userRole) {
+                    alert('Please select a role.');
+                    e.preventDefault();
+                    return false;
+                }
+                
+                const userId = document.getElementById('contactId').value;
+                const isEdit = userId && userId !== '';
+                
+                if (!isEdit) {
+                    // Creating new user - password required
+                    if (!password) {
+                        alert('Password is required for new user accounts.');
+                        e.preventDefault();
+                        return false;
+                    }
+                    if (password !== confirmPassword) {
+                        alert('Passwords do not match.');
+                        e.preventDefault();
+                        return false;
+                    }
+                    if (password.length < 6) {
+                        alert('Password must be at least 6 characters.');
+                        e.preventDefault();
+                        return false;
+                    }
+                } else {
+                    // Editing existing user - password optional
+                    if (password) {
+                        if (password !== confirmPassword) {
+                            alert('Passwords do not match.');
+                            e.preventDefault();
+                            return false;
+                        }
+                        if (password.length < 6) {
+                            alert('Password must be at least 6 characters.');
+                            e.preventDefault();
+                            return false;
+                        }
+                    }
+                }
+                
+                const users = getAllUsers();
+                
+                // Check if email already exists (for new users or if email changed)
+                if (!isEdit || (isEdit && users.find(u => u.id === userId) && email !== users.find(u => u.id === userId).email)) {
+                    if (users.some(u => u.email === email && u.id !== userId)) {
+                        alert('Email already registered to another user.');
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+                
+                if (isEdit) {
+                    // Update existing user
+                    const userIndex = users.findIndex(u => u.id === userId);
+                    if (userIndex >= 0) {
+                        users[userIndex].name = contactNameValue;
+                        users[userIndex].email = email;
+                        users[userIndex].role = userRole;
+                        users[userIndex].company = companyName;
+                        
+                        // Update password if provided
+                        if (password) {
+                            localStorage.setItem(`user_password_${userId}`, password);
+                        }
+                        
+                        localStorage.setItem('awb_users', JSON.stringify(users));
+                        loadUsers();
+                        closeContactModal();
+                        alert('✓ User account updated successfully!');
+                    }
+                } else {
+                    // Create new user
+                    const User = window.User;
+                    let newUser;
+                    if (User) {
+                        newUser = new User({
+                            name: contactNameValue,
+                            email: email,
+                            role: userRole,
+                            company: companyName
+                        });
+                    } else {
+                        newUser = {
+                            id: 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                            email: email,
+                            name: contactNameValue,
+                            role: userRole,
+                            company: companyName,
+                            createdAt: new Date().toISOString(),
+                            isActive: true
+                        };
+                    }
+                    
+                    users.push(newUser);
+                    localStorage.setItem('awb_users', JSON.stringify(users));
+                    localStorage.setItem(`user_password_${newUser.id}`, password);
+                    
+                    loadUsers();
+                    closeContactModal();
+                    alert('✓ User account created successfully!');
+                }
             } else {
                 const contacts = getContacts();
                 const contactIndex = contacts.findIndex(c => c.id === id);
                 
+                // Check if email matches an existing user and auto-link
+                let linkedUserId = null;
+                if (email) {
+                    const users = getAllUsers();
+                    const matchingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+                    if (matchingUser) {
+                        linkedUserId = matchingUser.id;
+                        // Check if user role matches contact type (optional validation)
+                        const roleMatchesType = (
+                            (type === 'Shipper' && matchingUser.role === 'shipper') ||
+                            (type === 'Consignee' && matchingUser.role === 'consignee')
+                        );
+                        if (!roleMatchesType && matchingUser.role !== 'admin') {
+                            // Warn but don't prevent linking
+                            console.log(`Contact type ${type} doesn't match user role ${matchingUser.role}, but linking anyway.`);
+                        }
+                    }
+                }
+                
+                // Get existing contact to preserve agentCustomFields if editing
+                const existingContact = contactIndex >= 0 ? contacts[contactIndex] : null;
+                
+                // Collect agent custom fields if agent is editing
+                const user = getCurrentUser();
+                const isAgent = user && (user.role === 'issuing-carrier-agent' || user.role === 'admin');
+                let agentCustomFields = existingContact ? (existingContact.agentCustomFields || {}) : {};
+                
+                if (isAgent) {
+                    const specialInstructions = document.getElementById('agentSpecialInstructions');
+                    const preferredCarrier = document.getElementById('agentPreferredCarrier');
+                    const customNotes = document.getElementById('agentCustomNotes');
+                    
+                    agentCustomFields = {
+                        specialInstructions: specialInstructions ? specialInstructions.value.trim() : '',
+                        preferredCarrier: preferredCarrier ? preferredCarrier.value.trim() : '',
+                        customNotes: customNotes ? customNotes.value.trim() : ''
+                    };
+                }
+                
                 const contact = {
                     id,
                     type,
-                    companyName,
-                    contactName: contactNameValue,
-                    email,
-                    phone,
-                    address,
-                    formattedValue
+                    companyName: companyName || '', // Ensure companyName is always set (even if empty)
+                    email: email || '',
+                    formattedValue: formattedValue || '',
+                    linkedUserId: linkedUserId || (existingContact ? existingContact.linkedUserId : null),
+                    agentCustomFields: agentCustomFields
                 };
                 
                 if (type === 'Consignee' && accountInfo) {
@@ -714,12 +1199,45 @@
                 
                 if (saveContacts(contacts)) {
                     closeContactModal();
-                    alert(`✓ ${type} contact saved successfully!`);
+                    let message = `✓ ${type} contact saved successfully!`;
+                    if (linkedUserId) {
+                        message += ` (Linked to user account)`;
+                    }
+                    alert(message);
                 }
             }
         }
         
         function saveContactWithImage(contact, contactIndex, contacts) {
+            // Check if email matches an existing user and auto-link
+            let linkedUserId = null;
+            if (contact.email) {
+                const users = getAllUsers();
+                const matchingUser = users.find(u => u.email.toLowerCase() === contact.email.toLowerCase());
+                if (matchingUser) {
+                    linkedUserId = matchingUser.id;
+                }
+            }
+            
+            // Preserve existing linkedUserId if already set
+            if (!linkedUserId && contactIndex >= 0) {
+                const existingContact = contacts[contactIndex];
+                if (existingContact && existingContact.linkedUserId) {
+                    linkedUserId = existingContact.linkedUserId;
+                }
+            }
+            
+            // Preserve agentCustomFields if editing
+            const existingContact = contactIndex >= 0 ? contacts[contactIndex] : null;
+            if (!contact.agentCustomFields && existingContact && existingContact.agentCustomFields) {
+                contact.agentCustomFields = existingContact.agentCustomFields;
+            } else if (!contact.agentCustomFields) {
+                contact.agentCustomFields = {};
+            }
+            
+            // Set linkedUserId
+            contact.linkedUserId = linkedUserId;
+            
             if (contactIndex >= 0) {
                 contacts[contactIndex] = contact;
             } else {
@@ -728,7 +1246,11 @@
             
             if (saveContacts(contacts)) {
                 closeContactModal();
-                alert(`✓ ${contact.type} contact saved successfully!`);
+                let message = `✓ ${contact.type} contact saved successfully!`;
+                if (linkedUserId) {
+                    message += ` (Linked to user account)`;
+                }
+                alert(message);
             }
         }
 
@@ -767,6 +1289,10 @@
         // Load contacts and profile on page load
         loadContacts();
         loadUserProfile();
+        
+        // Make functions available globally
+        window.openUserAccountModal = openUserAccountModal;
+        window.deleteUserAccount = deleteUserAccount;
     </script>
 </body>
 </html>

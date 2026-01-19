@@ -308,8 +308,17 @@ function updateShipment(identifier, updates) {
         return { success: false, message: 'Shipment not found' };
     }
     
+    // Merge updates - handle participants array specially
+    const currentShipment = shipments[index];
+    if (updates.participants && Array.isArray(updates.participants)) {
+        // If participants are explicitly provided, replace them (don't merge)
+        // This allows for removal of participants
+        // The array passed in is the complete, final list
+        updates.participants = updates.participants;
+    }
+    
     // Merge updates
-    shipments[index] = { ...shipments[index], ...updates };
+    shipments[index] = { ...currentShipment, ...updates };
     
     // Recalculate fees if needed
     if (updates.fees || updates.fee) {

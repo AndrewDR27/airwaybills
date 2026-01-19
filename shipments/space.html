@@ -114,6 +114,28 @@
             padding: 8px 16px;
             border-radius: 20px;
             font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .participant-remove {
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: background 0.2s;
+        }
+        .participant-remove:hover {
+            background: rgba(255, 255, 255, 0.5);
         }
         .pdf-section {
             margin: 30px 0;
@@ -337,13 +359,68 @@
                 return;
             }
 
-            list.innerHTML = participants.map(p => {
+            // Check if current user is the creator (can remove participants)
+            const isCreator = currentShipment.createdBy === user.id;
+            const canRemove = isCreator; // Only the creator can remove participants
+
+            list.innerHTML = participants.map((p, index) => {
                 const participantUser = getUserById(p.userId);
                 const roleLabel = getRoleLabel ? getRoleLabel(p.role) : p.role;
                 const name = participantUser ? participantUser.name : 'Unknown User';
-                return `<span class="participant-badge">${name} (${roleLabel})</span>`;
+                const isSelf = p.userId === user.id;
+                const canRemoveThis = canRemove && !isSelf; // Can't remove yourself
+                
+                let removeButton = '';
+                if (canRemoveThis) {
+                    removeButton = `<button class="participant-remove" onclick="removeParticipant('${p.userId}')" title="Remove participant">×</button>`;
+                }
+                
+                return `<span class="participant-badge">${name} (${roleLabel})${removeButton}</span>`;
             }).join('');
         }
+
+        function removeParticipant(userId) {
+            if (!confirm('Are you sure you want to remove this participant from the shipment space?')) {
+                return;
+            }
+
+            // Get all shipments to update directly
+            const shipments = typeof getAllShipments === 'function' ? getAllShipments() : [];
+            const shipmentIndex = shipments.findIndex(s => s.spaceId === spaceId);
+            
+            if (shipmentIndex === -1) {
+                alert('Shipment not found.');
+                return;
+            }
+
+            // Get current participants
+            let participants = shipments[shipmentIndex].participants || [];
+            
+            // Remove the participant
+            const originalCount = participants.length;
+            participants = participants.filter(p => p.userId !== userId);
+            
+            if (participants.length === originalCount) {
+                alert('Participant not found in shipment.');
+                return;
+            }
+            
+            console.log('Removing participant:', userId);
+            console.log('Remaining participants:', participants);
+
+            // Update the shipment directly
+            shipments[shipmentIndex].participants = participants;
+            
+            // Use the same storage key as shipments.js
+            const SHIPMENTS_STORAGE_KEY = 'awb_shipments';
+            localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+
+            alert('Participant removed successfully.');
+            loadSpace(); // Reload to update UI
+        }
+
+        // Make function available globally for onclick handlers
+        window.removeParticipant = removeParticipant;
 
         // Button handlers
         document.getElementById('createAWBBtn').addEventListener('click', function() {
