@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Connection Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #667eea;
+            font-size: 18px;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .result.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px 5px 5px 0;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Database Connection Test</h1>
+        <p>This tool tests the connection to Upstash Redis database</p>
+        
+        <div class="test-section">
+            <h2>1. API Endpoint Test</h2>
+            <button onclick="testAPIEndpoint()">Test /api/users Endpoint</button>
+            <div id="apiTestResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>2. Environment Variables Check</h2>
+            <p><small>Note: Environment variables are server-side only. This checks if the API can access them.</small></p>
+            <button onclick="checkEnvVars()">Check Environment Variables (via API)</button>
+            <div id="envTestResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>3. Database Read/Write Test</h2>
+            <button onclick="testReadWrite()">Test Database Read/Write</button>
+            <div id="readWriteResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>4. Full Diagnostic</h2>
+            <button onclick="runFullDiagnostic()">Run All Tests</button>
+            <div id="diagnosticResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        async function testAPIEndpoint() {
+            const resultDiv = document.getElementById('apiTestResult');
+            resultDiv.innerHTML = '<div class="result info loading">Testing API endpoint...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/users?action=all`);
+                const status = response.status;
+                const contentType = response.headers.get('content-type');
+                
+                let result = `Status: ${status} ${response.statusText}\n`;
+                result += `Content-Type: ${contentType}\n\n`;
+                
+                if (status === 200) {
+                    const data = await response.json();
+                    result += `✅ API is responding!\n`;
+                    result += `Response: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.innerHTML = `<div class="result success">${escapeHtml(result)}</div>`;
+                } else if (status === 503) {
+                    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+                    result += `❌ Database not configured\n`;
+                    result += `Error: ${JSON.stringify(error, null, 2)}`;
+                    resultDiv.innerHTML = `<div class="result error">${escapeHtml(result)}</div>`;
+                } else {
+                    const text = await response.text();
+                    result += `Response: ${text.substring(0, 500)}`;
+                    resultDiv.innerHTML = `<div class="result error">${escapeHtml(result)}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${escapeHtml(error.message)}\n\n${escapeHtml(error.stack || '')}</div>`;
+            }
+        }
+        
+        async function checkEnvVars() {
+            const resultDiv = document.getElementById('envTestResult');
+            resultDiv.innerHTML = '<div class="result info loading">Checking environment variables...</div>';
+            
+            try {
+                // Try to get users - if it returns 503, env vars are missing
+                const response = await fetch(`${API_BASE}/api/users?action=all`);
+                
+                if (response.status === 503) {
+                    const error = await response.json();
+                    resultDiv.innerHTML = `<div class="result error">❌ Environment Variables Missing or Invalid\n\n${escapeHtml(JSON.stringify(error, null, 2))}\n\n<strong>Action Required:</strong>\n1. Go to Vercel Dashboard → Settings → Environment Variables\n2. Make sure these are set for Production:\n   - KV_REST_API_URL\n   - KV_REST_API_TOKEN\n3. Redeploy after adding variables</div>`;
+                } else if (response.status === 200) {
+                    resultDiv.innerHTML = `<div class="result success">✅ Environment variables appear to be set correctly\n\nAPI is responding with status 200</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">⚠️ Unexpected status: ${response.status}\n\nResponse: ${await response.text()}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+        
+        async function testReadWrite() {
+            const resultDiv = document.getElementById('readWriteResult');
+            resultDiv.innerHTML = '<div class="result info loading">Testing database read/write...</div>';
+            
+            try {
+                // Test 1: Read (get all users)
+                const readResponse = await fetch(`${API_BASE}/api/users?action=all`);
+                let result = `Read Test: ${readResponse.status} ${readResponse.statusText}\n`;
+                
+                if (readResponse.status === 200) {
+                    const users = await readResponse.json();
+                    result += `✅ Read successful! Found ${Array.isArray(users) ? users.length : 0} users\n\n`;
+                } else if (readResponse.status === 503) {
+                    const error = await readResponse.json();
+                    result += `❌ Read failed - Database not configured\n`;
+                    result += `Error: ${JSON.stringify(error, null, 2)}\n\n`;
+                    resultDiv.innerHTML = `<div class="result error">${escapeHtml(result)}</div>`;
+                    return;
+                } else {
+                    result += `⚠️ Unexpected status\n\n`;
+                }
+                
+                // Test 2: Write (create a test user - we'll delete it)
+                const testUser = {
+                    email: `test_${Date.now()}@test.com`,
+                    name: 'Test User',
+                    role: 'shipper',
+                    password: 'test123'
+                };
+                
+                result += `Write Test: Creating test user...\n`;
+                const writeResponse = await fetch(`${API_BASE}/api/users?action=register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testUser)
+                });
+                
+                result += `Status: ${writeResponse.status} ${writeResponse.statusText}\n`;
+                
+                if (writeResponse.status === 201) {
+                    const newUser = await writeResponse.json();
+                    result += `✅ Write successful! Created user: ${newUser.email}\n\n`;
+                    result += `Note: Test user created. You may want to delete it from the Users page.`;
+                    resultDiv.innerHTML = `<div class="result success">${escapeHtml(result)}</div>`;
+                } else if (writeResponse.status === 503) {
+                    const error = await writeResponse.json();
+                    result += `❌ Write failed - Database not configured\n`;
+                    result += `Error: ${JSON.stringify(error, null, 2)}`;
+                    resultDiv.innerHTML = `<div class="result error">${escapeHtml(result)}</div>`;
+                } else {
+                    const error = await writeResponse.json().catch(() => ({ error: await writeResponse.text() }));
+                    result += `⚠️ Write failed\n`;
+                    result += `Error: ${JSON.stringify(error, null, 2)}`;
+                    resultDiv.innerHTML = `<div class="result error">${escapeHtml(result)}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${escapeHtml(error.message)}\n\n${escapeHtml(error.stack || '')}</div>`;
+            }
+        }
+        
+        async function runFullDiagnostic() {
+            const resultDiv = document.getElementById('diagnosticResult');
+            resultDiv.innerHTML = '<div class="result info loading">Running full diagnostic...</div>';
+            
+            let results = '=== FULL DIAGNOSTIC REPORT ===\n\n';
+            
+            // Test 1: API Endpoint
+            results += '1. API Endpoint Test:\n';
+            try {
+                const response = await fetch(`${API_BASE}/api/users?action=all`);
+                results += `   Status: ${response.status}\n`;
+                if (response.status === 503) {
+                    const error = await response.json();
+                    results += `   ❌ Database not configured\n`;
+                    results += `   Error: ${JSON.stringify(error, null, 2)}\n\n`;
+                } else if (response.status === 200) {
+                    results += `   ✅ API is working\n\n`;
+                } else {
+                    results += `   ⚠️ Unexpected status\n\n`;
+                }
+            } catch (error) {
+                results += `   ❌ Error: ${error.message}\n\n`;
+            }
+            
+            // Test 2: Check response headers
+            results += '2. Response Headers:\n';
+            try {
+                const response = await fetch(`${API_BASE}/api/users?action=all`);
+                response.headers.forEach((value, key) => {
+                    results += `   ${key}: ${value}\n`;
+                });
+                results += '\n';
+            } catch (error) {
+                results += `   ❌ Error: ${error.message}\n\n`;
+            }
+            
+            // Test 3: Try POST to see if it gives more info
+            results += '3. Database Write Test:\n';
+            try {
+                const response = await fetch(`${API_BASE}/api/users?action=register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'diagnostic@test.com',
+                        name: 'Diagnostic Test',
+                        role: 'shipper',
+                        password: 'test'
+                    })
+                });
+                results += `   Status: ${response.status}\n`;
+                if (response.status === 503) {
+                    const error = await response.json();
+                    results += `   ❌ Database not configured\n`;
+                    results += `   Message: ${error.message || error.error || 'Unknown error'}\n\n`;
+                } else {
+                    results += `   Response: ${await response.text()}\n\n`;
+                }
+            } catch (error) {
+                results += `   ❌ Error: ${error.message}\n\n`;
+            }
+            
+            // Summary
+            results += '=== SUMMARY ===\n';
+            results += 'If you see "Database not configured" errors:\n';
+            results += '1. Go to Vercel Dashboard → Settings → Environment Variables\n';
+            results += '2. Verify these are set for Production:\n';
+            results += '   - KV_REST_API_URL\n';
+            results += '   - KV_REST_API_TOKEN\n';
+            results += '3. If missing, add them from your Upstash dashboard\n';
+            results += '4. Redeploy after adding variables\n';
+            
+            resultDiv.innerHTML = `<div class="result ${results.includes('❌') ? 'error' : 'success'}">${escapeHtml(results)}</div>`;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
