@@ -271,6 +271,27 @@
         document.getElementById('usernameDisplay').textContent = user.name || user.email;
         document.getElementById('userDisplay').textContent = `${user.name || user.email} (${getRoleLabel(user.role)})`;
         document.querySelector('.sidebar-header h2').textContent = '📄 Airway Bills';
+        
+        // Display storage indicator
+        (async () => {
+            if (typeof getStorageSourceAsync === 'function') {
+                const storageSource = await getStorageSourceAsync();
+                const indicator = document.createElement('p');
+                indicator.id = 'storageIndicator';
+                indicator.style.cssText = 'font-size: 10px; margin-top: 5px; opacity: 0.7;';
+                if (storageSource === 'database') {
+                    indicator.textContent = '💾 Database';
+                    indicator.style.color = '#4CAF50';
+                } else {
+                    indicator.textContent = '📦 Localhost';
+                    indicator.style.color = '#FF9800';
+                }
+                const userDisplay = document.getElementById('userDisplay');
+                if (userDisplay && userDisplay.parentNode) {
+                    userDisplay.parentNode.appendChild(indicator);
+                }
+            }
+        })();
 
         // Build role-based navigation
         const navMenu = document.querySelector('.nav-menu');
