@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Users Storage</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        .user-list {
+            margin-top: 15px;
+        }
+        .user-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .user-item strong {
+            color: #333;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .badge-db {
+            background: #4CAF50;
+            color: white;
+        }
+        .badge-local {
+            background: #FF9800;
+            color: white;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        @media (max-width: 768px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 User Storage Checker</h1>
+        <p>This tool shows where your users are stored: Database vs LocalStorage</p>
+        
+        <div class="section">
+            <h2>Storage Status</h2>
+            <div id="storageStatus"></div>
+            <button onclick="checkStorage()">Refresh Status</button>
+        </div>
+        
+        <div class="comparison">
+            <div class="section">
+                <h2>💾 Database Users (Upstash Redis)</h2>
+                <div id="databaseUsers" class="user-list">
+                    <p>Loading...</p>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>📦 LocalStorage Users</h2>
+                <div id="localStorageUsers" class="user-list">
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Actions</h2>
+            <button onclick="syncToDatabase()">Sync LocalStorage → Database</button>
+            <button onclick="clearLocalStorage()">Clear LocalStorage Users</button>
+            <button onclick="location.reload()">Refresh Page</button>
+        </div>
+    </div>
+
+    <script type="module" src="js/api.js"></script>
+    <script>
+        let usersAPI = null;
+        
+        // Wait for API to load
+        window.addEventListener('apiReady', () => {
+            usersAPI = window.usersAPI;
+            checkStorage();
+        });
+        
+        // Also try immediately
+        if (window.usersAPI) {
+            usersAPI = window.usersAPI;
+            checkStorage();
+        }
+        
+        async function checkStorage() {
+            const statusDiv = document.getElementById('storageStatus');
+            const dbDiv = document.getElementById('databaseUsers');
+            const localDiv = document.getElementById('localStorageUsers');
+            
+            // Check storage source
+            let storageSource = 'unknown';
+            if (usersAPI) {
+                try {
+                    await usersAPI.getAll();
+                    storageSource = 'database';
+                } catch (e) {
+                    storageSource = 'localhost';
+                }
+            } else {
+                storageSource = 'localhost';
+            }
+            
+            // Update status
+            if (storageSource === 'database') {
+                statusDiv.innerHTML = '<div class="status success">✅ Connected to Database (Upstash Redis)</div>';
+            } else {
+                statusDiv.innerHTML = '<div class="status error">⚠️ Using LocalStorage (localhost) - Database not available</div>';
+            }
+            
+            // Get database users
+            let dbUsers = [];
+            if (usersAPI) {
+                try {
+                    dbUsers = await usersAPI.getAll();
+                    if (!Array.isArray(dbUsers)) dbUsers = [];
+                } catch (error) {
+                    console.error('Error fetching database users:', error);
+                    dbUsers = [];
+                }
+            }
+            
+            // Get localStorage users
+            const localUsers = JSON.parse(localStorage.getItem('awb_users') || '[]');
+            
+            // Display database users
+            if (dbUsers.length === 0) {
+                dbDiv.innerHTML = '<p style="color: #999;">No users found in database</p>';
+            } else {
+                dbDiv.innerHTML = dbUsers.map(user => `
+                    <div class="user-item">
+                        <strong>${escapeHtml(user.name || user.email || 'Unknown')}</strong>
+                        <span class="badge badge-db">Database</span><br>
+                        <small>Email: ${escapeHtml(user.email || 'N/A')}</small><br>
+                        <small>Role: ${escapeHtml(user.role || 'N/A')}</small><br>
+                        <small>ID: ${escapeHtml(user.id || 'N/A')}</small>
+                    </div>
+                `).join('');
+            }
+            
+            // Display localStorage users
+            if (localUsers.length === 0) {
+                localDiv.innerHTML = '<p style="color: #999;">No users found in localStorage</p>';
+            } else {
+                localDiv.innerHTML = localUsers.map(user => `
+                    <div class="user-item">
+                        <strong>${escapeHtml(user.name || user.email || 'Unknown')}</strong>
+                        <span class="badge badge-local">LocalStorage</span><br>
+                        <small>Email: ${escapeHtml(user.email || 'N/A')}</small><br>
+                        <small>Role: ${escapeHtml(user.role || 'N/A')}</small><br>
+                        <small>ID: ${escapeHtml(user.id || 'N/A')}</small>
+                    </div>
+                `).join('');
+            }
+            
+            // Show comparison
+            const dbEmails = new Set(dbUsers.map(u => u.email?.toLowerCase()).filter(Boolean));
+            const localEmails = new Set(localUsers.map(u => u.email?.toLowerCase()).filter(Boolean));
+            
+            const onlyInLocal = localUsers.filter(u => u.email && !dbEmails.has(u.email.toLowerCase()));
+            const onlyInDb = dbUsers.filter(u => u.email && !localEmails.has(u.email.toLowerCase()));
+            const inBoth = localUsers.filter(u => u.email && dbEmails.has(u.email.toLowerCase()));
+            
+            if (onlyInLocal.length > 0 || onlyInDb.length > 0) {
+                let comparisonHtml = '<div class="status info" style="margin-top: 20px;"><strong>Comparison:</strong><ul>';
+                if (onlyInLocal.length > 0) {
+                    comparisonHtml += `<li>${onlyInLocal.length} user(s) only in LocalStorage: ${onlyInLocal.map(u => u.email).join(', ')}</li>`;
+                }
+                if (onlyInDb.length > 0) {
+                    comparisonHtml += `<li>${onlyInDb.length} user(s) only in Database: ${onlyInDb.map(u => u.email).join(', ')}</li>`;
+                }
+                if (inBoth.length > 0) {
+                    comparisonHtml += `<li>${inBoth.length} user(s) in both</li>`;
+                }
+                comparisonHtml += '</ul></div>';
+                statusDiv.innerHTML += comparisonHtml;
+            }
+        }
+        
+        async function syncToDatabase() {
+            if (!usersAPI) {
+                alert('Database API not available. Cannot sync.');
+                return;
+            }
+            
+            const localUsers = JSON.parse(localStorage.getItem('awb_users') || '[]');
+            const passwords = {};
+            
+            // Get passwords from localStorage
+            localUsers.forEach(user => {
+                const password = localStorage.getItem(`user_password_${user.id}`);
+                if (password) {
+                    passwords[user.id] = password;
+                }
+            });
+            
+            if (localUsers.length === 0) {
+                alert('No users in localStorage to sync.');
+                return;
+            }
+            
+            if (!confirm(`Sync ${localUsers.length} user(s) from LocalStorage to Database?`)) {
+                return;
+            }
+            
+            let synced = 0;
+            let errors = 0;
+            
+            for (const user of localUsers) {
+                try {
+                    // Check if user already exists
+                    const existing = await usersAPI.getByEmail(user.email);
+                    if (existing) {
+                        console.log(`User ${user.email} already exists in database, skipping`);
+                        continue;
+                    }
+                    
+                    // Register user with password
+                    const userData = {
+                        ...user,
+                        password: passwords[user.id] || 'temp123' // Use stored password or default
+                    };
+                    await usersAPI.register(userData);
+                    synced++;
+                } catch (error) {
+                    console.error(`Error syncing user ${user.email}:`, error);
+                    errors++;
+                }
+            }
+            
+            alert(`Sync complete!\nSynced: ${synced}\nErrors: ${errors}`);
+            checkStorage();
+        }
+        
+        function clearLocalStorage() {
+            if (!confirm('Clear all users from LocalStorage? This cannot be undone!')) {
+                return;
+            }
+            
+            localStorage.removeItem('awb_users');
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+                if (key.startsWith('user_password_')) {
+                    localStorage.removeItem(key);
+                }
+            });
+            
+            alert('LocalStorage cleared!');
+            checkStorage();
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Initial load
+        setTimeout(checkStorage, 500);
+    </script>
+</body>
+</html>
