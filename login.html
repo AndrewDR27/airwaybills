@@ -115,22 +115,40 @@
             window.location.href = 'dashboard.html';
         }
 
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const email = document.getElementById('username').value; // Using email as username
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('errorMessage');
+            const submitButton = e.target.querySelector('button[type="submit"]');
             
-            // Use new auth system
-            const result = login(email, password);
+            // Hide error message
+            errorMessage.style.display = 'none';
             
-            if (result.success) {
-                // Redirect to dashboard
-                window.location.href = 'dashboard.html';
-            } else {
-                errorMessage.textContent = result.message || 'Invalid email or password';
+            // Disable button during login
+            submitButton.disabled = true;
+            submitButton.textContent = 'Logging in...';
+            
+            try {
+                // Use new auth system - await the async login function
+                const result = await login(email, password);
+                
+                if (result && result.success) {
+                    // Redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                } else {
+                    errorMessage.textContent = result?.message || 'Invalid email or password';
+                    errorMessage.style.display = 'block';
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Login';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorMessage.textContent = error.message || 'Login failed. Please try again.';
                 errorMessage.style.display = 'block';
+                submitButton.disabled = false;
+                submitButton.textContent = 'Login';
             }
         });
     </script>
