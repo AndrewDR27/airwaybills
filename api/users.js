@@ -7,12 +7,29 @@ import { Redis } from '@upstash/redis';
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 
+// Debug logging (only in development or when explicitly enabled)
+const DEBUG_DB = process.env.DEBUG_DB === 'true';
+
+if (DEBUG_DB) {
+    console.log('Environment variables check:');
+    console.log('UPSTASH_REDIS_REST_URL:', process.env.UPSTASH_REDIS_REST_URL ? 'SET' : 'NOT SET');
+    console.log('KV_REST_API_URL:', process.env.KV_REST_API_URL ? 'SET' : 'NOT SET');
+    console.log('UPSTASH_REDIS_REST_TOKEN:', process.env.UPSTASH_REDIS_REST_TOKEN ? 'SET' : 'NOT SET');
+    console.log('KV_REST_API_TOKEN:', process.env.KV_REST_API_TOKEN ? 'SET' : 'NOT SET');
+    console.log('redisUrl found:', !!redisUrl);
+    console.log('redisToken found:', !!redisToken);
+}
+
 const redis = redisUrl && redisToken
     ? new Redis({
         url: redisUrl,
         token: redisToken,
       })
     : null;
+
+if (DEBUG_DB) {
+    console.log('Redis client created:', !!redis);
+}
 
 const USERS_KEY = 'awb_users';
 const AUTH_KEY = 'awb_auth';
@@ -33,10 +50,21 @@ export default async function handler(req, res) {
             res.status(200).json([]);
             return;
         } else {
-            res.status(503).json({ 
-                error: 'Database not configured. Please set up Upstash Redis via Vercel Marketplace.',
-                message: 'Add "Upstash for Redis" integration in Vercel.'
-            });
+            // Provide more detailed error information
+            const errorDetails = {
+                error: 'Database not configured',
+                message: 'Upstash Redis environment variables are missing or invalid.',
+                details: {
+                    hasUrl: !!redisUrl,
+                    hasToken: !!redisToken,
+                    urlSource: process.env.UPSTASH_REDIS_REST_URL ? 'UPSTASH_REDIS_REST_URL' : 
+                               (process.env.KV_REST_API_URL ? 'KV_REST_API_URL' : 'none'),
+                    tokenSource: process.env.UPSTASH_REDIS_REST_TOKEN ? 'UPSTASH_REDIS_REST_TOKEN' : 
+                                (process.env.KV_REST_API_TOKEN ? 'KV_REST_API_TOKEN' : 'none')
+                },
+                solution: 'Please verify in Vercel Dashboard → Settings → Environment Variables that KV_REST_API_URL and KV_REST_API_TOKEN are set for Production environment, then redeploy.'
+            };
+            res.status(503).json(errorDetails);
             return;
         }
     }
