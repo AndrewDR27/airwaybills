@@ -109,6 +109,12 @@
     </div>
 
     <script>
+        // Make functions globally available
+        window.testAPIEndpoint = testAPIEndpoint;
+        window.checkEnvVars = checkEnvVars;
+        window.testReadWrite = testReadWrite;
+        window.runFullDiagnostic = runFullDiagnostic;
+        
         const API_BASE = window.location.origin;
         
         async function testAPIEndpoint() {
@@ -303,6 +309,12 @@
             div.textContent = text;
             return div.innerHTML;
         }
+        
+        // Expose functions globally for onclick handlers
+        window.testAPIEndpoint = testAPIEndpoint;
+        window.checkEnvVars = checkEnvVars;
+        window.testReadWrite = testReadWrite;
+        window.runFullDiagnostic = runFullDiagnostic;
     </script>
 </body>
 </html>
