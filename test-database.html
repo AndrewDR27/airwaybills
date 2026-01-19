@@ -84,26 +84,26 @@
         
         <div class="test-section">
             <h2>1. API Endpoint Test</h2>
-            <button onclick="testAPIEndpoint()">Test /api/users Endpoint</button>
+            <button id="testAPIBtn">Test /api/users Endpoint</button>
             <div id="apiTestResult"></div>
         </div>
         
         <div class="test-section">
             <h2>2. Environment Variables Check</h2>
             <p><small>Note: Environment variables are server-side only. This checks if the API can access them.</small></p>
-            <button onclick="checkEnvVars()">Check Environment Variables (via API)</button>
+            <button id="checkEnvBtn">Check Environment Variables (via API)</button>
             <div id="envTestResult"></div>
         </div>
         
         <div class="test-section">
             <h2>3. Database Read/Write Test</h2>
-            <button onclick="testReadWrite()">Test Database Read/Write</button>
+            <button id="testReadWriteBtn">Test Database Read/Write</button>
             <div id="readWriteResult"></div>
         </div>
         
         <div class="test-section">
             <h2>4. Full Diagnostic</h2>
-            <button onclick="runFullDiagnostic()">Run All Tests</button>
+            <button id="runDiagnosticBtn">Run All Tests</button>
             <div id="diagnosticResult"></div>
         </div>
     </div>
@@ -310,7 +310,28 @@
             return div.innerHTML;
         }
         
-        // Expose functions globally for onclick handlers
+        // Set up event listeners when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const testAPIBtn = document.getElementById('testAPIBtn');
+            const checkEnvBtn = document.getElementById('checkEnvBtn');
+            const testReadWriteBtn = document.getElementById('testReadWriteBtn');
+            const runDiagnosticBtn = document.getElementById('runDiagnosticBtn');
+            
+            if (testAPIBtn) {
+                testAPIBtn.addEventListener('click', testAPIEndpoint);
+            }
+            if (checkEnvBtn) {
+                checkEnvBtn.addEventListener('click', checkEnvVars);
+            }
+            if (testReadWriteBtn) {
+                testReadWriteBtn.addEventListener('click', testReadWrite);
+            }
+            if (runDiagnosticBtn) {
+                runDiagnosticBtn.addEventListener('click', runFullDiagnostic);
+            }
+        });
+        
+        // Also expose functions globally as fallback
         window.testAPIEndpoint = testAPIEndpoint;
         window.checkEnvVars = checkEnvVars;
         window.testReadWrite = testReadWrite;
