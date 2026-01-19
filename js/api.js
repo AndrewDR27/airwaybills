@@ -3,25 +3,7 @@
 
 const API_BASE_URL = window.location.origin;
 
-// Expose APIs globally for non-module scripts
-if (typeof window !== 'undefined') {
-    // APIs are already defined above, just expose them
-    window.usersAPI = usersAPI;
-    window.shipmentsAPI = shipmentsAPI;
-    window.contactsAPI = contactsAPI;
-    window.airlinesAPI = airlinesAPI;
-    window.destinationsAPI = destinationsAPI;
-    window.terminalsAPI = terminalsAPI;
-    
-    // Dispatch event when APIs are ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            window.dispatchEvent(new Event('apiReady'));
-        });
-    } else {
-        window.dispatchEvent(new Event('apiReady'));
-    }
-}
+// Note: APIs are exported below and will be exposed to window at the end of the file
 
 // Airlines API
 export const airlinesAPI = {
@@ -744,4 +726,23 @@ function deleteContactFromLocalStorage(id) {
     const filtered = contacts.filter(c => c.id !== id);
     localStorage.setItem('awbContacts', JSON.stringify(filtered));
     return { success: true };
+}
+
+// Expose APIs globally for non-module scripts (after all APIs are defined)
+if (typeof window !== 'undefined') {
+    window.usersAPI = usersAPI;
+    window.shipmentsAPI = shipmentsAPI;
+    window.contactsAPI = contactsAPI;
+    window.airlinesAPI = airlinesAPI;
+    window.destinationsAPI = destinationsAPI;
+    window.terminalsAPI = terminalsAPI;
+    
+    // Dispatch event when APIs are ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            window.dispatchEvent(new Event('apiReady'));
+        });
+    } else {
+        window.dispatchEvent(new Event('apiReady'));
+    }
 }
