@@ -188,13 +188,16 @@ async function login(email, password) {
             }
         } catch (error) {
             console.error('Error logging in via API:', error);
-            // Only fallback if it's a network/API error, not a "user not found" error
+            // Don't fallback to localStorage if API is available - user should be in database
+            // Only return the error message
             if (error.message && error.message.includes('Invalid email or password')) {
                 return { success: false, message: error.message };
             }
-            // For network errors, try localStorage fallback
-            console.log('Falling back to localStorage login...');
-            return loginLocalStorage(email, password);
+            // For network/connection errors, still don't fallback - show error
+            return { 
+                success: false, 
+                message: `Database connection error: ${error.message}. Please check your connection and try again.` 
+            };
         }
     } else {
         console.log('usersAPI not available, using localStorage login...');
