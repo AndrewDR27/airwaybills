@@ -407,37 +407,81 @@
                     
                     // Automatically log in the newly created admin
                     try {
-                        // Wait a moment for the user to be fully saved
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                        // Wait a moment for the user to be fully saved in database
+                        await new Promise(resolve => setTimeout(resolve, 1000));
                         
-                        // Log in with the credentials that were just used
-                        if (typeof login !== 'undefined') {
-                            const loginResult = await login(email, password);
-                            
-                            if (loginResult && loginResult.success) {
-                                // Successfully logged in - redirect to dashboard
-                                successMessage.textContent = '✅ Admin account created and logged in! Redirecting...';
-                                setTimeout(() => {
-                                    window.location.href = 'dashboard.html';
-                                }, 1000);
-                            } else {
-                                // Login failed - offer manual login
-                                successMessage.textContent = '✅ Admin account created! Please log in manually.';
-                                setTimeout(() => {
-                                    if (confirm('Admin account created! Would you like to go to the login page?')) {
-                                        window.location.href = 'login.html';
+                        console.log('Attempting auto-login for:', email);
+                        
+                        // Try to log in via API directly (more reliable)
+                        if (usersAPI && typeof usersAPI.login === 'function') {
+                            try {
+                                const loginResult = await usersAPI.login(email, password);
+                                console.log('Login result:', loginResult);
+                                
+                                if (loginResult && loginResult.success && loginResult.user) {
+                                    // Update localStorage for auth
+                                    try {
+                                        localStorage.setItem('awb_auth', JSON.stringify({
+                                            isAuthenticated: true,
+                                            userId: loginResult.user.id,
+                                            email: loginResult.user.email,
+                                            role: loginResult.user.role
+                                        }));
+                                        
+                                        // Cache user in localStorage
+                                        const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
+                                        const index = users.findIndex(u => u.id === loginResult.user.id);
+                                        if (index >= 0) {
+                                            users[index] = loginResult.user;
+                                        } else {
+                                            users.push(loginResult.user);
+                                        }
+                                        localStorage.setItem('awb_users', JSON.stringify(users));
+                                    } catch (e) {
+                                        console.warn('Could not update localStorage:', e);
                                     }
-                                }, 1500);
+                                    
+                                    // Successfully logged in - redirect to dashboard
+                                    successMessage.textContent = '✅ Admin account created and logged in! Redirecting...';
+                                    setTimeout(() => {
+                                        window.location.href = 'dashboard.html';
+                                    }, 1000);
+                                    return; // Exit early on success
+                                }
+                            } catch (apiLoginError) {
+                                console.error('API login error:', apiLoginError);
                             }
-                        } else {
-                            // Login function not available - redirect to login page
-                            successMessage.textContent = '✅ Admin account created! Redirecting to login...';
-                            setTimeout(() => {
-                                window.location.href = 'login.html';
-                            }, 1500);
                         }
+                        
+                        // Fallback: try using the login function from auth.js
+                        if (typeof window.login === 'function') {
+                            try {
+                                const loginResult = await window.login(email, password);
+                                console.log('Auth.js login result:', loginResult);
+                                
+                                if (loginResult && loginResult.success) {
+                                    successMessage.textContent = '✅ Admin account created and logged in! Redirecting...';
+                                    setTimeout(() => {
+                                        window.location.href = 'dashboard.html';
+                                    }, 1000);
+                                    return; // Exit early on success
+                                }
+                            } catch (authLoginError) {
+                                console.error('Auth.js login error:', authLoginError);
+                            }
+                        }
+                        
+                        // If we get here, auto-login failed - offer manual login
+                        console.warn('Auto-login failed, offering manual login');
+                        successMessage.textContent = '✅ Admin account created! Please log in manually.';
+                        setTimeout(() => {
+                            if (confirm('Admin account created! Would you like to go to the login page?')) {
+                                window.location.href = 'login.html';
+                            }
+                        }, 1500);
+                        
                     } catch (loginError) {
-                        console.error('Auto-login failed:', loginError);
+                        console.error('Auto-login failed with error:', loginError);
                         // Login failed - offer manual login
                         successMessage.textContent = '✅ Admin account created! Please log in manually.';
                         setTimeout(() => {
