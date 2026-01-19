@@ -55,12 +55,14 @@ function getCurrentUser() {
 async function getCurrentUserAsync() {
     if (!usersAPI) {
         // Fallback to localStorage
+        console.log('📦 Storage: Using localStorage (localhost)');
         return getCurrentUser();
     }
     
     try {
         const user = await usersAPI.getCurrent();
         if (user) {
+            console.log('💾 Storage: Using database (Upstash Redis)');
             currentUserCache = user;
             cacheTimestamp = Date.now();
             // Update localStorage cache
@@ -84,7 +86,37 @@ async function getCurrentUserAsync() {
         return user;
     } catch (error) {
         console.error('Error fetching current user from API:', error);
+        console.log('📦 Storage: Falling back to localStorage (localhost)');
         return getCurrentUser(); // Fallback to cache
+    }
+}
+
+// Check which storage is being used
+function getStorageSource() {
+    if (usersAPI && typeof usersAPI.getAll === 'function') {
+        // Try a quick API call to see if it works
+        return 'database'; // Assume database if API is available
+    }
+    return 'localhost';
+}
+
+// Get storage source with async check
+async function getStorageSourceAsync() {
+    if (!usersAPI) {
+        return 'localhost';
+    }
+    
+    try {
+        // Try to fetch from API with a short timeout
+        const testPromise = usersAPI.getAll();
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 2000)
+        );
+        
+        await Promise.race([testPromise, timeoutPromise]);
+        return 'database';
+    } catch (error) {
+        return 'localhost';
     }
 }
 
@@ -400,6 +432,8 @@ if (typeof window !== 'undefined') {
     window.getAllUsers = getAllUsers;
     window.getUserById = getUserById;
     window.getUserByEmail = getUserByEmail;
+    window.getStorageSource = getStorageSource;
+    window.getStorageSourceAsync = getStorageSourceAsync;
     window.requireAuth = requireAuth;
     window.requireRole = requireRole;
 }
