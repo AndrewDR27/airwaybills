@@ -250,7 +250,7 @@ function initializeApp() {
                 // Wait a bit to ensure form is ready, then fill
                 // Try multiple times in case form is still loading
                 let attempts = 0;
-                const tryFill = () => {
+                const tryFill = async () => {
                     attempts++;
                     if (!generatedForm && attempts < 10) {
                         setTimeout(tryFill, 100);
