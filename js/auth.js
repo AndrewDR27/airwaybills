@@ -187,7 +187,7 @@ async function login(email, password) {
         if (result && result.success && result.user) {
             currentUserCache = result.user;
             cacheTimestamp = Date.now();
-            // Store session token in localStorage (for API requests only)
+            // Store session token and user in localStorage (for cache and localhost fallback)
             try {
                 localStorage.setItem('awb_auth', JSON.stringify({
                     isAuthenticated: true,
@@ -196,6 +196,15 @@ async function login(email, password) {
                     role: result.user.role,
                     sessionToken: result.sessionToken || null // Store session token
                 }));
+                // Also store user in awb_users array for getCurrentUser() to find
+                const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
+                const index = users.findIndex(u => u.id === result.user.id);
+                if (index >= 0) {
+                    users[index] = result.user;
+                } else {
+                    users.push(result.user);
+                }
+                localStorage.setItem('awb_users', JSON.stringify(users));
             } catch (e) {
                 console.warn('Could not store session token:', e);
             }
@@ -206,6 +215,10 @@ async function login(email, password) {
         }
     } catch (error) {
         console.error('Error logging in via API:', error);
+        if (isLocalhost()) {
+            console.log('📦 Localhost: Falling back to localStorage login');
+            return loginLocalStorage(email, password);
+        }
         if (error.message && error.message.includes('Invalid email or password')) {
             return { success: false, message: error.message };
         }
