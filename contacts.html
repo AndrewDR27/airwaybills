@@ -338,9 +338,30 @@
                         <input type="text" id="contactCompanyName">
                     </div>
                     
+                    <div class="form-group" id="contactNameGroup" style="display: none;">
+                        <label for="contactName">Contact Name</label>
+                        <input type="text" id="contactName">
+                    </div>
+                    
                     <div class="form-group">
                         <label for="contactEmail">Email</label>
                         <input type="email" id="contactEmail">
+                    </div>
+                    
+                    <div class="form-group" id="contactPhoneGroup" style="display: none;">
+                        <label for="contactPhone">Phone</label>
+                        <input type="tel" id="contactPhone">
+                    </div>
+                    
+                    <div class="form-group" id="contactAddressGroup" style="display: none;">
+                        <label for="contactAddress">Address</label>
+                        <textarea id="contactAddress" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group" id="contactField06Group" style="display: none;">
+                        <label for="contactField06">AWB form Autofill 06</label>
+                        <textarea id="contactField06" rows="4" placeholder="Enter agent name and address information. Use line breaks to format."></textarea>
+                        <small>This will be used to auto-fill field 06. AGENT NAME when the form loads. Format: Company Name\nContact Name\nEmail\nPhone\nAddress</small>
                     </div>
                     
                     <div class="form-group" id="formattedValueGroup">
@@ -712,6 +733,24 @@
                 }
             }
             
+            // Show/hide user profile specific fields (Contact Name, Phone, Address, Field 06)
+            const contactNameGroup = document.getElementById('contactNameGroup');
+            const contactPhoneGroup = document.getElementById('contactPhoneGroup');
+            const contactAddressGroup = document.getElementById('contactAddressGroup');
+            const contactField06Group = document.getElementById('contactField06Group');
+            if (contactNameGroup) {
+                contactNameGroup.style.display = (type === 'User' || type === 'UserAccount') ? 'block' : 'none';
+            }
+            if (contactPhoneGroup) {
+                contactPhoneGroup.style.display = (type === 'User' || type === 'UserAccount') ? 'block' : 'none';
+            }
+            if (contactAddressGroup) {
+                contactAddressGroup.style.display = (type === 'User' || type === 'UserAccount') ? 'block' : 'none';
+            }
+            if (contactField06Group) {
+                contactField06Group.style.display = (type === 'User' || type === 'UserAccount') ? 'block' : 'none';
+            }
+            
             // Update formatted value label based on contact type
             if (formattedValueLabel && type && type !== 'User' && type !== 'UserAccount') {
                 formattedValueLabel.textContent = `${type}'s name and address`;
@@ -720,15 +759,33 @@
             }
             
             if (contactIdToEdit) {
-                const contacts = await getContacts();
-                const contact = contacts.find(c => c.id === contactIdToEdit);
-                if (contact) {
-                    modalTitle.textContent = `Edit ${type}`;
-                    contactCompanyName.value = contact.companyName || '';
-                    if (contactEmail) contactEmail.value = contact.email || '';
-                    if (contactFormattedValue) contactFormattedValue.value = contact.formattedValue || '';
-                    if (document.getElementById('contactAccountInfo')) {
-                        document.getElementById('contactAccountInfo').value = contact.accountInfo || '';
+                // For User type, load from profile instead of contacts
+                if (type === 'User' && contactIdToEdit === 'user') {
+                    const profile = getUserProfile();
+                    if (profile) {
+                        modalTitle.textContent = 'Edit My Information';
+                        contactCompanyName.value = profile.companyName || '';
+                        if (contactEmail) contactEmail.value = profile.email || '';
+                        const contactNameEl = document.getElementById('contactName');
+                        if (contactNameEl) contactNameEl.value = profile.contactName || '';
+                        const contactPhoneEl = document.getElementById('contactPhone');
+                        if (contactPhoneEl) contactPhoneEl.value = profile.phone || '';
+                        const contactAddressEl = document.getElementById('contactAddress');
+                        if (contactAddressEl) contactAddressEl.value = profile.address || '';
+                        const contactField06El = document.getElementById('contactField06');
+                        if (contactField06El) contactField06El.value = profile.field06 || profile.formattedValue || '';
+                    }
+                } else {
+                    const contacts = await getContacts();
+                    const contact = contacts.find(c => c.id === contactIdToEdit);
+                    if (contact) {
+                        modalTitle.textContent = `Edit ${type}`;
+                        contactCompanyName.value = contact.companyName || '';
+                        if (contactEmail) contactEmail.value = contact.email || '';
+                        if (contactFormattedValue) contactFormattedValue.value = contact.formattedValue || '';
+                        if (document.getElementById('contactAccountInfo')) {
+                            document.getElementById('contactAccountInfo').value = contact.accountInfo || '';
+                        }
                     }
                 }
             } else {
@@ -819,18 +876,21 @@
             // UserAccount type has its own validation
             
             if (type === 'User') {
-                // For User profile, get phone and address if they exist (legacy support)
+                // For User profile, get phone, address, and field 06 if they exist
                 const contactPhoneElement = document.getElementById('contactPhone');
                 const contactAddressElement = document.getElementById('contactAddress');
+                const contactField06Element = document.getElementById('contactField06');
                 const phone = contactPhoneElement ? contactPhoneElement.value.trim() : '';
                 const address = contactAddressElement ? contactAddressElement.value.trim() : '';
+                const field06 = contactField06Element ? contactField06Element.value.trim() : '';
                 
                 const profile = {
                     companyName,
                     contactName: contactNameValue,
                     email,
                     phone,
-                    address
+                    address,
+                    field06: field06
                     // Note: formattedValue is not included - it's only for AWB form contacts, not user profiles
                 };
                 
@@ -1065,6 +1125,10 @@
                         <strong>Address</strong>
                         <span style="white-space: pre-line;">${escapeHtml(profile.address || 'Not set')}</span>
                     </div>
+                    <div class="user-info-item" style="grid-column: 1 / -1;">
+                        <strong>AWB form Autofill 06</strong>
+                        <span style="white-space: pre-line;">${escapeHtml(profile.field06 || profile.formattedValue || 'Not set')}</span>
+                    </div>
                 `;
             }
         }
@@ -1097,9 +1161,27 @@
                 agentCustomFieldsGroup.style.display = 'none';
             }
             
+            // Show user profile specific fields
+            const contactNameGroup = document.getElementById('contactNameGroup');
+            const contactPhoneGroup = document.getElementById('contactPhoneGroup');
+            const contactAddressGroup = document.getElementById('contactAddressGroup');
+            const contactField06Group = document.getElementById('contactField06Group');
+            if (contactNameGroup) contactNameGroup.style.display = 'block';
+            if (contactPhoneGroup) contactPhoneGroup.style.display = 'block';
+            if (contactAddressGroup) contactAddressGroup.style.display = 'block';
+            if (contactField06Group) contactField06Group.style.display = 'block';
+            
             if (profile) {
                 document.getElementById('contactCompanyName').value = profile.companyName || '';
+                const contactNameEl = document.getElementById('contactName');
+                if (contactNameEl) contactNameEl.value = profile.contactName || '';
                 document.getElementById('contactEmail').value = profile.email || '';
+                const contactPhoneEl = document.getElementById('contactPhone');
+                if (contactPhoneEl) contactPhoneEl.value = profile.phone || '';
+                const contactAddressEl = document.getElementById('contactAddress');
+                if (contactAddressEl) contactAddressEl.value = profile.address || '';
+                const contactField06El = document.getElementById('contactField06');
+                if (contactField06El) contactField06El.value = profile.field06 || profile.formattedValue || '';
             } else {
                 form.reset();
                 document.getElementById('contactId').value = 'user';

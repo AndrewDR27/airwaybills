@@ -19,7 +19,7 @@ let missingFieldsCallback = null; // Store the callback for when user confirms/c
 // Contact management elements
 let contactSection, shipperSelect, consigneeSelect, addShipperBtn, addConsigneeBtn;
 let routingControlsSection, airlineSelect1, addAirlineBtn1, destinationSelect, addDestinationBtn, directFlightSelect, interlineCarrierSelect1, interlineCarrierSelect2, addInterlineCarrier2Btn;
-let contactModal, contactForm, contactId, contactType, contactCompanyName, contactName, contactEmail, contactPhone, contactAddress, contactFormattedValue, contactAccountInfo, accountInfoGroup, contactOrigin, originInfoGroup, formattedValueGroup, contactAWBP, awbpInfoGroup, contactAirlineAbbreviation, airlineAbbreviationGroup, contactAoDEP, aoDEPInfoGroup, contactHandlingInfo, handlingInfoGroup;
+let contactModal, contactForm, contactId, contactType, contactCompanyName, contactName, contactEmail, contactPhone, contactAddress, contactFormattedValue, contactAccountInfo, accountInfoGroup, contactOrigin, originInfoGroup, formattedValueGroup, contactAWBP, awbpInfoGroup, contactAirlineAbbreviation, airlineAbbreviationGroup, contactAoDEP, aoDEPInfoGroup, contactHandlingInfo, handlingInfoGroup, contactField06, contactField06Group;
 let contactNameLabel, contactEmailLabel, contactPhoneLabel, contactAddressLabel, formattedValueLabel;
 let closeContactModal, cancelContactBtn, saveContactBtn, modalTitle;
 
@@ -82,6 +82,8 @@ function initializeApp() {
     aoDEPInfoGroup = document.getElementById('aoDEPInfoGroup');
     contactHandlingInfo = document.getElementById('contactHandlingInfo');
     handlingInfoGroup = document.getElementById('handlingInfoGroup');
+    contactField06 = document.getElementById('contactField06');
+    contactField06Group = document.getElementById('contactField06Group');
     contactAWBP = document.getElementById('contactAWBP');
     awbpInfoGroup = document.getElementById('awbpInfoGroup');
     contactAirlineAbbreviation = document.getElementById('contactAirlineAbbreviation');
@@ -3858,7 +3860,7 @@ function openContactModal(type, contactIdToEdit) {
         if (contactAddressLabel) contactAddressLabel.textContent = 'Address *';
     }
     
-    // Show/hide origin, AoDEP, Handling Info and account info fields based on contact type
+    // Show/hide origin, AoDEP, Handling Info, Field 06 and account info fields based on contact type
     if (originInfoGroup) {
         originInfoGroup.style.display = isUser ? 'block' : 'none';
     }
@@ -3867,6 +3869,9 @@ function openContactModal(type, contactIdToEdit) {
     }
     if (handlingInfoGroup) {
         handlingInfoGroup.style.display = isUser ? 'block' : 'none';
+    }
+    if (contactField06Group) {
+        contactField06Group.style.display = isUser ? 'block' : 'none';
     }
     if (accountInfoGroup) {
         accountInfoGroup.style.display = isConsignee ? 'block' : 'none';
@@ -3943,7 +3948,7 @@ function openUserProfileModal() {
     contactId.value = 'user';
     modalTitle.textContent = 'Edit My Information';
     
-    // Show origin, AoDEP, and Handling Info fields and hide account info for user profile
+    // Show origin, AoDEP, Handling Info, and Field 06 fields and hide account info for user profile
     if (originInfoGroup) {
         originInfoGroup.style.display = 'block';
     }
@@ -3952,6 +3957,9 @@ function openUserProfileModal() {
     }
     if (handlingInfoGroup) {
         handlingInfoGroup.style.display = 'block';
+    }
+    if (contactField06Group) {
+        contactField06Group.style.display = 'block';
     }
     if (accountInfoGroup) {
         accountInfoGroup.style.display = 'none';
@@ -3972,6 +3980,9 @@ function openUserProfileModal() {
         }
         if (contactHandlingInfo) {
             contactHandlingInfo.value = profile.handlingInfo || '';
+        }
+        if (contactField06) {
+            contactField06.value = profile.field06 || profile.formattedValue || '';
         }
     } else {
         contactForm.reset();
@@ -3998,6 +4009,9 @@ function closeContactModalHandler() {
         }
         if (handlingInfoGroup) {
             handlingInfoGroup.style.display = 'none';
+        }
+        if (contactField06Group) {
+            contactField06Group.style.display = 'none';
         }
         if (awbpInfoGroup) {
             awbpInfoGroup.style.display = 'none';
@@ -4050,6 +4064,8 @@ function handleSaveContact(e) {
         const origin = contactOrigin ? contactOrigin.value.trim() : '';
         const aoDEP = contactAoDEP ? contactAoDEP.value.trim() : '';
         const handlingInfo = contactHandlingInfo ? contactHandlingInfo.value.trim() : '';
+        const contactField06 = document.getElementById('contactField06');
+        const field06 = contactField06 ? contactField06.value.trim() : '';
         const profile = {
             companyName,
             contactName: contactNameValue,
@@ -4057,6 +4073,7 @@ function handleSaveContact(e) {
             phone,
             address,
             formattedValue,
+            field06: field06,
             origin,
             aoDEP,
             handlingInfo
@@ -4877,8 +4894,17 @@ function fillContactField(fieldPrefix, contactIdOrUser) {
         return;
     }
     
-    if (!contactData || !contactData.formattedValue) {
-        console.warn(`Contact data not found for ${contactIdOrUser}`);
+    // For field 06, check for field06 first, then formattedValue
+    // For other fields, check for formattedValue
+    let hasValue = false;
+    if (fieldPrefix === '06') {
+        hasValue = contactData && (contactData.field06 || contactData.formattedValue);
+    } else {
+        hasValue = contactData && contactData.formattedValue;
+    }
+    
+    if (!hasValue) {
+        console.warn(`Contact data not found for ${contactIdOrUser} (field ${fieldPrefix})`);
         return;
     }
     
@@ -4893,13 +4919,19 @@ function fillContactField(fieldPrefix, contactIdOrUser) {
         formsToCheck.push(billingFieldsForm);
     }
     
+    // For field 06, use field06 if available, otherwise fallback to formattedValue
+    let valueToFill = contactData.formattedValue || '';
+    if (fieldPrefix === '06' && contactData.field06) {
+        valueToFill = contactData.field06;
+    }
+    
     let fieldFilled = false;
     for (const form of formsToCheck) {
         const formElements = form.elements;
         for (let i = 0; i < formElements.length; i++) {
             const element = formElements[i];
             if (element.name && element.name.startsWith(fieldPrefix)) {
-                element.value = contactData.formattedValue;
+                element.value = valueToFill;
                 // Trigger input event to ensure any listeners are notified
                 element.dispatchEvent(new Event('input', { bubbles: true }));
                 console.log(`Filled field ${element.name} with contact data`);
@@ -5009,7 +5041,7 @@ function autoFillUserProfile() {
     if (profile) {
         // Wait a bit for form to be fully generated
         setTimeout(() => {
-            if (profile.formattedValue) {
+            if (profile.field06 || profile.formattedValue) {
                 fillContactField('06', 'user');
             }
             if (profile.origin) {
