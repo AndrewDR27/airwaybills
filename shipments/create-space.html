@@ -271,14 +271,19 @@
                 const result = await createShipmentSpace(invitedParticipants);
                 
                 if (result && result.success) {
-                    alert('Shipment space created successfully! Space ID: ' + result.shipment.spaceId);
+                    const spaceId = result.shipment.spaceId;
+                    alert('Shipment space created successfully! Space ID: ' + spaceId);
+                    
+                    // Wait a moment to ensure the space is saved and available
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
                     // Redirect to the space detail page
                     if (window.parent && window.parent !== window) {
                         // In iframe - path is relative to dashboard.html (root directory)
-                        window.parent.document.getElementById('contentFrame').src = `shipments/space.html?spaceId=${result.shipment.spaceId}`;
+                        window.parent.document.getElementById('contentFrame').src = `shipments/space.html?spaceId=${spaceId}`;
                     } else {
                         // Not in iframe - path is relative to current file (shipments/ directory)
-                        window.location.href = `space.html?spaceId=${result.shipment.spaceId}`;
+                        window.location.href = `space.html?spaceId=${spaceId}`;
                     }
                 } else {
                     const errorMessage = result?.message || 'Unknown error occurred';

@@ -367,7 +367,24 @@ async function createShipmentSpace(participants = []) {
         
         if (shipmentsAPI) {
             try {
-                await shipmentsAPI.create(shipmentData);
+                const saved = await shipmentsAPI.create(shipmentData);
+                // Use the saved shipment from API (it might have additional fields or different structure)
+                if (saved && saved.spaceId) {
+                    // Update newShipment with saved data to ensure consistency
+                    if (newShipment.spaceId !== saved.spaceId) {
+                        newShipment.spaceId = saved.spaceId;
+                    }
+                    // Also update localStorage cache for immediate access
+                    const shipments = getAllShipmentsLocalStorage();
+                    const existingIndex = shipments.findIndex(s => s.spaceId === saved.spaceId);
+                    if (existingIndex >= 0) {
+                        shipments[existingIndex] = saved;
+                    } else {
+                        shipments.push(saved);
+                    }
+                    localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+                    return { success: true, shipment: saved };
+                }
                 return { success: true, shipment: newShipment };
             } catch (error) {
                 console.error('Error creating shipment via API:', error);
@@ -402,7 +419,24 @@ async function createShipmentSpace(participants = []) {
     
     if (shipmentsAPI) {
         try {
-            await shipmentsAPI.create(shipmentData);
+            const saved = await shipmentsAPI.create(shipmentData);
+            // Use the saved shipment from API (it might have additional fields or different structure)
+            if (saved && saved.spaceId) {
+                // Update newShipment with saved data to ensure consistency
+                if (newShipment.spaceId !== saved.spaceId) {
+                    newShipment.spaceId = saved.spaceId;
+                }
+                // Also update localStorage cache for immediate access
+                const shipments = getAllShipmentsLocalStorage();
+                const existingIndex = shipments.findIndex(s => s.spaceId === saved.spaceId);
+                if (existingIndex >= 0) {
+                    shipments[existingIndex] = saved;
+                } else {
+                    shipments.push(saved);
+                }
+                localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+                return { success: true, shipment: saved };
+            }
             return { success: true, shipment: newShipment };
         } catch (error) {
             console.error('Error creating shipment via API:', error);
