@@ -32,7 +32,22 @@ if (DEBUG_DB) {
 }
 
 const USERS_KEY = 'awb_users';
-const AUTH_KEY = 'awb_auth';
+const AUTH_KEY = 'awb_auth'; // Deprecated - kept for backward compatibility
+
+// Helper function to generate session token
+function generateSessionToken() {
+    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
+}
+
+// Helper function to get session key
+function getSessionKey(token) {
+    return `awb_session:${token}`;
+}
+
+// Helper function to get user sessions key
+function getUserSessionsKey(userId) {
+    return `awb_user_sessions:${userId}`;
+}
 
 export default async function handler(req, res) {
     // Enable CORS
@@ -84,18 +99,46 @@ export default async function handler(req, res) {
                 });
                 res.status(200).json(Array.isArray(safeUsers) ? safeUsers : []);
             } else if (action === 'current') {
-                // Get current authenticated user
-                const authData = await redis.get(AUTH_KEY);
-                if (!authData || !authData.userId) {
+                // Get current authenticated user using session token
+                const sessionToken = req.query.sessionToken || req.headers['x-session-token'];
+                
+                if (!sessionToken) {
+                    // Fallback to old AUTH_KEY for backward compatibility (but log warning)
+                    const authData = await redis.get(AUTH_KEY);
+                    if (!authData || !authData.userId) {
+                        res.status(200).json(null);
+                        return;
+                    }
+                    const users = await redis.get(USERS_KEY) || [];
+                    const user = users.find(u => u.id === authData.userId);
+                    if (user) {
+                        const { password, ...safeUser } = user;
+                        res.status(200).json(safeUser);
+                    } else {
+                        res.status(200).json(null);
+                    }
+                    return;
+                }
+                
+                // Validate session token
+                const sessionKey = getSessionKey(sessionToken);
+                const sessionData = await redis.get(sessionKey);
+                
+                if (!sessionData || !sessionData.userId) {
                     res.status(200).json(null);
                     return;
                 }
+                
+                // Get user data
                 const users = await redis.get(USERS_KEY) || [];
-                const user = users.find(u => u.id === authData.userId);
+                const user = users.find(u => u.id === sessionData.userId);
+                
                 if (user) {
                     const { password, ...safeUser } = user;
                     res.status(200).json(safeUser);
                 } else {
+                    // User not found - invalidate session
+                    await redis.del(sessionKey);
                     res.status(200).json(null);
                 }
             } else if (userId) {
@@ -184,7 +227,29 @@ export default async function handler(req, res) {
                 
                 console.log('Login successful for:', user.email);
 
-                // Set auth session
+                // Generate unique session token
+                const sessionToken = generateSessionToken();
+                
+                // Store session data with token as key
+                const sessionData = {
+                    userId: user.id,
+                    email: user.email,
+                    role: user.role,
+                    timestamp: Date.now(),
+                    expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+                };
+                
+                const sessionKey = getSessionKey(sessionToken);
+                await redis.set(sessionKey, sessionData);
+                
+                // Also store session token in user's session list (for cleanup)
+                const userSessionsKey = getUserSessionsKey(user.id);
+                const userSessions = await redis.get(userSessionsKey) || [];
+                userSessions.push(sessionToken);
+                await redis.set(userSessionsKey, userSessions);
+                
+                // Keep old AUTH_KEY for backward compatibility (but this is deprecated)
+                // TODO: Remove this after migration period
                 const authData = {
                     isAuthenticated: true,
                     userId: user.id,
@@ -195,9 +260,31 @@ export default async function handler(req, res) {
                 await redis.set(AUTH_KEY, authData);
 
                 const { password, ...safeUser } = user;
-                res.status(200).json({ success: true, user: safeUser });
+                res.status(200).json({ 
+                    success: true, 
+                    user: safeUser,
+                    sessionToken: sessionToken // Return session token to client
+                });
             } else if (action === 'logout') {
-                // Logout - clear auth
+                // Logout - clear session token
+                const sessionToken = req.body.sessionToken || req.query.sessionToken || req.headers['x-session-token'];
+                
+                if (sessionToken) {
+                    const sessionKey = getSessionKey(sessionToken);
+                    const sessionData = await redis.get(sessionKey);
+                    
+                    if (sessionData && sessionData.userId) {
+                        // Remove from user's session list
+                        const userSessionsKey = getUserSessionsKey(sessionData.userId);
+                        const userSessions = await redis.get(userSessionsKey) || [];
+                        const filteredSessions = userSessions.filter(t => t !== sessionToken);
+                        await redis.set(userSessionsKey, filteredSessions);
+                    }
+                    
+                    await redis.del(sessionKey);
+                }
+                
+                // Also clear old AUTH_KEY for backward compatibility
                 await redis.del(AUTH_KEY);
                 res.status(200).json({ success: true });
             } else {

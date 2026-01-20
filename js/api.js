@@ -340,7 +340,16 @@ export const usersAPI = {
 
     async getCurrent() {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/users?action=current`);
+            // Get session token from localStorage
+            const authData = JSON.parse(localStorage.getItem('awb_auth') || '{}');
+            const sessionToken = authData.sessionToken;
+            
+            // Build URL with session token
+            const url = sessionToken 
+                ? `${API_BASE_URL}/api/users?action=current&sessionToken=${encodeURIComponent(sessionToken)}`
+                : `${API_BASE_URL}/api/users?action=current`;
+            
+            const response = await fetch(url);
             if (!response.ok) throw new Error('Failed to fetch current user');
             return await response.json();
         } catch (error) {

@@ -65,11 +65,13 @@ async function getCurrentUserAsync() {
             console.log('💾 Storage: Using database (Upstash Redis)');
             currentUserCache = user;
             cacheTimestamp = Date.now();
-            // Update localStorage cache
+            // Update localStorage cache (preserve existing session token)
             try {
+                const existingAuth = JSON.parse(localStorage.getItem('awb_auth') || '{}');
                 localStorage.setItem('awb_auth', JSON.stringify({
                     isAuthenticated: true,
-                    userId: user.id
+                    userId: user.id,
+                    sessionToken: existingAuth.sessionToken || null // Preserve session token
                 }));
                 const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
                 const index = users.findIndex(u => u.id === user.id);
@@ -161,13 +163,14 @@ async function login(email, password) {
             if (result && result.success && result.user) {
                 currentUserCache = result.user;
                 cacheTimestamp = Date.now();
-                // Update localStorage cache
+                // Update localStorage cache with session token
                 try {
                     localStorage.setItem('awb_auth', JSON.stringify({
                         isAuthenticated: true,
                         userId: result.user.id,
                         email: result.user.email,
-                        role: result.user.role
+                        role: result.user.role,
+                        sessionToken: result.sessionToken || null // Store session token
                     }));
                     const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
                     const index = users.findIndex(u => u.id === result.user.id);
@@ -231,19 +234,23 @@ function loginLocalStorage(email, password) {
         return { success: false, message: 'Invalid password' };
     }
     
+    // Generate a local session token for localStorage mode
+    const localSessionToken = `local_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
+    
     localStorage.setItem('awb_auth', JSON.stringify({
         isAuthenticated: true,
         userId: user.id,
         email: user.email,
         role: user.role,
-        loginTime: new Date().toISOString()
+        loginTime: new Date().toISOString(),
+        sessionToken: localSessionToken // Store local session token
     }));
     
     currentUserCache = user;
     cacheTimestamp = Date.now();
     
     console.log('LocalStorage login successful');
-    return { success: true, user: user };
+    return { success: true, user: user, sessionToken: localSessionToken };
 }
 
 // Register new user
@@ -309,7 +316,25 @@ function registerLocalStorage(userData) {
 async function logout() {
     if (usersAPI) {
         try {
-            await usersAPI.logout();
+            // Get session token before clearing auth
+            const authData = JSON.parse(localStorage.getItem('awb_auth') || '{}');
+            const sessionToken = authData.sessionToken;
+            
+            // Logout with session token
+            if (sessionToken) {
+                try {
+                    await fetch(`${window.location.origin}/api/users?action=logout`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sessionToken })
+                    });
+                } catch (e) {
+                    console.error('Error logging out session:', e);
+                }
+            } else {
+                // Fallback to old logout method
+                await usersAPI.logout();
+            }
         } catch (error) {
             console.error('Error logging out via API:', error);
         }
