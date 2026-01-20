@@ -372,12 +372,17 @@ function registerLocalStorage(userData) {
 
 // Logout
 async function logout() {
+    // Get session token and user ID BEFORE clearing auth data
+    const authData = JSON.parse(localStorage.getItem('awb_auth') || '{}');
+    const sessionToken = authData.sessionToken;
+    
+    // Clear cache FIRST to prevent getCurrentUser() from returning cached user
+    currentUserCache = null;
+    cacheTimestamp = 0;
+    
+    // Logout from API if available
     if (usersAPI) {
         try {
-            // Get session token before clearing auth
-            const authData = JSON.parse(localStorage.getItem('awb_auth') || '{}');
-            const sessionToken = authData.sessionToken;
-            
             // Logout with session token
             if (sessionToken) {
                 try {
@@ -397,10 +402,6 @@ async function logout() {
             console.error('Error logging out via API:', error);
         }
     }
-    
-    // Clear cache FIRST to prevent getCurrentUser() from returning cached user
-    currentUserCache = null;
-    cacheTimestamp = 0;
     
     // Clear all auth-related localStorage items
     localStorage.removeItem('awb_auth');
