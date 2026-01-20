@@ -195,6 +195,7 @@
         </div>
     </div>
 
+    <script type="module" src="../js/api.js"></script>
     <script src="../models/user.js"></script>
     <script src="../models/shipment.js"></script>
     <script src="../js/roles.js"></script>
@@ -224,29 +225,36 @@
         let currentShipment = null;
 
         // Load shipment space
-        function loadSpace() {
-            currentShipment = getShipmentBySpaceId(spaceId);
-            
-            if (!currentShipment) {
-                alert('Shipment space not found.');
-                goBack();
-                return;
-            }
+        async function loadSpace() {
+            try {
+                currentShipment = await getShipmentBySpaceId(spaceId);
+                
+                if (!currentShipment) {
+                    alert('Shipment space not found.');
+                    goBack();
+                    return;
+                }
 
-            // Check if user has access (admins can access all shipments)
-            const isAdmin = user.role === 'admin';
-            const participants = currentShipment.participants || [];
-            const hasAccess = isAdmin || 
-                            currentShipment.createdBy === user.id || 
-                            participants.some(p => p.userId === user.id);
-            
-            if (!hasAccess) {
-                alert('You do not have access to this shipment space.');
-                goBack();
-                return;
-            }
+                // Check if user has access (admins can access all shipments)
+                const isAdmin = user.role === 'admin';
+                const participants = currentShipment.participants || [];
+                const hasAccess = isAdmin || 
+                                currentShipment.createdBy === user.id || 
+                                participants.some(p => p.userId === user.id);
+                
+                if (!hasAccess) {
+                    console.error('Access denied:', {
+                        userId: user.id,
+                        createdBy: currentShipment.createdBy,
+                        participants: participants.map(p => p.userId),
+                        isAdmin: isAdmin
+                    });
+                    alert('You do not have access to this shipment space.');
+                    goBack();
+                    return;
+                }
 
-            // Display space info - AWB number as primary, Space ID as secondary
+                // Display space info - AWB number as primary, Space ID as secondary
             if (currentShipment.awbNumber) {
                 document.getElementById('awbDisplay').textContent = `AWB: ${currentShipment.awbNumber}`;
                 document.getElementById('awbDisplay').style.display = 'block';
@@ -347,6 +355,12 @@
                         agentSection.appendChild(editBtn);
                     }
                 }
+            }
+            } catch (error) {
+                console.error('Error loading shipment space:', error);
+                alert('Error loading shipment space: ' + (error.message || 'Unknown error'));
+                goBack();
+                return;
             }
         }
 
