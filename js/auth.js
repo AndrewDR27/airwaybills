@@ -32,7 +32,32 @@ const CACHE_DURATION = 60000; // 1 minute
 
 // Get current user (synchronous - uses cache, localStorage fallback on localhost)
 function getCurrentUser() {
-    // Check cache first
+    // CRITICAL: Always check if awb_auth exists first - if not, user is logged out
+    const authData = localStorage.getItem('awb_auth');
+    if (!authData) {
+        // No auth data means user is logged out - clear cache and return null
+        currentUserCache = null;
+        cacheTimestamp = 0;
+        return null;
+    }
+    
+    // Parse auth data to verify it's valid
+    try {
+        const auth = JSON.parse(authData);
+        if (!auth.isAuthenticated || !auth.userId) {
+            // Invalid auth data - clear cache and return null
+            currentUserCache = null;
+            cacheTimestamp = 0;
+            return null;
+        }
+    } catch (e) {
+        // Invalid JSON - clear cache and return null
+        currentUserCache = null;
+        cacheTimestamp = 0;
+        return null;
+    }
+    
+    // Check cache first (only if auth is valid)
     if (currentUserCache && Date.now() - cacheTimestamp < CACHE_DURATION) {
         return currentUserCache;
     }
@@ -41,25 +66,18 @@ function getCurrentUser() {
     const shouldUseLocalStorage = isLocalhost() || !usersAPI;
     if (shouldUseLocalStorage) {
         try {
-            const authData = localStorage.getItem('awb_auth');
-            if (authData) {
-                const auth = JSON.parse(authData);
-                if (auth.isAuthenticated && auth.userId) {
-                    const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
-                    const user = users.find(u => u.id === auth.userId);
-                    if (user) {
-                        currentUserCache = user;
-                        cacheTimestamp = Date.now();
-                        console.log('getCurrentUser: Found user in localStorage', user.email);
-                        return user;
-                    } else {
-                        console.log('getCurrentUser: User ID', auth.userId, 'not found in users array. Available IDs:', users.map(u => u.id));
-                    }
+            const auth = JSON.parse(authData);
+            if (auth.isAuthenticated && auth.userId) {
+                const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
+                const user = users.find(u => u.id === auth.userId);
+                if (user) {
+                    currentUserCache = user;
+                    cacheTimestamp = Date.now();
+                    console.log('getCurrentUser: Found user in localStorage', user.email);
+                    return user;
                 } else {
-                    console.log('getCurrentUser: Auth data invalid or missing userId', auth);
+                    console.log('getCurrentUser: User ID', auth.userId, 'not found in users array. Available IDs:', users.map(u => u.id));
                 }
-            } else {
-                console.log('getCurrentUser: No auth data in localStorage');
             }
         } catch (e) {
             console.error('Error getting current user from cache:', e);
