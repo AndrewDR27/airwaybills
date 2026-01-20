@@ -1,8 +1,16 @@
 // Authentication system with role-based access
 // Uses Upstash Redis database via API
+// localStorage fallback allowed on localhost for development
 
 // Import usersAPI (will be loaded as module or available globally)
 let usersAPI = null;
+
+// Check if running on localhost (for development)
+function isLocalhost() {
+    if (typeof window === 'undefined') return false;
+    const hostname = window.location.hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0';
+}
 
 // Initialize API on load
 if (typeof window !== 'undefined') {
@@ -22,41 +30,45 @@ let currentUserCache = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 60000; // 1 minute
 
-// Get current user (synchronous - uses cache)
+// Get current user (synchronous - uses cache, localStorage fallback on localhost)
 function getCurrentUser() {
     // Check cache first
     if (currentUserCache && Date.now() - cacheTimestamp < CACHE_DURATION) {
         return currentUserCache;
     }
     
-    // Try localStorage as fallback
-    try {
-        const authData = localStorage.getItem('awb_auth');
-        if (authData) {
-            const auth = JSON.parse(authData);
-            if (auth.isAuthenticated && auth.userId) {
-                const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
-                const user = users.find(u => u.id === auth.userId);
-                if (user) {
-                    currentUserCache = user;
-                    cacheTimestamp = Date.now();
-                    return user;
+    // Try localStorage as fallback (only on localhost)
+    if (isLocalhost()) {
+        try {
+            const authData = localStorage.getItem('awb_auth');
+            if (authData) {
+                const auth = JSON.parse(authData);
+                if (auth.isAuthenticated && auth.userId) {
+                    const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
+                    const user = users.find(u => u.id === auth.userId);
+                    if (user) {
+                        currentUserCache = user;
+                        cacheTimestamp = Date.now();
+                        return user;
+                    }
                 }
             }
+        } catch (e) {
+            console.error('Error getting current user from cache:', e);
         }
-    } catch (e) {
-        console.error('Error getting current user from cache:', e);
     }
     
     return null;
 }
 
-// Get current user from API (async)
+// Get current user from API (async) - requires API, fallback on localhost
 async function getCurrentUserAsync() {
     if (!usersAPI) {
-        // Fallback to localStorage
-        console.log('📦 Storage: Using localStorage (localhost)');
-        return getCurrentUser();
+        if (isLocalhost()) {
+            console.log('📦 Localhost: Using localStorage (development)');
+            return getCurrentUser();
+        }
+        throw new Error('Database API not available. Please ensure the database is configured.');
     }
     
     try {
@@ -65,7 +77,7 @@ async function getCurrentUserAsync() {
             console.log('💾 Storage: Using database (Upstash Redis)');
             currentUserCache = user;
             cacheTimestamp = Date.now();
-            // Update localStorage cache (preserve existing session token)
+            // Store session token in localStorage (for API requests only, not as data source)
             try {
                 const existingAuth = JSON.parse(localStorage.getItem('awb_auth') || '{}');
                 localStorage.setItem('awb_auth', JSON.stringify({
@@ -73,33 +85,30 @@ async function getCurrentUserAsync() {
                     userId: user.id,
                     sessionToken: existingAuth.sessionToken || null // Preserve session token
                 }));
-                const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
-                const index = users.findIndex(u => u.id === user.id);
-                if (index >= 0) {
-                    users[index] = user;
-                } else {
-                    users.push(user);
-                }
-                localStorage.setItem('awb_users', JSON.stringify(users));
             } catch (e) {
-                console.warn('Could not update localStorage cache:', e);
+                console.warn('Could not update localStorage session token:', e);
             }
         }
         return user;
     } catch (error) {
         console.error('Error fetching current user from API:', error);
-        console.log('📦 Storage: Falling back to localStorage (localhost)');
-        return getCurrentUser(); // Fallback to cache
+        if (isLocalhost()) {
+            console.log('📦 Localhost: Falling back to localStorage');
+            return getCurrentUser();
+        }
+        throw error; // Require API in production
     }
 }
 
 // Check which storage is being used
 function getStorageSource() {
     if (usersAPI && typeof usersAPI.getAll === 'function') {
-        // Try a quick API call to see if it works
-        return 'database'; // Assume database if API is available
+        return 'database';
     }
-    return 'localhost';
+    if (isLocalhost()) {
+        return 'localhost';
+    }
+    return null; // No fallback in production
 }
 
 // Get storage source with async check
@@ -123,8 +132,10 @@ async function getStorageSourceAsync() {
     }
     
     if (!usersAPI) {
-        console.log('usersAPI not available');
-        return 'localhost';
+        if (isLocalhost()) {
+            return 'localhost';
+        }
+        throw new Error('Database API not available. Please ensure the database is configured.');
     }
     
     try {
@@ -134,12 +145,16 @@ async function getStorageSourceAsync() {
             setTimeout(() => reject(new Error('Timeout')), 3000)
         );
         
-        const result = await Promise.race([testPromise, timeoutPromise]);
+        await Promise.race([testPromise, timeoutPromise]);
         console.log('API test successful, using database');
         return 'database';
     } catch (error) {
-        console.log('API test failed, using localhost:', error.message);
-        return 'localhost';
+        console.error('API test failed:', error.message);
+        if (isLocalhost()) {
+            console.log('📦 Localhost: Falling back to localStorage');
+            return 'localhost';
+        }
+        throw new Error('Database connection failed. Please check your connection and try again.');
     }
 }
 
@@ -149,115 +164,68 @@ function isAuthenticated() {
     return user !== null;
 }
 
-// Login
+// Login - requires API, fallback on localhost
 async function login(email, password) {
     console.log('Login called with email:', email);
     
-    // Always try API first if available
-    if (usersAPI) {
-        try {
-            console.log('Attempting API login...');
-            const result = await usersAPI.login(email, password);
-            console.log('API login result:', result);
-            
-            if (result && result.success && result.user) {
-                currentUserCache = result.user;
-                cacheTimestamp = Date.now();
-                // Update localStorage cache with session token
-                try {
-                    localStorage.setItem('awb_auth', JSON.stringify({
-                        isAuthenticated: true,
-                        userId: result.user.id,
-                        email: result.user.email,
-                        role: result.user.role,
-                        sessionToken: result.sessionToken || null // Store session token
-                    }));
-                    const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
-                    const index = users.findIndex(u => u.id === result.user.id);
-                    if (index >= 0) {
-                        users[index] = result.user;
-                    } else {
-                        users.push(result.user);
-                    }
-                    localStorage.setItem('awb_users', JSON.stringify(users));
-                } catch (e) {
-                    console.warn('Could not update localStorage cache:', e);
-                }
-                return result;
-            } else {
-                console.warn('API login returned unsuccessful result:', result);
-                // Don't fallback - API said user not found/invalid
-                return result || { success: false, message: 'Invalid email or password' };
-            }
-        } catch (error) {
-            console.error('Error logging in via API:', error);
-            // Don't fallback to localStorage if API is available - user should be in database
-            // Only return the error message
-            if (error.message && error.message.includes('Invalid email or password')) {
-                return { success: false, message: error.message };
-            }
-            // For network/connection errors, still don't fallback - show error
-            return { 
-                success: false, 
-                message: `Database connection error: ${error.message}. Please check your connection and try again.` 
-            };
+    if (!usersAPI) {
+        if (isLocalhost()) {
+            console.log('📦 Localhost: Using localStorage login');
+            return loginLocalStorage(email, password);
         }
-    } else {
-        console.log('usersAPI not available, using localStorage login...');
-        // Fallback to localStorage
-        return loginLocalStorage(email, password);
+        return { 
+            success: false, 
+            message: 'Database API not available. Please ensure the database is configured.' 
+        };
+    }
+    
+    try {
+        console.log('Attempting API login...');
+        const result = await usersAPI.login(email, password);
+        console.log('API login result:', result);
+        
+        if (result && result.success && result.user) {
+            currentUserCache = result.user;
+            cacheTimestamp = Date.now();
+            // Store session token in localStorage (for API requests only)
+            try {
+                localStorage.setItem('awb_auth', JSON.stringify({
+                    isAuthenticated: true,
+                    userId: result.user.id,
+                    email: result.user.email,
+                    role: result.user.role,
+                    sessionToken: result.sessionToken || null // Store session token
+                }));
+            } catch (e) {
+                console.warn('Could not store session token:', e);
+            }
+            return result;
+        } else {
+            console.warn('API login returned unsuccessful result:', result);
+            return result || { success: false, message: 'Invalid email or password' };
+        }
+    } catch (error) {
+        console.error('Error logging in via API:', error);
+        if (error.message && error.message.includes('Invalid email or password')) {
+            return { success: false, message: error.message };
+        }
+        return { 
+            success: false, 
+            message: `Database connection error: ${error.message}. Please check your connection and try again.` 
+        };
     }
 }
 
-// Login using localStorage (fallback)
-function loginLocalStorage(email, password) {
-    console.log('loginLocalStorage called for:', email);
-    const users = getAllUsersLocalStorage(); // Use synchronous version
-    console.log('Found users in localStorage:', users ? users.length : 0);
-    
-    if (!Array.isArray(users)) {
-        console.error('users is not an array:', typeof users, users);
-        return { success: false, message: 'Error accessing user data' };
-    }
-    
-    const user = users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-    
-    if (!user) {
-        console.log('User not found in localStorage');
-        return { success: false, message: 'User not found' };
-    }
-    
-    console.log('Found user:', user.email, 'role:', user.role);
-    const storedPassword = localStorage.getItem(`user_password_${user.id}`);
-    if (storedPassword && storedPassword !== password) {
-        console.log('Password mismatch');
-        return { success: false, message: 'Invalid password' };
-    }
-    
-    // Generate a local session token for localStorage mode
-    const localSessionToken = `local_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
-    
-    localStorage.setItem('awb_auth', JSON.stringify({
-        isAuthenticated: true,
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        loginTime: new Date().toISOString(),
-        sessionToken: localSessionToken // Store local session token
-    }));
-    
-    currentUserCache = user;
-    cacheTimestamp = Date.now();
-    
-    console.log('LocalStorage login successful');
-    return { success: true, user: user, sessionToken: localSessionToken };
-}
-
-// Register new user
+// Register new user - requires API, fallback on localhost
 async function register(userData) {
     if (!usersAPI) {
-        // Fallback to localStorage
-        return registerLocalStorage(userData);
+        if (isLocalhost()) {
+            return registerLocalStorage(userData);
+        }
+        return { 
+            success: false, 
+            message: 'Database API not available. Please ensure the database is configured.' 
+        };
     }
     
     try {
@@ -270,14 +238,19 @@ async function register(userData) {
         return { success: false, message: 'Registration failed' };
     } catch (error) {
         console.error('Error registering via API:', error);
-        // Fallback to localStorage
-        return registerLocalStorage(userData);
+        if (isLocalhost()) {
+            return registerLocalStorage(userData);
+        }
+        return { 
+            success: false, 
+            message: error.message || 'Registration failed. Please check your connection and try again.' 
+        };
     }
 }
 
-// Register using localStorage (fallback)
+// Register using localStorage (fallback - only on localhost)
 function registerLocalStorage(userData) {
-    const users = getAllUsersLocalStorage(); // Use synchronous version
+    const users = getAllUsersLocalStorage();
     
     if (users.some(u => u.email === userData.email)) {
         return { success: false, message: 'Email already registered' };
@@ -351,28 +324,28 @@ async function logout() {
     window.location.href = 'login.html';
 }
 
-// Get all users (for admin/invitation purposes)
+// Get all users (for admin/invitation purposes) - requires API, fallback on localhost
 async function getAllUsers() {
     if (!usersAPI) {
-        return getAllUsersLocalStorage();
+        if (isLocalhost()) {
+            return getAllUsersLocalStorage();
+        }
+        throw new Error('Database API not available. Please ensure the database is configured.');
     }
     
     try {
         const users = await usersAPI.getAll();
-        // Update localStorage cache
-        try {
-            localStorage.setItem('awb_users', JSON.stringify(users));
-        } catch (e) {
-            console.warn('Could not update localStorage cache:', e);
-        }
         return users;
     } catch (error) {
         console.error('Error fetching users from API:', error);
-        return getAllUsersLocalStorage();
+        if (isLocalhost()) {
+            return getAllUsersLocalStorage();
+        }
+        throw error;
     }
 }
 
-// Get all users from localStorage (fallback)
+// Get all users from localStorage (fallback - only on localhost)
 function getAllUsersLocalStorage() {
     const usersData = localStorage.getItem('awb_users');
     if (!usersData) {
@@ -400,35 +373,47 @@ function getAllUsersLocalStorage() {
     }
 }
 
-// Get user by ID
+// Get user by ID - requires API, fallback on localhost
 async function getUserById(userId) {
     if (!usersAPI) {
-        const users = getAllUsersLocalStorage();
-        return users.find(u => u.id === userId);
+        if (isLocalhost()) {
+            const users = getAllUsersLocalStorage();
+            return users.find(u => u.id === userId);
+        }
+        throw new Error('Database API not available. Please ensure the database is configured.');
     }
     
     try {
         return await usersAPI.getById(userId);
     } catch (error) {
         console.error('Error fetching user from API:', error);
-        const users = getAllUsersLocalStorage();
-        return users.find(u => u.id === userId);
+        if (isLocalhost()) {
+            const users = getAllUsersLocalStorage();
+            return users.find(u => u.id === userId);
+        }
+        throw error;
     }
 }
 
-// Get user by email
+// Get user by email - requires API, fallback on localhost
 async function getUserByEmail(email) {
     if (!usersAPI) {
-        const users = getAllUsersLocalStorage();
-        return users.find(u => u.email === email);
+        if (isLocalhost()) {
+            const users = getAllUsersLocalStorage();
+            return users.find(u => u.email === email);
+        }
+        throw new Error('Database API not available. Please ensure the database is configured.');
     }
     
     try {
         return await usersAPI.getByEmail(email);
     } catch (error) {
         console.error('Error fetching user from API:', error);
-        const users = getAllUsersLocalStorage();
-        return users.find(u => u.email === email);
+        if (isLocalhost()) {
+            const users = getAllUsersLocalStorage();
+            return users.find(u => u.email === email);
+        }
+        throw error;
     }
 }
 
