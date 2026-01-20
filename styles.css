@@ -477,17 +477,47 @@ header p {
 }
 
 .routing-controls-section {
-    margin-bottom: 8px;
+    margin-bottom: 24px;
     padding: 8px;
     background: var(--win98-window-bg);
     border: 2px inset var(--win98-button-face);
+    border-bottom: 3px solid var(--win98-button-shadow);
 }
 
 .billing-controls-section {
-    margin-bottom: 8px;
+    margin-bottom: 24px;
     padding: 8px;
     background: var(--win98-window-bg);
     border: 2px inset var(--win98-button-face);
+    border-bottom: 3px solid var(--win98-button-shadow);
+}
+
+.contact-controls-section {
+    margin-bottom: 24px;
+    padding: 8px;
+    background: var(--win98-window-bg);
+    border: 2px inset var(--win98-button-face);
+    border-bottom: 3px solid var(--win98-button-shadow);
+}
+
+.dimensions-controls-section {
+    margin-bottom: 24px;
+    padding: 8px;
+    background: var(--win98-window-bg);
+    border: 2px inset var(--win98-button-face);
+    border-bottom: 3px solid var(--win98-button-shadow);
+}
+
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    margin-bottom: 16px;
+    padding-top: 16px;
+    padding-bottom: 8px;
+    border-top: 2px inset var(--win98-button-face);
+    border-bottom: 2px inset var(--win98-button-face);
 }
 
 .routing-controls {

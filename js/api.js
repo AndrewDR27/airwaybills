@@ -409,7 +409,21 @@ export const shipmentsAPI = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(shipment)
             });
-            if (!response.ok) throw new Error('Failed to create shipment');
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorMessage = `Failed to create shipment: ${response.status} ${response.statusText}`;
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    if (errorJson.message) {
+                        errorMessage += ` - ${errorJson.message}`;
+                    }
+                } catch (e) {
+                    if (errorText) {
+                        errorMessage += ` - ${errorText}`;
+                    }
+                }
+                throw new Error(errorMessage);
+            }
             return await response.json();
         } catch (error) {
             console.error('Error creating shipment:', error);

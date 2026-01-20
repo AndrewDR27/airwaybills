@@ -140,6 +140,7 @@ async function getUserShipments(userId = null) {
             throw new Error('Database API not available. Please ensure the database is configured.');
         }
         // Update shipmentsAPI if window.shipmentsAPI is available
+
         if (window.shipmentsAPI && !shipmentsAPI) {
             shipmentsAPI = window.shipmentsAPI;
         }

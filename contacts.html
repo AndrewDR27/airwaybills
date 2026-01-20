@@ -330,7 +330,7 @@
                 <div class="user-profile-section">
                     <div class="user-profile-header">
                         <h2>My Autofills</h2>
-                        <button class="btn-add" onclick="openUserProfileModal()">Edit Profile</button>
+                        <button class="btn-add" onclick="openUserProfileModal()">Edit Autofills</button>
                     </div>
                     <div id="user-profile-display" class="user-profile-info">
                         <!-- User profile will be displayed here -->
@@ -386,6 +386,21 @@
                     <div class="form-group" id="contactHandlingInfoGroup" style="display: none;">
                         <label for="contactHandlingInfo">Handling info</label>
                         <textarea id="contactHandlingInfo" rows="4" placeholder="Enter handling information"></textarea>
+                    </div>
+                    
+                    <div class="form-group" id="contactSignatureIssuingCarrierGroup" style="display: none;">
+                        <label for="contactSignatureIssuingCarrier">Signature of Issuing Carrier or his Agent</label>
+                        <input type="text" id="contactSignatureIssuingCarrier" placeholder="Enter signature name">
+                    </div>
+                    
+                    <div class="form-group" id="contactSignatureShipperGroup" style="display: none;">
+                        <label for="contactSignatureShipper">Signature of Shipper or His Agent</label>
+                        <input type="text" id="contactSignatureShipper" placeholder="Enter signature name">
+                    </div>
+                    
+                    <div class="form-group" id="contactSignaturePlaceGroup" style="display: none;">
+                        <label for="contactSignaturePlace">At (Place)</label>
+                        <input type="text" id="contactSignaturePlace" placeholder="Enter place">
                     </div>
                     
                     <div class="form-group" id="formattedValueGroup">
@@ -763,6 +778,9 @@
             const contactAddressGroup = document.getElementById('contactAddressGroup');
             const contactField06Group = document.getElementById('contactField06Group');
             const contactHandlingInfoGroup = document.getElementById('contactHandlingInfoGroup');
+            const contactSignatureIssuingCarrierGroup = document.getElementById('contactSignatureIssuingCarrierGroup');
+            const contactSignatureShipperGroup = document.getElementById('contactSignatureShipperGroup');
+            const contactSignaturePlaceGroup = document.getElementById('contactSignaturePlaceGroup');
             if (contactNameGroup) {
                 contactNameGroup.style.display = (type === 'User' || type === 'UserAccount') ? 'block' : 'none';
             }
@@ -777,6 +795,28 @@
             }
             if (contactHandlingInfoGroup) {
                 contactHandlingInfoGroup.style.display = (type === 'User' || type === 'UserAccount') ? 'block' : 'none';
+            }
+            // Check if current user is an agent (issuing-carrier-agent or admin)
+            let isAgent = false;
+            try {
+                if (typeof getCurrentUser === 'function') {
+                    const user = getCurrentUser();
+                    isAgent = user && (user.role === 'issuing-carrier-agent' || user.role === 'admin');
+                }
+            } catch (error) {
+                console.warn('Error getting current user for agent check:', error);
+            }
+            
+            // Show signature fields for User, UserAccount, or when current user is an agent
+            const showSignatureFields = (type === 'User' || type === 'UserAccount' || isAgent);
+            if (contactSignatureIssuingCarrierGroup) {
+                contactSignatureIssuingCarrierGroup.style.display = showSignatureFields ? 'block' : 'none';
+            }
+            if (contactSignatureShipperGroup) {
+                contactSignatureShipperGroup.style.display = showSignatureFields ? 'block' : 'none';
+            }
+            if (contactSignaturePlaceGroup) {
+                contactSignaturePlaceGroup.style.display = showSignatureFields ? 'block' : 'none';
             }
             
             // Update formatted value label based on contact type
@@ -804,6 +844,12 @@
                         if (contactField06El) contactField06El.value = profile.field06 || profile.formattedValue || '';
                         const contactHandlingInfoEl = document.getElementById('contactHandlingInfo');
                         if (contactHandlingInfoEl) contactHandlingInfoEl.value = profile.handlingInfo || '';
+                        const contactSignatureIssuingCarrierEl = document.getElementById('contactSignatureIssuingCarrier');
+                        if (contactSignatureIssuingCarrierEl) contactSignatureIssuingCarrierEl.value = profile.signatureIssuingCarrier || '';
+                        const contactSignatureShipperEl = document.getElementById('contactSignatureShipper');
+                        if (contactSignatureShipperEl) contactSignatureShipperEl.value = profile.signatureShipper || '';
+                        const contactSignaturePlaceEl = document.getElementById('contactSignaturePlace');
+                        if (contactSignaturePlaceEl) contactSignaturePlaceEl.value = profile.signaturePlace || '';
                     }
                 } else {
                     const contacts = await getContacts();
@@ -911,10 +957,16 @@
                 const contactAddressElement = document.getElementById('contactAddress');
                 const contactField06Element = document.getElementById('contactField06');
                 const contactHandlingInfoElement = document.getElementById('contactHandlingInfo');
+                const contactSignatureIssuingCarrierElement = document.getElementById('contactSignatureIssuingCarrier');
+                const contactSignatureShipperElement = document.getElementById('contactSignatureShipper');
+                const contactSignaturePlaceElement = document.getElementById('contactSignaturePlace');
                 const phone = contactPhoneElement ? contactPhoneElement.value.trim() : '';
                 const address = contactAddressElement ? contactAddressElement.value.trim() : '';
                 const field06 = contactField06Element ? contactField06Element.value.trim() : '';
                 const handlingInfo = contactHandlingInfoElement ? contactHandlingInfoElement.value.trim() : '';
+                const signatureIssuingCarrier = contactSignatureIssuingCarrierElement ? contactSignatureIssuingCarrierElement.value.trim() : '';
+                const signatureShipper = contactSignatureShipperElement ? contactSignatureShipperElement.value.trim() : '';
+                const signaturePlace = contactSignaturePlaceElement ? contactSignaturePlaceElement.value.trim() : '';
                 
                 const profile = {
                     companyName,
@@ -923,7 +975,10 @@
                     phone,
                     address,
                     field06: field06,
-                    handlingInfo: handlingInfo
+                    handlingInfo: handlingInfo,
+                    signatureIssuingCarrier: signatureIssuingCarrier,
+                    signatureShipper: signatureShipper,
+                    signaturePlace: signaturePlace
                     // Note: formattedValue is not included - it's only for AWB form contacts, not user profiles
                 };
                 
@@ -1159,12 +1214,36 @@
                         <span style="white-space: pre-line;">${escapeHtml(profile.address || 'Not set')}</span>
                     </div>
                     <div class="user-info-item" style="grid-column: 1 / -1;">
-                        <strong>AWB form Autofill 06</strong>
+                        <strong>AWB form Autofill 06 <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 06</span></strong>
                         <span style="white-space: pre-line;">${escapeHtml(profile.field06 || profile.formattedValue || 'Not set')}</span>
                     </div>
+                    ${profile.origin ? `
+                    <div class="user-info-item">
+                        <strong>Origin <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 02</span></strong>
+                        <span>${escapeHtml(profile.origin || 'Not set')}</span>
+                    </div>
+                    ` : ''}
+                    ${profile.aoDEP ? `
+                    <div class="user-info-item">
+                        <strong>AoDEP <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 08</span></strong>
+                        <span>${escapeHtml(profile.aoDEP || 'Not set')}</span>
+                    </div>
+                    ` : ''}
                     <div class="user-info-item" style="grid-column: 1 / -1;">
-                        <strong>Handling info</strong>
+                        <strong>Handling info <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 22</span></strong>
                         <span style="white-space: pre-line;">${escapeHtml(profile.handlingInfo || 'Not set')}</span>
+                    </div>
+                    <div class="user-info-item">
+                        <strong>Signature of Issuing Carrier or his Agent <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 59</span></strong>
+                        <span>${escapeHtml(profile.signatureIssuingCarrier || 'Not set')}</span>
+                    </div>
+                    <div class="user-info-item">
+                        <strong>Signature of Shipper or His Agent <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 56</span></strong>
+                        <span>${escapeHtml(profile.signatureShipper || 'Not set')}</span>
+                    </div>
+                    <div class="user-info-item">
+                        <strong>At (Place) <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 58</span></strong>
+                        <span>${escapeHtml(profile.signaturePlace || 'Not set')}</span>
                     </div>
                 `;
             }
@@ -1204,11 +1283,17 @@
             const contactAddressGroup = document.getElementById('contactAddressGroup');
             const contactField06Group = document.getElementById('contactField06Group');
             const contactHandlingInfoGroup = document.getElementById('contactHandlingInfoGroup');
+            const contactSignatureIssuingCarrierGroup = document.getElementById('contactSignatureIssuingCarrierGroup');
+            const contactSignatureShipperGroup = document.getElementById('contactSignatureShipperGroup');
+            const contactSignaturePlaceGroup = document.getElementById('contactSignaturePlaceGroup');
             if (contactNameGroup) contactNameGroup.style.display = 'block';
             if (contactPhoneGroup) contactPhoneGroup.style.display = 'block';
             if (contactAddressGroup) contactAddressGroup.style.display = 'block';
             if (contactField06Group) contactField06Group.style.display = 'block';
             if (contactHandlingInfoGroup) contactHandlingInfoGroup.style.display = 'block';
+            if (contactSignatureIssuingCarrierGroup) contactSignatureIssuingCarrierGroup.style.display = 'block';
+            if (contactSignatureShipperGroup) contactSignatureShipperGroup.style.display = 'block';
+            if (contactSignaturePlaceGroup) contactSignaturePlaceGroup.style.display = 'block';
             
             if (profile) {
                 document.getElementById('contactCompanyName').value = profile.companyName || '';
@@ -1223,6 +1308,12 @@
                 if (contactField06El) contactField06El.value = profile.field06 || profile.formattedValue || '';
                 const contactHandlingInfoEl = document.getElementById('contactHandlingInfo');
                 if (contactHandlingInfoEl) contactHandlingInfoEl.value = profile.handlingInfo || '';
+                const contactSignatureIssuingCarrierEl = document.getElementById('contactSignatureIssuingCarrier');
+                if (contactSignatureIssuingCarrierEl) contactSignatureIssuingCarrierEl.value = profile.signatureIssuingCarrier || '';
+                const contactSignatureShipperEl = document.getElementById('contactSignatureShipper');
+                if (contactSignatureShipperEl) contactSignatureShipperEl.value = profile.signatureShipper || '';
+                const contactSignaturePlaceEl = document.getElementById('contactSignaturePlace');
+                if (contactSignaturePlaceEl) contactSignaturePlaceEl.value = profile.signaturePlace || '';
             } else {
                 form.reset();
                 document.getElementById('contactId').value = 'user';

@@ -17,9 +17,9 @@ let missingFieldsModal, missingFieldsList, cancelMissingFieldsBtn, confirmMissin
 let missingFieldsCallback = null; // Store the callback for when user confirms/cancels
 
 // Contact management elements
-let contactSection, shipperSelect, consigneeSelect, addShipperBtn, addConsigneeBtn;
+let contactControlsSection, shipperSelect, consigneeSelect, addShipperBtn, addConsigneeBtn;
 let routingControlsSection, airlineSelect1, addAirlineBtn1, destinationSelect, addDestinationBtn, directFlightSelect, interlineCarrierSelect1, interlineCarrierSelect2, addInterlineCarrier2Btn;
-let contactModal, contactForm, contactId, contactType, contactCompanyName, contactName, contactEmail, contactPhone, contactAddress, contactFormattedValue, contactAccountInfo, accountInfoGroup, contactOrigin, originInfoGroup, formattedValueGroup, contactAWBP, awbpInfoGroup, contactAirlineAbbreviation, airlineAbbreviationGroup, contactAoDEP, aoDEPInfoGroup, contactHandlingInfo, handlingInfoGroup, contactField06, contactField06Group;
+let contactModal, contactForm, contactId, contactType, contactCompanyName, contactName, contactEmail, contactPhone, contactAddress, contactFormattedValue, contactAccountInfo, accountInfoGroup, contactOrigin, originInfoGroup, formattedValueGroup, contactAWBP, awbpInfoGroup, contactAirlineAbbreviation, airlineAbbreviationGroup, contactAoDEP, aoDEPInfoGroup, contactHandlingInfo, handlingInfoGroup, contactField06, contactField06Group, contactNameGroup;
 let contactNameLabel, contactEmailLabel, contactPhoneLabel, contactAddressLabel, formattedValueLabel;
 let closeContactModal, cancelContactBtn, saveContactBtn, modalTitle;
 
@@ -59,7 +59,7 @@ function initializeApp() {
     confirmMissingFieldsBtn = document.getElementById('confirmMissingFieldsBtn');
     
     // Contact management elements
-    contactSection = document.getElementById('contactSection');
+    contactControlsSection = document.getElementById('contactControlsSection');
     shipperSelect = document.getElementById('shipperSelect');
     consigneeSelect = document.getElementById('consigneeSelect');
     addShipperBtn = document.getElementById('addShipperBtn');
@@ -84,6 +84,7 @@ function initializeApp() {
     handlingInfoGroup = document.getElementById('handlingInfoGroup');
     contactField06 = document.getElementById('contactField06');
     contactField06Group = document.getElementById('contactField06Group');
+    contactNameGroup = document.getElementById('contactNameGroup');
     contactAWBP = document.getElementById('contactAWBP');
     awbpInfoGroup = document.getElementById('awbpInfoGroup');
     contactAirlineAbbreviation = document.getElementById('contactAirlineAbbreviation');
@@ -283,10 +284,10 @@ function initializeApp() {
     }
     
     if (destinationSelect) {
-        destinationSelect.addEventListener('change', (e) => {
+        destinationSelect.addEventListener('change', async (e) => {
             const value = e.target.value;
             if (value) {
-                fillDestinationFields(value);
+                await fillDestinationFields(value);
                 setTimeout(() => updatePromptIndicators(), 100);
             }
             updateContactButtonText('Destination', addDestinationBtn, destinationSelect);
@@ -445,6 +446,11 @@ function initializeApp() {
         
         // Set up event listeners for first row inputs to update field 34
         setupDimensionsField34Update();
+        
+        // Update dimensions fields state on initial load
+        setTimeout(() => {
+            updateDimensionsFieldsState();
+        }, 100);
     }
     
     if (shipperSelect) {
@@ -982,26 +988,28 @@ function generateForm() {
         billingFieldsForm.appendChild(billingRowContainer3);
     }
     
-    // Check if we have billing fields starting with 34, 35, 36
-    const billingRow4FieldPrefixes = ['34', '35', '36'];
-    const billingFieldsToRow4 = {};
-    billingRow4FieldPrefixes.forEach(prefix => {
+    
+    // Check if we have dimensions fields starting with 34, 35, 36
+    const dimensionsRow1FieldPrefixes = ['34', '35', '36'];
+    const dimensionsFieldsToRow1 = {};
+    dimensionsRow1FieldPrefixes.forEach(prefix => {
         const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
         if (matchingField) {
-            billingFieldsToRow4[prefix] = matchingField;
+            dimensionsFieldsToRow1[prefix] = matchingField;
         }
     });
     
-    // Create row container for billing fields 34, 35, 36 (create if at least one exists)
-    let billingRowContainer4 = null;
-    const hasAnyBillingRow4Fields = billingRow4FieldPrefixes.some(prefix => billingFieldsToRow4[prefix]);
-    if (hasAnyBillingRow4Fields && billingFieldsForm) {
-        billingRowContainer4 = document.createElement('div');
-        billingRowContainer4.className = 'form-row';
+    // Create row container for dimensions fields 34, 35, 36 (create if at least one exists)
+    const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+    let dimensionsRowContainer1 = null;
+    const hasAnyDimensionsRow1Fields = dimensionsRow1FieldPrefixes.some(prefix => dimensionsFieldsToRow1[prefix]);
+    if (hasAnyDimensionsRow1Fields && dimensionsFieldsForm) {
+        dimensionsRowContainer1 = document.createElement('div');
+        dimensionsRowContainer1.className = 'form-row';
         
         // Add row fields in correct order (34, 35, 36)
-        billingRow4FieldPrefixes.forEach(prefix => {
-            const fieldName = billingFieldsToRow4[prefix];
+        dimensionsRow1FieldPrefixes.forEach(prefix => {
+            const fieldName = dimensionsFieldsToRow1[prefix];
             if (fieldName) {
                 const fieldsWithSameName = fieldsByName.get(fieldName);
                 const primaryField = fieldsWithSameName[0];
@@ -1015,34 +1023,31 @@ function generateForm() {
                 }
                 
                 const formGroup = createFormField(primaryField);
-                billingRowContainer4.appendChild(formGroup);
+                dimensionsRowContainer1.appendChild(formGroup);
             }
         });
-        
-        // Append billing row container 4 to billing fields form
-        billingFieldsForm.appendChild(billingRowContainer4);
     }
     
-    // Check if we have billing fields starting with 37, 38, 39
-    const billingRow5FieldPrefixes = ['37', '38', '39'];
-    const billingFieldsToRow5 = {};
-    billingRow5FieldPrefixes.forEach(prefix => {
+    // Check if we have dimensions fields starting with 37, 38, 39
+    const dimensionsRow2FieldPrefixes = ['37', '38', '39'];
+    const dimensionsFieldsToRow2 = {};
+    dimensionsRow2FieldPrefixes.forEach(prefix => {
         const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
         if (matchingField) {
-            billingFieldsToRow5[prefix] = matchingField;
+            dimensionsFieldsToRow2[prefix] = matchingField;
         }
     });
     
-    // Create row container for billing fields 37, 38, 39 (create if at least one exists)
-    let billingRowContainer5 = null;
-    const hasAnyBillingRow5Fields = billingRow5FieldPrefixes.some(prefix => billingFieldsToRow5[prefix]);
-    if (hasAnyBillingRow5Fields && billingFieldsForm) {
-        billingRowContainer5 = document.createElement('div');
-        billingRowContainer5.className = 'form-row';
+    // Create row container for dimensions fields 37, 38, 39 (create if at least one exists)
+    let dimensionsRowContainer2 = null;
+    const hasAnyDimensionsRow2Fields = dimensionsRow2FieldPrefixes.some(prefix => dimensionsFieldsToRow2[prefix]);
+    if (hasAnyDimensionsRow2Fields && dimensionsFieldsForm) {
+        dimensionsRowContainer2 = document.createElement('div');
+        dimensionsRowContainer2.className = 'form-row';
         
         // Add row fields in correct order (37, 38, 39)
-        billingRow5FieldPrefixes.forEach(prefix => {
-            const fieldName = billingFieldsToRow5[prefix];
+        dimensionsRow2FieldPrefixes.forEach(prefix => {
+            const fieldName = dimensionsFieldsToRow2[prefix];
             if (fieldName) {
                 const fieldsWithSameName = fieldsByName.get(fieldName);
                 const primaryField = fieldsWithSameName[0];
@@ -1056,16 +1061,51 @@ function generateForm() {
                 }
                 
                 const formGroup = createFormField(primaryField);
-                billingRowContainer5.appendChild(formGroup);
+                dimensionsRowContainer2.appendChild(formGroup);
             }
         });
-        
-        // Append billing row container 5 to billing fields form
-        billingFieldsForm.appendChild(billingRowContainer5);
     }
     
-    // Check if we have billing fields starting with 42, 43
-    const billingRow6FieldPrefixes = ['42', '43'];
+    // Check if we have dimensions fields starting with 33, 41
+    const dimensionsRow3FieldPrefixes = ['33', '41'];
+    const dimensionsFieldsToRow3 = {};
+    dimensionsRow3FieldPrefixes.forEach(prefix => {
+        const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
+        if (matchingField) {
+            dimensionsFieldsToRow3[prefix] = matchingField;
+        }
+    });
+    
+    // Create row container for dimensions fields 33, 41 (create if at least one exists)
+    let dimensionsRowContainer3 = null;
+    const hasAnyDimensionsRow3Fields = dimensionsRow3FieldPrefixes.some(prefix => dimensionsFieldsToRow3[prefix]);
+    if (hasAnyDimensionsRow3Fields && dimensionsFieldsForm) {
+        dimensionsRowContainer3 = document.createElement('div');
+        dimensionsRowContainer3.className = 'form-row';
+        
+        // Add row fields in correct order (33, 41)
+        dimensionsRow3FieldPrefixes.forEach(prefix => {
+            const fieldName = dimensionsFieldsToRow3[prefix];
+            if (fieldName) {
+                const fieldsWithSameName = fieldsByName.get(fieldName);
+                const primaryField = fieldsWithSameName[0];
+                
+                primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
+                primaryField.duplicateCount = fieldsWithSameName.length;
+                
+                if (fieldsWithSameName.length > 1) {
+                    console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
+                        fieldsWithSameName.map(f => f.pdfFieldName));
+                }
+                
+                const formGroup = createFormField(primaryField);
+                dimensionsRowContainer3.appendChild(formGroup);
+            }
+        });
+    }
+    
+    // Check if we have billing fields starting with 42, 43, 44, 45
+    const billingRow6FieldPrefixes = ['42', '43', '44', '45'];
     const billingFieldsToRow6 = {};
     billingRow6FieldPrefixes.forEach(prefix => {
         const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
@@ -1074,7 +1114,7 @@ function generateForm() {
         }
     });
     
-    // Create row container for billing fields 42, 43 (create if at least one exists)
+    // Create row container for billing fields 42, 43, 44, 45 (create if at least one exists)
     // Note: This row will be appended after individual fields 40 and 41 are processed
     let billingRowContainer6 = null;
     const hasAnyBillingRow6Fields = billingRow6FieldPrefixes.some(prefix => billingFieldsToRow6[prefix]);
@@ -1082,7 +1122,7 @@ function generateForm() {
         billingRowContainer6 = document.createElement('div');
         billingRowContainer6.className = 'form-row';
         
-        // Add row fields in correct order (42, 43)
+        // Add row fields in correct order (42, 43, 44, 45)
         billingRow6FieldPrefixes.forEach(prefix => {
             const fieldName = billingFieldsToRow6[prefix];
             if (fieldName) {
@@ -1099,6 +1139,84 @@ function generateForm() {
                 
                 const formGroup = createFormField(primaryField);
                 billingRowContainer6.appendChild(formGroup);
+            }
+        });
+    }
+    
+    // Check if we have billing fields starting with 46, 47, 48, 49
+    const billingRow7FieldPrefixes = ['46', '47', '48', '49'];
+    const billingFieldsToRow7 = {};
+    billingRow7FieldPrefixes.forEach(prefix => {
+        const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
+        if (matchingField) {
+            billingFieldsToRow7[prefix] = matchingField;
+        }
+    });
+    
+    // Create row container for billing fields 46, 47, 48, 49 (create if at least one exists)
+    // Note: This row will be appended after field 45 is processed
+    let billingRowContainer7 = null;
+    const hasAnyBillingRow7Fields = billingRow7FieldPrefixes.some(prefix => billingFieldsToRow7[prefix]);
+    if (hasAnyBillingRow7Fields && billingFieldsForm) {
+        billingRowContainer7 = document.createElement('div');
+        billingRowContainer7.className = 'form-row';
+        
+        // Add row fields in correct order (46, 47, 48, 49)
+        billingRow7FieldPrefixes.forEach(prefix => {
+            const fieldName = billingFieldsToRow7[prefix];
+            if (fieldName) {
+                const fieldsWithSameName = fieldsByName.get(fieldName);
+                const primaryField = fieldsWithSameName[0];
+                
+                primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
+                primaryField.duplicateCount = fieldsWithSameName.length;
+                
+                if (fieldsWithSameName.length > 1) {
+                    console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
+                        fieldsWithSameName.map(f => f.pdfFieldName));
+                }
+                
+                const formGroup = createFormField(primaryField);
+                billingRowContainer7.appendChild(formGroup);
+            }
+        });
+    }
+    
+    // Check if we have billing fields starting with 50, 51, 52, 53, 54, 55
+    const billingRow8FieldPrefixes = ['50', '51', '52', '53', '54', '55'];
+    const billingFieldsToRow8 = {};
+    billingRow8FieldPrefixes.forEach(prefix => {
+        const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
+        if (matchingField) {
+            billingFieldsToRow8[prefix] = matchingField;
+        }
+    });
+    
+    // Create row container for billing fields 50, 51, 52, 53, 54, 55 (create if at least one exists)
+    // Note: This row will be appended after field 49 is processed
+    let billingRowContainer8 = null;
+    const hasAnyBillingRow8Fields = billingRow8FieldPrefixes.some(prefix => billingFieldsToRow8[prefix]);
+    if (hasAnyBillingRow8Fields && billingFieldsForm) {
+        billingRowContainer8 = document.createElement('div');
+        billingRowContainer8.className = 'form-row';
+        
+        // Add row fields in correct order (50, 51, 52, 53, 54, 55)
+        billingRow8FieldPrefixes.forEach(prefix => {
+            const fieldName = billingFieldsToRow8[prefix];
+            if (fieldName) {
+                const fieldsWithSameName = fieldsByName.get(fieldName);
+                const primaryField = fieldsWithSameName[0];
+                
+                primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
+                primaryField.duplicateCount = fieldsWithSameName.length;
+                
+                if (fieldsWithSameName.length > 1) {
+                    console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
+                        fieldsWithSameName.map(f => f.pdfFieldName));
+                }
+                
+                const formGroup = createFormField(primaryField);
+                billingRowContainer8.appendChild(formGroup);
             }
         });
     }
@@ -1141,21 +1259,76 @@ function generateForm() {
             return;
         }
         
-        // Skip fields that are already in the billing row 4 (34, 35, 36)
-        const isBillingRowField4 = Object.values(billingFieldsToRow4).includes(fieldName);
-        if (isBillingRowField4) {
-            return;
-        }
         
-        // Skip fields that are already in the billing row 5 (37, 38, 39)
-        const isBillingRowField5 = Object.values(billingFieldsToRow5).includes(fieldName);
-        if (isBillingRowField5) {
-            return;
-        }
-        
-        // Skip fields that are already in the billing row 6 (42, 43)
+        // Skip fields that are already in the billing row 6 (42, 43, 44, 45)
         const isBillingRowField6 = Object.values(billingFieldsToRow6).includes(fieldName);
         if (isBillingRowField6) {
+            return;
+        }
+        
+        // Skip fields that are already in the billing row 7 (46, 47, 48, 49)
+        const isBillingRowField7 = Object.values(billingFieldsToRow7).includes(fieldName);
+        if (isBillingRowField7) {
+            return;
+        }
+        
+        // Skip fields that are already in the billing row 8 (50, 51, 52, 53, 54, 55)
+        const isBillingRowField8 = Object.values(billingFieldsToRow8).includes(fieldName);
+        if (isBillingRowField8) {
+            return;
+        }
+        
+        // Skip fields that are already in the dimensions row 1 (34, 35, 36)
+        const isDimensionsRowField1 = Object.values(dimensionsFieldsToRow1).includes(fieldName);
+        if (isDimensionsRowField1) {
+            return;
+        }
+        
+        // Skip fields that are already in the dimensions row 2 (37, 38, 39)
+        const isDimensionsRowField2 = Object.values(dimensionsFieldsToRow2).includes(fieldName);
+        if (isDimensionsRowField2) {
+            return;
+        }
+        
+        // Skip fields that are already in the dimensions row 3 (33, 41)
+        const isDimensionsRowField3 = Object.values(dimensionsFieldsToRow3).includes(fieldName);
+        if (isDimensionsRowField3) {
+            return;
+        }
+        
+        // Get field prefix for routing (but don't skip field 40 - it needs to be processed)
+        const fieldPrefix = fieldName.substring(0, 2);
+        
+        // Skip field 40 from being added to main form, but it will be routed to dimensions tab
+        if (fieldPrefix === '40') {
+            // Process field 40 separately for dimensions tab
+            const fieldsWithSameName = fieldsByName.get(fieldName);
+            if (fieldsWithSameName && fieldsWithSameName.length > 0) {
+                const primaryField = fieldsWithSameName[0];
+                primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
+                primaryField.duplicateCount = fieldsWithSameName.length;
+                const formGroup = createFormField(primaryField);
+                
+                const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+                if (dimensionsFieldsForm) {
+                    dimensionsFieldsForm.appendChild(formGroup);
+                    
+                    // Append the 34-36 row after field 40
+                    if (dimensionsRowContainer1 && !dimensionsRowContainer1.parentNode) {
+                        dimensionsFieldsForm.appendChild(dimensionsRowContainer1);
+                    }
+                    
+                    // Append the 37-39 row after the 34-36 row
+                    if (dimensionsRowContainer2 && !dimensionsRowContainer2.parentNode) {
+                        dimensionsFieldsForm.appendChild(dimensionsRowContainer2);
+                    }
+                    
+                    // Append the 33-41 row after the 37-39 row (below field 40)
+                    if (dimensionsRowContainer3 && !dimensionsRowContainer3.parentNode) {
+                        dimensionsFieldsForm.appendChild(dimensionsRowContainer3);
+                    }
+                }
+            }
             return;
         }
         
@@ -1189,21 +1362,32 @@ function generateForm() {
         }
         
         // Move fields 04, 05, 06, 07 to Contacts tab
-        // Move fields 15, 16, 17, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59 to DIMS & Billing tab
-        const fieldPrefix = fieldName.substring(0, 2);
+        // Move fields 33, 34, 35, 36, 37, 38, 39, 40, 41 to Dimensions tab
+        // Move fields 15, 16, 17, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59 to Billing tab
         const contactFieldsForm = document.getElementById('contactFieldsForm');
         const billingFieldsForm = document.getElementById('billingFieldsForm');
+        const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
         
         if ((fieldPrefix === '04' || fieldPrefix === '05' || fieldPrefix === '06' || fieldPrefix === '07') && contactFieldsForm) {
             // Append to contact fields form in Contacts tab
             contactFieldsForm.appendChild(formGroup);
-        } else if ((fieldPrefix === '15' || fieldPrefix === '16' || fieldPrefix === '17' || fieldPrefix === '21' || fieldPrefix === '23' || fieldPrefix === '24' || fieldPrefix === '25' || fieldPrefix === '26' || fieldPrefix === '27' || fieldPrefix === '28' || fieldPrefix === '29' || fieldPrefix === '30' || fieldPrefix === '31' || fieldPrefix === '32' || fieldPrefix === '33' || fieldPrefix === '34' || fieldPrefix === '35' || fieldPrefix === '36' || fieldPrefix === '37' || fieldPrefix === '38' || fieldPrefix === '39' || fieldPrefix === '40' || fieldPrefix === '41' || fieldPrefix === '42' || fieldPrefix === '43' || fieldPrefix === '44' || fieldPrefix === '45' || fieldPrefix === '46' || fieldPrefix === '47' || fieldPrefix === '48' || fieldPrefix === '49' || fieldPrefix === '50' || fieldPrefix === '51' || fieldPrefix === '52' || fieldPrefix === '53' || fieldPrefix === '54' || fieldPrefix === '55' || fieldPrefix === '56' || fieldPrefix === '57' || fieldPrefix === '58' || fieldPrefix === '59') && billingFieldsForm) {
-            // Append to billing fields form in DIMS & Billing tab
+        } else if ((fieldPrefix === '15' || fieldPrefix === '16' || fieldPrefix === '17' || fieldPrefix === '21' || fieldPrefix === '23' || fieldPrefix === '24' || fieldPrefix === '25' || fieldPrefix === '26' || fieldPrefix === '27' || fieldPrefix === '28' || fieldPrefix === '29' || fieldPrefix === '30' || fieldPrefix === '31' || fieldPrefix === '32' || fieldPrefix === '42' || fieldPrefix === '43' || fieldPrefix === '44' || fieldPrefix === '45' || fieldPrefix === '46' || fieldPrefix === '47' || fieldPrefix === '48' || fieldPrefix === '49' || fieldPrefix === '50' || fieldPrefix === '51' || fieldPrefix === '52' || fieldPrefix === '53' || fieldPrefix === '54' || fieldPrefix === '55' || fieldPrefix === '56' || fieldPrefix === '57' || fieldPrefix === '58' || fieldPrefix === '59') && billingFieldsForm) {
+            // Append to billing fields form in Billing tab
             billingFieldsForm.appendChild(formGroup);
             
-            // If this is field 41, append the 42-43 row after it
-            if (fieldPrefix === '41' && billingRowContainer6 && !billingRowContainer6.parentNode) {
+            // If this is field 42, append the 42-45 row after it (fields 43-45 are skipped from individual processing)
+            if (fieldPrefix === '42' && billingRowContainer6 && !billingRowContainer6.parentNode) {
                 billingFieldsForm.appendChild(billingRowContainer6);
+            }
+            
+            // If this is field 45, append the 46-49 row after it (fields 46-49 are skipped from individual processing)
+            if (fieldPrefix === '45' && billingRowContainer7 && !billingRowContainer7.parentNode) {
+                billingFieldsForm.appendChild(billingRowContainer7);
+            }
+            
+            // If this is field 49, append the 50-55 row after it (fields 50-55 are skipped from individual processing)
+            if (fieldPrefix === '49' && billingRowContainer8 && !billingRowContainer8.parentNode) {
+                billingFieldsForm.appendChild(billingRowContainer8);
             }
         } else {
             // Append to main form in Routing tab
@@ -1221,6 +1405,50 @@ function generateForm() {
     if (rowContainer3 && !rowContainer3.parentNode) {
         generatedForm.appendChild(rowContainer3);
     }
+    
+    // Make sure billing row containers are added if they exist and haven't been added yet
+    if (billingFieldsForm) {
+        if (billingRowContainer6 && !billingRowContainer6.parentNode) {
+            billingFieldsForm.appendChild(billingRowContainer6);
+        }
+        if (billingRowContainer7 && !billingRowContainer7.parentNode) {
+            billingFieldsForm.appendChild(billingRowContainer7);
+        }
+        if (billingRowContainer8 && !billingRowContainer8.parentNode) {
+            billingFieldsForm.appendChild(billingRowContainer8);
+        }
+    }
+    
+    // Make sure dimensions row containers are added to dimensionsFieldsForm if they exist and have content
+    const dimensionsFieldsFormFinal = document.getElementById('dimensionsFieldsForm');
+    if (dimensionsFieldsFormFinal) {
+        // Check if field 40 exists to determine insertion point
+        const field40Elements = Array.from(dimensionsFieldsFormFinal.elements).filter(el => el.name && el.name.startsWith('40'));
+        const hasField40 = field40Elements.length > 0;
+        
+        // Append row containers if they exist, have content, and haven't been appended yet
+        if (dimensionsRowContainer1 && !dimensionsRowContainer1.parentNode && dimensionsRowContainer1.children.length > 0) {
+            if (hasField40 && field40Elements[0].closest('.form-group')) {
+                // Insert after field 40's form group
+                const field40Group = field40Elements[0].closest('.form-group');
+                field40Group.parentNode.insertBefore(dimensionsRowContainer1, field40Group.nextSibling);
+            } else {
+                dimensionsFieldsFormFinal.appendChild(dimensionsRowContainer1);
+            }
+        }
+        if (dimensionsRowContainer2 && !dimensionsRowContainer2.parentNode && dimensionsRowContainer2.children.length > 0) {
+            dimensionsFieldsFormFinal.appendChild(dimensionsRowContainer2);
+        }
+        if (dimensionsRowContainer3 && !dimensionsRowContainer3.parentNode && dimensionsRowContainer3.children.length > 0) {
+            dimensionsFieldsFormFinal.appendChild(dimensionsRowContainer3);
+        }
+    }
+    
+    // Update fields 34-39 state based on number of active dimension rows
+    // This must be called after form generation but before radio groups
+    setTimeout(() => {
+        updateDimensionsFieldsState();
+    }, 100);
     
     // Render radio button groups (sorted alphabetically)
     const sortedRadioGroupNames = Object.keys(radioGroups).sort((a, b) => {
@@ -1280,6 +1508,8 @@ function generateForm() {
     // Update validation indicators after form is generated
     setTimeout(() => {
         updateTabValidationIndicators();
+        // Update dimensions fields state after form is fully generated
+        updateDimensionsFieldsState();
     }, 100);
 }
 
@@ -1605,7 +1835,7 @@ async function populateFormFromTemplate(templateData) {
     if (templateData['_destinationId'] && destinationSelect) {
         destinationSelect.value = templateData['_destinationId'];
         if (destinationSelect.value) {
-            fillDestinationFields(destinationSelect.value);
+            await fillDestinationFields(destinationSelect.value);
             if (addDestinationBtn) {
                 updateContactButtonText('Destination', addDestinationBtn, destinationSelect);
             }
@@ -3779,23 +4009,52 @@ async function updateContactDropdowns() {
         const currentDestinationValue = destinationSelect.value;
         destinationSelect.innerHTML = '<option value="">-- Select Destination --</option>';
         
-        // Get destinations from localStorage
-        function getDestinations() {
+        // Only load from destinationsAPI - no localStorage fallback
+        let destinations = [];
+        if (window.destinationsAPI) {
             try {
-                const destinationsJson = localStorage.getItem('awbDestinations');
-                return destinationsJson ? JSON.parse(destinationsJson) : [];
+                destinations = await window.destinationsAPI.getAll();
+                console.log('Loaded destinations from API:', destinations.length);
             } catch (error) {
-                console.warn('Could not read destinations from localStorage:', error);
-                return [];
+                console.error('Could not load destinations from API:', error);
+                // Don't fallback to localStorage - destinations should only be in API
+                destinations = [];
             }
+        } else {
+            console.warn('destinationsAPI not available - destinations can only be managed in Locations > Destinations');
+            destinations = [];
         }
         
-        const destinations = getDestinations();
-        destinations.forEach(destination => {
+        // Deduplicate destinations by ID and airport code to prevent duplicates
+        const seenIds = new Set();
+        const seenCodes = new Set();
+        const uniqueDestinations = destinations.filter(destination => {
+            // Check for duplicate ID
+            if (seenIds.has(destination.id)) {
+                console.warn('Duplicate destination ID found:', destination.id, destination.airportCode);
+                return false;
+            }
+            // Check for duplicate airport code (case-insensitive)
+            const codeKey = (destination.airportCode || '').toLowerCase().trim();
+            if (codeKey && seenCodes.has(codeKey)) {
+                console.warn('Duplicate airport code found:', destination.airportCode, 'ID:', destination.id);
+                return false;
+            }
+            seenIds.add(destination.id);
+            if (codeKey) seenCodes.add(codeKey);
+            return true;
+        });
+        
+        console.log(`Displaying ${uniqueDestinations.length} unique destinations (${destinations.length} total loaded)`);
+        
+        uniqueDestinations.forEach(destination => {
             const option = document.createElement('option');
             option.value = destination.id;
-            // Display as "Airport Code - Airport Name" (using airportCode as the display name)
-            option.textContent = destination.airportCode;
+            // Display as "Airport Code - Airport Name" or just "Airport Code" if no name
+            const displayText = destination.airportName 
+                ? `${destination.airportCode} - ${destination.airportName}`
+                : destination.airportCode;
+            option.textContent = displayText;
             destinationSelect.appendChild(option);
         });
         
@@ -3849,7 +4108,19 @@ function openContactModal(type, contactIdToEdit) {
     // Show/hide fields based on contact type
     const isAirline = type === 'Airline';
     const isUser = type === 'User';
+    const isUserAccount = type === 'UserAccount';
     const isConsignee = type === 'Consignee';
+    
+    // Check if current user is an agent (issuing-carrier-agent or admin)
+    let isAgent = false;
+    try {
+        if (typeof getCurrentUser === 'function') {
+            const user = getCurrentUser();
+            isAgent = user && (user.role === 'issuing-carrier-agent' || user.role === 'admin');
+        }
+    } catch (error) {
+        console.warn('Error getting current user for agent check:', error);
+    }
     
     // Hide formatted value field for airlines
     if (formattedValueGroup) {
@@ -3921,6 +4192,21 @@ function openContactModal(type, contactIdToEdit) {
     }
     if (contactField06Group) {
         contactField06Group.style.display = isUser ? 'block' : 'none';
+    }
+    
+    // Show signature fields for User, UserAccount, or when current user is an agent
+    const showSignatureFields = isUser || isUserAccount || isAgent;
+    const contactSignatureIssuingCarrierGroup = document.getElementById('contactSignatureIssuingCarrierGroup');
+    const contactSignatureShipperGroup = document.getElementById('contactSignatureShipperGroup');
+    const contactSignaturePlaceGroup = document.getElementById('contactSignaturePlaceGroup');
+    if (contactSignatureIssuingCarrierGroup) {
+        contactSignatureIssuingCarrierGroup.style.display = showSignatureFields ? 'block' : 'none';
+    }
+    if (contactSignatureShipperGroup) {
+        contactSignatureShipperGroup.style.display = showSignatureFields ? 'block' : 'none';
+    }
+    if (contactSignaturePlaceGroup) {
+        contactSignaturePlaceGroup.style.display = showSignatureFields ? 'block' : 'none';
     }
     if (accountInfoGroup) {
         accountInfoGroup.style.display = isConsignee ? 'block' : 'none';
@@ -4010,6 +4296,29 @@ function openUserProfileModal() {
     if (contactField06Group) {
         contactField06Group.style.display = 'block';
     }
+    if (contactNameGroup) {
+        contactNameGroup.style.display = 'block';
+    }
+    const contactPhoneGroup = document.getElementById('contactPhoneGroup');
+    const contactAddressGroup = document.getElementById('contactAddressGroup');
+    if (contactPhoneGroup) {
+        contactPhoneGroup.style.display = 'block';
+    }
+    if (contactAddressGroup) {
+        contactAddressGroup.style.display = 'block';
+    }
+    const contactSignatureIssuingCarrierGroup = document.getElementById('contactSignatureIssuingCarrierGroup');
+    const contactSignatureShipperGroup = document.getElementById('contactSignatureShipperGroup');
+    const contactSignaturePlaceGroup = document.getElementById('contactSignaturePlaceGroup');
+    if (contactSignatureIssuingCarrierGroup) {
+        contactSignatureIssuingCarrierGroup.style.display = 'block';
+    }
+    if (contactSignatureShipperGroup) {
+        contactSignatureShipperGroup.style.display = 'block';
+    }
+    if (contactSignaturePlaceGroup) {
+        contactSignaturePlaceGroup.style.display = 'block';
+    }
     if (accountInfoGroup) {
         accountInfoGroup.style.display = 'none';
     }
@@ -4032,6 +4341,18 @@ function openUserProfileModal() {
         }
         if (contactField06) {
             contactField06.value = profile.field06 || profile.formattedValue || '';
+        }
+        const contactSignatureIssuingCarrier = document.getElementById('contactSignatureIssuingCarrier');
+        if (contactSignatureIssuingCarrier) {
+            contactSignatureIssuingCarrier.value = profile.signatureIssuingCarrier || '';
+        }
+        const contactSignatureShipper = document.getElementById('contactSignatureShipper');
+        if (contactSignatureShipper) {
+            contactSignatureShipper.value = profile.signatureShipper || '';
+        }
+        const contactSignaturePlace = document.getElementById('contactSignaturePlace');
+        if (contactSignaturePlace) {
+            contactSignaturePlace.value = profile.signaturePlace || '';
         }
     } else {
         contactForm.reset();
@@ -4115,6 +4436,12 @@ function handleSaveContact(e) {
         const handlingInfo = contactHandlingInfo ? contactHandlingInfo.value.trim() : '';
         const contactField06 = document.getElementById('contactField06');
         const field06 = contactField06 ? contactField06.value.trim() : '';
+        const contactSignatureIssuingCarrier = document.getElementById('contactSignatureIssuingCarrier');
+        const signatureIssuingCarrier = contactSignatureIssuingCarrier ? contactSignatureIssuingCarrier.value.trim() : '';
+        const contactSignatureShipper = document.getElementById('contactSignatureShipper');
+        const signatureShipper = contactSignatureShipper ? contactSignatureShipper.value.trim() : '';
+        const contactSignaturePlace = document.getElementById('contactSignaturePlace');
+        const signaturePlace = contactSignaturePlace ? contactSignaturePlace.value.trim() : '';
         const profile = {
             companyName,
             contactName: contactNameValue,
@@ -4125,7 +4452,10 @@ function handleSaveContact(e) {
             field06: field06,
             origin,
             aoDEP,
-            handlingInfo
+            handlingInfo,
+            signatureIssuingCarrier: signatureIssuingCarrier,
+            signatureShipper: signatureShipper,
+            signaturePlace: signaturePlace
         };
         
         if (saveUserProfile(profile)) {
@@ -4944,6 +5274,108 @@ function fillContactField(fieldPrefix, contactIdOrUser) {
         return;
     }
     
+    // For user profile, handle field 56 (signatureShipper)
+    if (contactIdOrUser === 'user' && fieldPrefix === '56') {
+        if (!contactData || !contactData.signatureShipper) {
+            console.warn(`Signature of Shipper data not found for user profile`);
+            return;
+        }
+        
+        // Fill field 56 with signatureShipper
+        const billingFieldsForm = document.getElementById('billingFieldsForm');
+        const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+        const formsToCheck = [generatedForm];
+        if (billingFieldsForm) {
+            formsToCheck.push(billingFieldsForm);
+        }
+        if (dimensionsFieldsForm) {
+            formsToCheck.push(dimensionsFieldsForm);
+        }
+        
+        for (const form of formsToCheck) {
+            const formElements = form.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith('56')) {
+                    element.value = contactData.signatureShipper;
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
+                    console.log(`Filled field ${element.name} with Signature of Shipper data`);
+                    setTimeout(() => updateTabValidationIndicators(), 50);
+                    return;
+                }
+            }
+        }
+        return;
+    }
+    
+    // For user profile, handle field 58 (signaturePlace)
+    if (contactIdOrUser === 'user' && fieldPrefix === '58') {
+        if (!contactData || !contactData.signaturePlace) {
+            console.warn(`At (Place) data not found for user profile`);
+            return;
+        }
+        
+        // Fill field 58 with signaturePlace
+        const billingFieldsForm = document.getElementById('billingFieldsForm');
+        const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+        const formsToCheck = [generatedForm];
+        if (billingFieldsForm) {
+            formsToCheck.push(billingFieldsForm);
+        }
+        if (dimensionsFieldsForm) {
+            formsToCheck.push(dimensionsFieldsForm);
+        }
+        
+        for (const form of formsToCheck) {
+            const formElements = form.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith('58')) {
+                    element.value = contactData.signaturePlace;
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
+                    console.log(`Filled field ${element.name} with At (Place) data`);
+                    setTimeout(() => updateTabValidationIndicators(), 50);
+                    return;
+                }
+            }
+        }
+        return;
+    }
+    
+    // For user profile, handle field 59 (signatureIssuingCarrier)
+    if (contactIdOrUser === 'user' && fieldPrefix === '59') {
+        if (!contactData || !contactData.signatureIssuingCarrier) {
+            console.warn(`Signature of Issuing Carrier data not found for user profile`);
+            return;
+        }
+        
+        // Fill field 59 with signatureIssuingCarrier
+        const billingFieldsForm = document.getElementById('billingFieldsForm');
+        const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+        const formsToCheck = [generatedForm];
+        if (billingFieldsForm) {
+            formsToCheck.push(billingFieldsForm);
+        }
+        if (dimensionsFieldsForm) {
+            formsToCheck.push(dimensionsFieldsForm);
+        }
+        
+        for (const form of formsToCheck) {
+            const formElements = form.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith('59')) {
+                    element.value = contactData.signatureIssuingCarrier;
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
+                    console.log(`Filled field ${element.name} with Signature of Issuing Carrier data`);
+                    setTimeout(() => updateTabValidationIndicators(), 50);
+                    return;
+                }
+            }
+        }
+        return;
+    }
+    
     // For field 06, check for field06 first, then formattedValue
     // For other fields, check for formattedValue
     let hasValue = false;
@@ -5016,21 +5448,23 @@ function fillContactField(fieldPrefix, contactIdOrUser) {
 }
 
 // Fill destination fields (09 with airport code, 18 with airport name)
-function fillDestinationFields(destinationId) {
+async function fillDestinationFields(destinationId) {
     if (!generatedForm) return;
     
-    // Get destinations from localStorage
-    function getDestinations() {
+    // Get destinations from API only - no localStorage fallback
+    let destinations = [];
+    if (window.destinationsAPI) {
         try {
-            const destinationsJson = localStorage.getItem('awbDestinations');
-            return destinationsJson ? JSON.parse(destinationsJson) : [];
+            destinations = await window.destinationsAPI.getAll();
         } catch (error) {
-            console.warn('Could not read destinations from localStorage:', error);
-            return [];
+            console.error('Could not load destinations from API:', error);
+            destinations = [];
         }
+    } else {
+        console.warn('destinationsAPI not available');
+        destinations = [];
     }
     
-    const destinations = getDestinations();
     const destination = destinations.find(d => d.id === destinationId);
     
     if (!destination) {
@@ -5103,6 +5537,15 @@ function autoFillUserProfile() {
             }
             if (profile.handlingInfo) {
                 fillContactField('22', 'user');
+            }
+            if (profile.signatureShipper) {
+                fillContactField('56', 'user');
+            }
+            if (profile.signaturePlace) {
+                fillContactField('58', 'user');
+            }
+            if (profile.signatureIssuingCarrier) {
+                fillContactField('59', 'user');
             }
         }, 500);
     }
@@ -5801,8 +6244,8 @@ function handlePrepaidCollectChange(value) {
 
 // Show contact section when form is generated
 function showContactSection() {
-    if (contactSection) {
-        contactSection.style.display = 'block';
+    if (contactControlsSection) {
+        contactControlsSection.style.display = 'block';
         updateContactDropdowns();
         autoFillUserProfile();
     }
@@ -6050,7 +6493,8 @@ function updateField40() {
     
     const billingFieldsForm = document.getElementById('billingFieldsForm');
     const generatedForm = document.getElementById('generatedForm');
-    const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+    const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+    const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
     
     formsToCheck.forEach(form => {
         if (!form) return;
@@ -6306,8 +6750,10 @@ function updateTabValidationIndicators() {
     
     updateTabIndicator('routing', routingMissing);
     
-    // Count missing fields in Dimensions tab (no form fields, just dimensions inputs)
-    updateTabIndicator('dimensions', 0);
+    // Count missing fields in Dimensions tab
+    const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+    const dimensionsMissing = dimensionsFieldsForm ? countMissingFields(dimensionsFieldsForm) : 0;
+    updateTabIndicator('dimensions', dimensionsMissing);
     
     // Count missing fields in Billing tab
     const billingFieldsForm = document.getElementById('billingFieldsForm');
@@ -6333,6 +6779,9 @@ function getMissingFieldNames() {
     
     const billingFieldsForm = document.getElementById('billingFieldsForm');
     if (billingFieldsForm) formsToCheck.push(billingFieldsForm);
+    
+    const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+    if (dimensionsFieldsForm) formsToCheck.push(dimensionsFieldsForm);
     
     // Check routing dropdowns
     const destinationSelect = document.getElementById('destinationSelect');
@@ -6382,6 +6831,11 @@ function getMissingFieldNames() {
             
             // Skip fields marked as complete by Prepaid/Collect (fields 24 or 25 when greyed out)
             if (element.hasAttribute('data-prepaid-collect-complete')) {
+                continue;
+            }
+            
+            // Skip fields marked as complete by Dimensions (fields 34-39 when no corresponding row exists)
+            if (element.hasAttribute('data-dimensions-complete')) {
                 continue;
             }
             
@@ -6527,6 +6981,11 @@ function countMissingFields(form) {
             continue;
         }
         
+        // Skip fields marked as complete by Dimensions (fields 34-39 when no corresponding row exists)
+        if (element.hasAttribute('data-dimensions-complete')) {
+            continue;
+        }
+        
         // Skip field 99 if logo is complete
         if (name.startsWith('99') && element.hasAttribute('data-logo-complete')) {
             continue;
@@ -6645,10 +7104,12 @@ function updatePromptIndicators() {
     const generatedForm = document.getElementById('generatedForm');
     const contactFieldsForm = document.getElementById('contactFieldsForm');
     const billingFieldsForm = document.getElementById('billingFieldsForm');
+    const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
     
     if (generatedForm) forms.push(generatedForm);
     if (contactFieldsForm) forms.push(contactFieldsForm);
     if (billingFieldsForm) forms.push(billingFieldsForm);
+    if (dimensionsFieldsForm) forms.push(dimensionsFieldsForm);
     
     // Track which prompts need indicators
     const promptNeeds = {};
@@ -6674,6 +7135,7 @@ function updatePromptIndicators() {
                 element.hasAttribute('data-declared-values-complete') ||
                 element.hasAttribute('data-insurance-complete') ||
                 element.hasAttribute('data-prepaid-collect-complete') ||
+                element.hasAttribute('data-dimensions-complete') ||
                 element.hasAttribute('data-logo-complete')) {
                 continue;
             }
@@ -6910,6 +7372,9 @@ function addDimensionsRow() {
     
     // Update field 40 when a new row is added
     setTimeout(() => updateField40(), 100);
+    
+    // Update fields 34-39 based on number of active rows
+    updateDimensionsFieldsState();
 }
 
 // Remove a dimensions row
@@ -7023,6 +7488,9 @@ function removeDimensionsRow(row) {
         
         // Update field 40 with new total QTY after row removal
         updateField40();
+        
+        // Update fields 34-39 based on number of active rows
+        updateDimensionsFieldsState();
     }, 50);
 }
 
@@ -7054,7 +7522,8 @@ function triggerFieldUpdate(rowIndex, fieldNumber) {
         // Find and fill the field
         const billingFieldsForm = document.getElementById('billingFieldsForm');
         const generatedForm = document.getElementById('generatedForm');
-        const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+        const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+        const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
         
         formsToCheck.forEach(form => {
             if (!form) return;
@@ -7078,7 +7547,8 @@ function triggerFieldUpdate(rowIndex, fieldNumber) {
 function clearField(fieldNumber) {
     const billingFieldsForm = document.getElementById('billingFieldsForm');
     const generatedForm = document.getElementById('generatedForm');
-    const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+    const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+    const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
     
     formsToCheck.forEach(form => {
         if (!form) return;
@@ -7269,7 +7739,8 @@ function setupDimensionsField34Update() {
             // Find and fill field 34
             const billingFieldsForm = document.getElementById('billingFieldsForm');
             const generatedForm = document.getElementById('generatedForm');
-            const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+            const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+            const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
             
             formsToCheck.forEach(form => {
                 if (!form) return;
@@ -7287,7 +7758,8 @@ function setupDimensionsField34Update() {
             // Clear field 34 if any input is empty
             const billingFieldsForm = document.getElementById('billingFieldsForm');
             const generatedForm = document.getElementById('generatedForm');
-            const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+            const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+            const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
             
             formsToCheck.forEach(form => {
                 if (!form) return;
@@ -7342,7 +7814,8 @@ function setupDimensionsField35Update() {
             // Find and fill field 35
             const billingFieldsForm = document.getElementById('billingFieldsForm');
             const generatedForm = document.getElementById('generatedForm');
-            const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+            const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+            const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
             
             formsToCheck.forEach(form => {
                 if (!form) return;
@@ -7360,7 +7833,8 @@ function setupDimensionsField35Update() {
             // Clear field 35 if any input is empty
             const billingFieldsForm = document.getElementById('billingFieldsForm');
             const generatedForm = document.getElementById('generatedForm');
-            const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+            const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+            const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
             
             formsToCheck.forEach(form => {
                 if (!form) return;
@@ -7415,7 +7889,8 @@ function setupDimensionsField36Update() {
             // Find and fill field 36
             const billingFieldsForm = document.getElementById('billingFieldsForm');
             const generatedForm = document.getElementById('generatedForm');
-            const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+            const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+            const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
             
             formsToCheck.forEach(form => {
                 if (!form) return;
@@ -7433,7 +7908,8 @@ function setupDimensionsField36Update() {
             // Clear field 36 if any input is empty
             const billingFieldsForm = document.getElementById('billingFieldsForm');
             const generatedForm = document.getElementById('generatedForm');
-            const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+            const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+            const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
             
             formsToCheck.forEach(form => {
                 if (!form) return;
@@ -7488,7 +7964,8 @@ function setupDimensionsField37Update() {
             // Find and fill field 37
             const billingFieldsForm = document.getElementById('billingFieldsForm');
             const generatedForm = document.getElementById('generatedForm');
-            const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+            const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+            const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
             
             formsToCheck.forEach(form => {
                 if (!form) return;
@@ -7506,7 +7983,8 @@ function setupDimensionsField37Update() {
             // Clear field 37 if any input is empty
             const billingFieldsForm = document.getElementById('billingFieldsForm');
             const generatedForm = document.getElementById('generatedForm');
-            const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+            const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+            const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
             
             formsToCheck.forEach(form => {
                 if (!form) return;
@@ -7561,7 +8039,8 @@ function setupDimensionsField38Update() {
             // Find and fill field 38
             const billingFieldsForm = document.getElementById('billingFieldsForm');
             const generatedForm = document.getElementById('generatedForm');
-            const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+            const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+            const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
             
             formsToCheck.forEach(form => {
                 if (!form) return;
@@ -7579,7 +8058,8 @@ function setupDimensionsField38Update() {
             // Clear field 38 if any input is empty
             const billingFieldsForm = document.getElementById('billingFieldsForm');
             const generatedForm = document.getElementById('generatedForm');
-            const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+            const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+            const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
             
             formsToCheck.forEach(form => {
                 if (!form) return;
@@ -7634,7 +8114,8 @@ function setupDimensionsField39Update() {
             // Find and fill field 39
             const billingFieldsForm = document.getElementById('billingFieldsForm');
             const generatedForm = document.getElementById('generatedForm');
-            const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+            const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+            const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
             
             formsToCheck.forEach(form => {
                 if (!form) return;
@@ -7652,7 +8133,8 @@ function setupDimensionsField39Update() {
             // Clear field 39 if any input is empty
             const billingFieldsForm = document.getElementById('billingFieldsForm');
             const generatedForm = document.getElementById('generatedForm');
-            const formsToCheck = [billingFieldsForm, generatedForm].filter(f => f);
+            const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+            const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
             
             formsToCheck.forEach(form => {
                 if (!form) return;
@@ -7674,4 +8156,108 @@ function setupDimensionsField39Update() {
         input.addEventListener('input', updateField39);
         input.addEventListener('change', updateField39);
     });
+}
+
+// Update fields 34-39 state based on number of active dimension rows
+// Fields should be greyed out and marked complete if there's no corresponding row
+function updateDimensionsFieldsState() {
+    const dimensionsContainer = document.getElementById('dimensionsContainer');
+    if (!dimensionsContainer) return;
+    
+    const activeRows = dimensionsContainer.querySelectorAll('.dimensions-row');
+    const numActiveRows = activeRows.length;
+    
+    const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+    const billingFieldsForm = document.getElementById('billingFieldsForm');
+    const generatedForm = document.getElementById('generatedForm');
+    const formsToCheck = [dimensionsFieldsForm, billingFieldsForm, generatedForm].filter(f => f);
+    
+    // Field mapping: field number -> minimum required rows (1-indexed)
+    const fieldToRowMapping = {
+        34: 1,  // Field 34 requires at least 1 row
+        35: 2,  // Field 35 requires at least 2 rows
+        36: 3,  // Field 36 requires at least 3 rows
+        37: 4,  // Field 37 requires at least 4 rows
+        38: 5,  // Field 38 requires at least 5 rows
+        39: 6   // Field 39 requires at least 6 rows
+    };
+    
+    // Update each field
+    Object.keys(fieldToRowMapping).forEach(fieldNum => {
+        const requiredRows = fieldToRowMapping[fieldNum];
+        const shouldBeActive = numActiveRows >= requiredRows;
+        
+        formsToCheck.forEach(form => {
+            if (!form) return;
+            const formElements = form.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith(fieldNum)) {
+                    if (shouldBeActive) {
+                        // Enable field - remove greyed out state
+                        element.disabled = false;
+                        element.style.backgroundColor = '';
+                        element.style.color = '';
+                        element.style.cursor = '';
+                        element.removeAttribute('data-dimensions-complete');
+                        
+                        const formGroup = element.closest('.form-group');
+                        if (formGroup) {
+                            formGroup.style.opacity = '1';
+                            const label = formGroup.querySelector('label');
+                            if (label) {
+                                // Remove any existing checkmarks
+                                const existingCheckmarks = label.querySelectorAll('span[style*="color: #28a745"]');
+                                existingCheckmarks.forEach(span => {
+                                    if (span.textContent.includes('✓')) {
+                                        span.remove();
+                                    }
+                                });
+                                label.textContent = label.textContent.replace(' ✓', '');
+                            }
+                        }
+                    } else {
+                        // Grey out field - mark as complete
+                        element.disabled = true;
+                        element.style.backgroundColor = '#e9ecef';
+                        element.style.color = '#6c757d';
+                        element.style.cursor = 'not-allowed';
+                        element.setAttribute('data-dimensions-complete', 'true');
+                        
+                        const formGroup = element.closest('.form-group');
+                        if (formGroup) {
+                            formGroup.style.opacity = '0.6';
+                            const label = formGroup.querySelector('label');
+                            if (label) {
+                                // Remove any existing checkmarks
+                                const existingCheckmarks = label.querySelectorAll('span[style*="color: #28a745"]');
+                                existingCheckmarks.forEach(span => {
+                                    if (span.textContent.includes('✓')) {
+                                        span.remove();
+                                    }
+                                });
+                                label.textContent = label.textContent.replace(' ✓', '');
+                                
+                                // Add green checkmark
+                                const checkmark = document.createElement('span');
+                                checkmark.textContent = ' ✓';
+                                checkmark.style.color = '#28a745';
+                                checkmark.style.fontWeight = 'bold';
+                                checkmark.style.marginLeft = '5px';
+                                label.appendChild(checkmark);
+                            }
+                        }
+                    }
+                    break; // Only update first matching element
+                }
+            }
+        });
+    });
+    
+    // Trigger missing fields count update
+    setTimeout(() => {
+        if (typeof updateMissingFieldsCount === 'function') {
+            updateMissingFieldsCount();
+        }
+    }, 50);
 }

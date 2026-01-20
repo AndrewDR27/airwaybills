@@ -102,7 +102,7 @@
                 
                 <!-- Contacts Tab -->
                 <div id="contacts-tab" class="awb-tab-content active">
-                    <div class="contact-section" id="contactSection" style="display: none;">
+                    <div class="contact-controls-section" id="contactControlsSection" style="display: block;">
                         <div class="contact-controls">
                             <div class="contact-select-group">
                                 <label for="shipperSelect">Shipper (04. SNA):</label>
@@ -120,11 +120,12 @@
                             </div>
                         </div>
                     </div>
-                    <div class="contact-fields-container" id="contactFieldsContainer">
-                        <form id="contactFieldsForm" onsubmit="return false;">
-                            <!-- Fields 04, 05, 06, 07 will be displayed here -->
-                        </form>
+                    <div class="form-header">
+                        <h2>Contact Information</h2>
                     </div>
+                    <form id="contactFieldsForm" onsubmit="return false;">
+                        <!-- Fields 04, 05, 06, 07 will be displayed here -->
+                    </form>
                 </div>
                 
                 <!-- Routing Tab -->
@@ -196,10 +197,6 @@
                 
                 <!-- Dimensions Tab -->
                 <div id="dimensions-tab" class="awb-tab-content">
-                    <div class="form-header">
-                        <h2>Dimensions</h2>
-                        <p style="color: #666; font-size: 14px; margin-top: 5px;">Enter package dimensions and quantities</p>
-                    </div>
                     <div class="dimensions-controls-section" id="dimensionsControlsSection" style="display: block;">
                         <div class="routing-controls">
                             <div class="contact-select-group dimensions-group">
@@ -217,6 +214,12 @@
                             </div>
                         </div>
                     </div>
+                    <div class="form-header">
+                        <h2>Dimensions</h2>
+                    </div>
+                    <form id="dimensionsFieldsForm">
+                        <!-- Dynamically generated dimensions fields will appear here -->
+                    </form>
                 </div>
                 
                 <!-- Billing Tab -->
