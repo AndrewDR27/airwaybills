@@ -144,10 +144,9 @@
     <script src="js/auth.js"></script>
     
     <script>
-        // Check if already logged in
-        if (isAuthenticated()) {
-            window.location.href = 'dashboard.html';
-        }
+        // Check if already logged in (but allow access to register page)
+        // Only redirect if user explicitly navigates away or after successful registration
+        // Don't auto-redirect on page load to allow new registrations
 
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
