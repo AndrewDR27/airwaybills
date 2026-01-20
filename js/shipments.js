@@ -155,7 +155,7 @@ async function getUserShipments(userId = null) {
 }
 
 // Create new shipment
-function createShipment(formDataOrOptions = {}) {
+async function createShipment(formDataOrOptions = {}) {
     const user = getCurrentUser();
     if (!user) {
         return { success: false, message: 'Not authenticated' };

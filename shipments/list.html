@@ -372,7 +372,7 @@
             window.downloadShipmentPDF = downloadShipmentPDF;
 
             // Load and display shipments
-            function loadShipments() {
+            async function loadShipments() {
                 if (!user || !user.id) {
                     console.error('User not available for loading shipments');
                     return;
@@ -380,7 +380,7 @@
                 
                 let shipments = [];
                 try {
-                    shipments = getUserShipments(user.id);
+                    shipments = await getUserShipments(user.id);
                 } catch (error) {
                     console.error('Error getting user shipments:', error);
                     shipments = [];
