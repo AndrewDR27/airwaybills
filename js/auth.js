@@ -131,12 +131,12 @@ async function getCurrentUserAsync() {
             }
             return user;
         } else {
-            // API returned null - preserve existing cache if available
-            console.log('API returned null user, preserving existing cache if available');
-            if (currentUserCache) {
-                return currentUserCache;
-            }
-            // Try localStorage fallback on localhost
+            // API returned null - user is not authenticated
+            // Clear cache to prevent returning stale user data
+            currentUserCache = null;
+            cacheTimestamp = 0;
+            
+            // Try localStorage fallback on localhost (but only if awb_auth exists)
             if (isLocalhost()) {
                 return getCurrentUser();
             }
