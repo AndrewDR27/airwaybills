@@ -1512,8 +1512,14 @@
             document.getElementById('courierTabBtn').style.display = 'block';
             document.getElementById('adminTabBtn').style.display = 'block';
             
-            // Load admin user lists
-            loadUsers();
+            // Load admin user lists (this will also populate getAllUsers cache)
+            loadUsers().then(() => {
+                // After admin users load, refresh My Users counts
+                loadMyUsers();
+                loadUsersWhoAddedMe();
+            }).catch(error => {
+                console.error('Error loading admin users:', error);
+            });
         }
         
         // Handle hash navigation (e.g., users.html#all, users.html#shipper, etc.)
