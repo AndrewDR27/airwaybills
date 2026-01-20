@@ -335,29 +335,58 @@ function initializeApp() {
                 interlineCarrierGroup2.style.display = 'flex';
             }
             
-            // Always populate the dropdown when it's shown - use airlinesAPI only
+            // Always populate the dropdown when it's shown - use airlinesAPI only with deduplication
             if (interlineCarrierSelect2) {
                 const currentValue = interlineCarrierSelect2.value;
                 interlineCarrierSelect2.innerHTML = '<option value="">-- Select Airline --</option>';
                 
                 // Only load from airlinesAPI (Locations > Airlines) - no contacts fallback
+                let airlines = [];
                 if (window.airlinesAPI) {
                     try {
-                        const airlines = await window.airlinesAPI.getAll();
-                        airlines.forEach(airline => {
-                            const option = document.createElement('option');
-                            option.value = airline.id;
-                            // Format: "ABBREVIATION - Company Name" or just "Company Name" if no abbreviation
-                            const displayText = airline.airlineAbbreviation 
-                                ? `${airline.airlineAbbreviation} - ${airline.companyName}`
-                                : airline.companyName;
-                            option.textContent = displayText;
-                            interlineCarrierSelect2.appendChild(option);
-                        });
+                        airlines = await window.airlinesAPI.getAll();
+                        console.log('Loaded airlines for Interline Carrier 2 from API:', airlines.length);
                     } catch (error) {
                         console.error('Could not load airlines from API:', error);
+                        airlines = [];
                     }
+                } else {
+                    console.warn('airlinesAPI not available');
+                    airlines = [];
                 }
+                
+                // Deduplicate airlines by ID and company name to prevent duplicates
+                const seenIds = new Set();
+                const seenNames = new Set();
+                const uniqueAirlines = airlines.filter(airline => {
+                    // Check for duplicate ID
+                    if (seenIds.has(airline.id)) {
+                        console.warn('Duplicate airline ID found:', airline.id, airline.companyName);
+                        return false;
+                    }
+                    // Check for duplicate company name (case-insensitive)
+                    const nameKey = (airline.companyName || '').toLowerCase().trim();
+                    if (nameKey && seenNames.has(nameKey)) {
+                        console.warn('Duplicate airline name found:', airline.companyName, 'ID:', airline.id);
+                        return false;
+                    }
+                    seenIds.add(airline.id);
+                    if (nameKey) seenNames.add(nameKey);
+                    return true;
+                });
+                
+                console.log(`Displaying ${uniqueAirlines.length} unique airlines for Interline Carrier 2 (${airlines.length} total loaded)`);
+                
+                uniqueAirlines.forEach(airline => {
+                    const option = document.createElement('option');
+                    option.value = airline.id;
+                    // Format: "ABBREVIATION - Company Name" or just "Company Name" if no abbreviation
+                    const displayText = airline.airlineAbbreviation 
+                        ? `${airline.airlineAbbreviation} - ${airline.companyName}`
+                        : airline.companyName;
+                    option.textContent = displayText;
+                    interlineCarrierSelect2.appendChild(option);
+                });
                 
                 // Restore selection if it still exists
                 if (currentValue && currentValue !== 'edit') {
@@ -1497,7 +1526,8 @@ function generateForm() {
     updateTemplateDropdown();
     
     // Show contact section and update dropdowns
-    showContactSection();
+    // Note: showContactSection is async but we don't await it here to avoid making generateForm async
+    showContactSection().catch(err => console.error('Error in showContactSection:', err));
     
     // Initialize tabs
     initializeTabs();
@@ -1875,28 +1905,57 @@ async function populateFormFromTemplate(templateData) {
         
         // Make sure the dropdown is populated before setting the value
         if (interlineCarrierSelect2) {
-            // Populate the dropdown if it hasn't been populated yet - use airlinesAPI only
+            // Populate the dropdown if it hasn't been populated yet - use airlinesAPI only with deduplication
             if (interlineCarrierSelect2.options.length <= 1) {
                 interlineCarrierSelect2.innerHTML = '<option value="">-- Select Airline --</option>';
                 
                 // Only load from airlinesAPI (Locations > Airlines) - no contacts fallback
+                let airlines = [];
                 if (window.airlinesAPI) {
                     try {
-                        const airlines = await window.airlinesAPI.getAll();
-                        airlines.forEach(airline => {
-                            const option = document.createElement('option');
-                            option.value = airline.id;
-                            // Format: "ABBREVIATION - Company Name" or just "Company Name" if no abbreviation
-                            const displayText = airline.airlineAbbreviation 
-                                ? `${airline.airlineAbbreviation} - ${airline.companyName}`
-                                : airline.companyName;
-                            option.textContent = displayText;
-                            interlineCarrierSelect2.appendChild(option);
-                        });
+                        airlines = await window.airlinesAPI.getAll();
+                        console.log('Loaded airlines for Interline Carrier 2 (template) from API:', airlines.length);
                     } catch (error) {
                         console.error('Could not load airlines from API:', error);
+                        airlines = [];
                     }
+                } else {
+                    console.warn('airlinesAPI not available');
+                    airlines = [];
                 }
+                
+                // Deduplicate airlines by ID and company name to prevent duplicates
+                const seenIds = new Set();
+                const seenNames = new Set();
+                const uniqueAirlines = airlines.filter(airline => {
+                    // Check for duplicate ID
+                    if (seenIds.has(airline.id)) {
+                        console.warn('Duplicate airline ID found:', airline.id, airline.companyName);
+                        return false;
+                    }
+                    // Check for duplicate company name (case-insensitive)
+                    const nameKey = (airline.companyName || '').toLowerCase().trim();
+                    if (nameKey && seenNames.has(nameKey)) {
+                        console.warn('Duplicate airline name found:', airline.companyName, 'ID:', airline.id);
+                        return false;
+                    }
+                    seenIds.add(airline.id);
+                    if (nameKey) seenNames.add(nameKey);
+                    return true;
+                });
+                
+                console.log(`Displaying ${uniqueAirlines.length} unique airlines for Interline Carrier 2 (template) (${airlines.length} total loaded)`);
+                
+                uniqueAirlines.forEach(airline => {
+                    const option = document.createElement('option');
+                    option.value = airline.id;
+                    // Format: "ABBREVIATION - Company Name" or just "Company Name" if no abbreviation
+                    const displayText = airline.airlineAbbreviation 
+                        ? `${airline.airlineAbbreviation} - ${airline.companyName}`
+                        : airline.companyName;
+                    option.textContent = displayText;
+                    interlineCarrierSelect2.appendChild(option);
+                });
             }
             
             // Set the value if it exists in the template
@@ -3894,10 +3953,19 @@ function saveUserProfile(profile) {
 }
 
 // Update contact dropdowns
+let isUpdatingDropdowns = false;
 async function updateContactDropdowns() {
     if (!shipperSelect || !consigneeSelect) return;
     
-    const contacts = getContacts();
+    // Prevent multiple simultaneous calls
+    if (isUpdatingDropdowns) {
+        console.log('updateContactDropdowns already in progress, skipping...');
+        return;
+    }
+    isUpdatingDropdowns = true;
+    
+    try {
+        const contacts = getContacts();
     const currentShipperValue = shipperSelect.value;
     const currentConsigneeValue = consigneeSelect.value;
     const currentAirlineValue1 = airlineSelect1 ? airlineSelect1.value : null;
@@ -3957,9 +4025,10 @@ async function updateContactDropdowns() {
             airlines = [];
         }
         
-        // Deduplicate airlines by ID and company name to prevent duplicates
+        // Deduplicate airlines by ID, company name, and display text to prevent duplicates
         const seenIds = new Set();
         const seenNames = new Set();
+        const seenDisplayTexts = new Set();
         const uniqueAirlines = airlines.filter(airline => {
             // Check for duplicate ID
             if (seenIds.has(airline.id)) {
@@ -3972,8 +4041,18 @@ async function updateContactDropdowns() {
                 console.warn('Duplicate airline name found:', airline.companyName, 'ID:', airline.id);
                 return false;
             }
+            // Check for duplicate display text (what will actually show in dropdown)
+            const displayText = airline.airlineAbbreviation 
+                ? `${airline.airlineAbbreviation} - ${airline.companyName}`
+                : airline.companyName;
+            const displayKey = displayText.toLowerCase().trim();
+            if (displayKey && seenDisplayTexts.has(displayKey)) {
+                console.warn('Duplicate airline display text found:', displayText, 'ID:', airline.id);
+                return false;
+            }
             seenIds.add(airline.id);
             if (nameKey) seenNames.add(nameKey);
+            if (displayKey) seenDisplayTexts.add(displayKey);
             return true;
         });
         
@@ -4025,9 +4104,10 @@ async function updateContactDropdowns() {
             destinations = [];
         }
         
-        // Deduplicate destinations by ID and airport code to prevent duplicates
+        // Deduplicate destinations by ID, airport code, and display text to prevent duplicates
         const seenIds = new Set();
         const seenCodes = new Set();
+        const seenDisplayTexts = new Set();
         const uniqueDestinations = destinations.filter(destination => {
             // Check for duplicate ID
             if (seenIds.has(destination.id)) {
@@ -4040,8 +4120,18 @@ async function updateContactDropdowns() {
                 console.warn('Duplicate airport code found:', destination.airportCode, 'ID:', destination.id);
                 return false;
             }
+            // Check for duplicate display text (what will actually show in dropdown)
+            const displayText = destination.airportName 
+                ? `${destination.airportCode} - ${destination.airportName}`
+                : destination.airportCode;
+            const displayKey = displayText.toLowerCase().trim();
+            if (displayKey && seenDisplayTexts.has(displayKey)) {
+                console.warn('Duplicate destination display text found:', displayText, 'ID:', destination.id);
+                return false;
+            }
             seenIds.add(destination.id);
             if (codeKey) seenCodes.add(codeKey);
+            if (displayKey) seenDisplayTexts.add(displayKey);
             return true;
         });
         
@@ -4072,6 +4162,9 @@ async function updateContactDropdowns() {
     // Populate interline carrier dropdown (now async)
     const currentInterlineCarrierValue1 = interlineCarrierSelect1 ? interlineCarrierSelect1.value : null;
     await populateAirlineDropdown(interlineCarrierSelect1, null, currentInterlineCarrierValue1);
+    } finally {
+        isUpdatingDropdowns = false;
+    }
 }
 
 // Update contact button text (Add vs Edit)
@@ -6243,17 +6336,17 @@ function handlePrepaidCollectChange(value) {
 }
 
 // Show contact section when form is generated
-function showContactSection() {
+async function showContactSection() {
     if (contactControlsSection) {
         contactControlsSection.style.display = 'block';
-        updateContactDropdowns();
+        await updateContactDropdowns();
         autoFillUserProfile();
     }
     
     // Show routing controls section
     if (routingControlsSection) {
         routingControlsSection.style.display = 'block';
-        updateContactDropdowns();
+        // Don't call updateContactDropdowns again - already called above
         
         // Check if Interline Shipment is already set to Yes and show Interline Carrier if needed
         const interlineShipmentSelect = document.getElementById('interlineShipmentSelect');
