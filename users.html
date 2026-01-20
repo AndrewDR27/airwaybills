@@ -1008,42 +1008,83 @@
         }
 
         async function loadUsers() {
-            const users = await getAllUsers();
-            
-            // Filter users by role
-            const allUsers = users;
-            const shippers = users.filter(u => u.role === 'shipper');
-            const agents = users.filter(u => u.role === 'issuing-carrier-agent');
-            const consignees = users.filter(u => u.role === 'consignee');
-            const brokers = users.filter(u => u.role === 'customs-broker');
-            const couriers = users.filter(u => u.role === 'courier');
-            const admins = users.filter(u => u.role === 'admin');
-            
-            // Update counts
-            const allCount = document.getElementById('all-count');
-            const shipperCount = document.getElementById('shipper-count');
-            const agentCount = document.getElementById('agent-count');
-            const consigneeCount = document.getElementById('consignee-count');
-            const brokerCount = document.getElementById('broker-count');
-            const courierCount = document.getElementById('courier-count');
-            const adminCount = document.getElementById('admin-count');
-            
-            if (allCount) allCount.textContent = `(${allUsers.length})`;
-            if (shipperCount) shipperCount.textContent = `(${shippers.length})`;
-            if (agentCount) agentCount.textContent = `(${agents.length})`;
-            if (consigneeCount) consigneeCount.textContent = `(${consignees.length})`;
-            if (brokerCount) brokerCount.textContent = `(${brokers.length})`;
-            if (courierCount) courierCount.textContent = `(${couriers.length})`;
-            if (adminCount) adminCount.textContent = `(${admins.length})`;
-            
-            // Render tables for each role
-            renderUsersTable(allUsers, 'all-users-list');
-            renderUsersTable(shippers, 'shipper-users-list');
-            renderUsersTable(agents, 'agent-users-list');
-            renderUsersTable(consignees, 'consignee-users-list');
-            renderUsersTable(brokers, 'broker-users-list');
-            renderUsersTable(couriers, 'courier-users-list');
-            renderUsersTable(admins, 'admin-users-list');
+            try {
+                let users = [];
+                let attempts = 0;
+                const maxAttempts = 5;
+                
+                // Wait for API to be ready if needed
+                while (!window.usersAPI && attempts < 3) {
+                    await new Promise((resolve) => {
+                        if (window.usersAPI) {
+                            resolve();
+                        } else {
+                            window.addEventListener('apiReady', () => resolve(), { once: true });
+                            setTimeout(resolve, 1000);
+                        }
+                    });
+                    attempts++;
+                }
+                
+                // Try to get users with retries
+                attempts = 0;
+                while (attempts < maxAttempts) {
+                    try {
+                        users = await getAllUsers();
+                        console.log('loadUsers: getAllUsers() returned', users.length, 'users');
+                        break; // Success, exit loop
+                    } catch (error) {
+                        attempts++;
+                        console.error(`loadUsers: getAllUsers() failed (attempt ${attempts}/${maxAttempts}):`, error);
+                        if (attempts < maxAttempts) {
+                            // Wait before retry, with exponential backoff
+                            await new Promise(resolve => setTimeout(resolve, 500 * attempts));
+                        } else {
+                            throw error;
+                        }
+                    }
+                }
+                
+                // Filter users by role
+                const allUsers = users;
+                const shippers = users.filter(u => u.role === 'shipper');
+                const agents = users.filter(u => u.role === 'issuing-carrier-agent');
+                const consignees = users.filter(u => u.role === 'consignee');
+                const brokers = users.filter(u => u.role === 'customs-broker');
+                const couriers = users.filter(u => u.role === 'courier');
+                const admins = users.filter(u => u.role === 'admin');
+                
+                // Update counts
+                const allCount = document.getElementById('all-count');
+                const shipperCount = document.getElementById('shipper-count');
+                const agentCount = document.getElementById('agent-count');
+                const consigneeCount = document.getElementById('consignee-count');
+                const brokerCount = document.getElementById('broker-count');
+                const courierCount = document.getElementById('courier-count');
+                const adminCount = document.getElementById('admin-count');
+                
+                if (allCount) allCount.textContent = `(${allUsers.length})`;
+                if (shipperCount) shipperCount.textContent = `(${shippers.length})`;
+                if (agentCount) agentCount.textContent = `(${agents.length})`;
+                if (consigneeCount) consigneeCount.textContent = `(${consignees.length})`;
+                if (brokerCount) brokerCount.textContent = `(${brokers.length})`;
+                if (courierCount) courierCount.textContent = `(${couriers.length})`;
+                if (adminCount) adminCount.textContent = `(${admins.length})`;
+                
+                // Render tables for each role
+                renderUsersTable(allUsers, 'all-users-list');
+                renderUsersTable(shippers, 'shipper-users-list');
+                renderUsersTable(agents, 'agent-users-list');
+                renderUsersTable(consignees, 'consignee-users-list');
+                renderUsersTable(brokers, 'broker-users-list');
+                renderUsersTable(couriers, 'courier-users-list');
+                renderUsersTable(admins, 'admin-users-list');
+            } catch (error) {
+                console.error('Error loading users:', error);
+                // Show error in all lists
+                const errorMsg = '<div class="empty-state"><h3>Error Loading Users</h3><p>Could not load users: ' + error.message + '</p></div>';
+                document.getElementById('all-users-list').innerHTML = errorMsg;
+            }
         }
 
 
@@ -1513,13 +1554,32 @@
             document.getElementById('adminTabBtn').style.display = 'block';
             
             // Load admin user lists (this will also populate getAllUsers cache)
-            loadUsers().then(() => {
-                // After admin users load, refresh My Users counts
-                loadMyUsers();
-                loadUsersWhoAddedMe();
-            }).catch(error => {
-                console.error('Error loading admin users:', error);
-            });
+            // Use retry logic to handle cases where API isn't ready yet
+            async function loadAdminUsersWithRetry() {
+                let attempts = 0;
+                const maxAttempts = 3;
+                
+                while (attempts < maxAttempts) {
+                    try {
+                        await loadUsers();
+                        // After admin users load, refresh My Users counts
+                        await loadMyUsers();
+                        await loadUsersWhoAddedMe();
+                        return; // Success, exit
+                    } catch (error) {
+                        attempts++;
+                        console.error(`Error loading admin users (attempt ${attempts}/${maxAttempts}):`, error);
+                        if (attempts < maxAttempts) {
+                            // Wait before retry
+                            await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+                        } else {
+                            console.error('Failed to load admin users after', maxAttempts, 'attempts');
+                        }
+                    }
+                }
+            }
+            
+            loadAdminUsersWithRetry();
         }
         
         // Handle hash navigation (e.g., users.html#all, users.html#shipper, etc.)
