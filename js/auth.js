@@ -295,6 +295,44 @@ async function register(userData) {
     }
 }
 
+// Login using localStorage (fallback - only on localhost)
+function loginLocalStorage(email, password) {
+    const users = getAllUsersLocalStorage();
+    const user = users.find(u => u.email === email && u.isActive !== false);
+    
+    if (!user) {
+        return { success: false, message: 'Invalid email or password' };
+    }
+    
+    // Check password
+    const storedPassword = localStorage.getItem(`user_password_${user.id}`);
+    if (storedPassword !== password) {
+        return { success: false, message: 'Invalid email or password' };
+    }
+    
+    // Set current user cache
+    currentUserCache = user;
+    cacheTimestamp = Date.now();
+    
+    // Store auth data in localStorage
+    try {
+        localStorage.setItem('awb_auth', JSON.stringify({
+            isAuthenticated: true,
+            userId: user.id,
+            email: user.email,
+            role: user.role
+        }));
+    } catch (e) {
+        console.warn('Could not store auth data:', e);
+    }
+    
+    return { 
+        success: true, 
+        user: user,
+        message: 'Login successful'
+    };
+}
+
 // Register using localStorage (fallback - only on localhost)
 function registerLocalStorage(userData) {
     const users = getAllUsersLocalStorage();
