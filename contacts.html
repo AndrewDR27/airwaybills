@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AWB Form Contacts - Airway Bills</title>
+    <title>AWB AutoFills - Airway Bills</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         body {
@@ -262,22 +262,22 @@
 <body>
     <div class="contacts-container">
         <div class="contacts-header">
-            <h1>📋 AWB Form Contacts</h1>
+            <h1>📋 AWB AutoFills</h1>
             <p>Manage contact information for AWB form autofill</p>
         </div>
         
         <div class="contacts-content">
             <div class="contacts-tabs">
                 <button class="tab-button active" data-tab="all">All <span class="tab-count" id="all-count">(0)</span></button>
-                <button class="tab-button" data-tab="shippers">Shippers <span class="tab-count" id="shippers-count">(0)</span></button>
-                <button class="tab-button" data-tab="consignees">Consignees <span class="tab-count" id="consignees-count">(0)</span></button>
-                <button class="tab-button" data-tab="profile">My Profile</button>
+                <button class="tab-button" data-tab="shippers">Shipper AutoFills <span class="tab-count" id="shippers-count">(0)</span></button>
+                <button class="tab-button" data-tab="consignees">Consignee AutoFills <span class="tab-count" id="consignees-count">(0)</span></button>
+                <button class="tab-button" data-tab="profile">My Autofills</button>
             </div>
             
             <!-- All Tab -->
             <div id="all-tab" class="tab-content active">
                 <div class="contacts-actions">
-                    <h2>All AWB Form Contacts</h2>
+                    <h2>All AWB AutoFills</h2>
                 </div>
                 <div id="all-list" class="contacts-list">
                     <!-- All contacts will be loaded here -->
@@ -287,7 +287,7 @@
             <!-- Shippers Tab -->
             <div id="shippers-tab" class="tab-content">
                 <div class="contacts-actions">
-                    <h2>Shipper AWB Form Contacts</h2>
+                    <h2>Shipper AutoFills</h2>
                     <button class="btn-add" onclick="openContactModal('Shipper', null)">+ Add Shipper</button>
                 </div>
                 <div id="shippers-list" class="contacts-list">
@@ -298,7 +298,7 @@
             <!-- Consignees Tab -->
             <div id="consignees-tab" class="tab-content">
                 <div class="contacts-actions">
-                    <h2>Consignee AWB Form Contacts</h2>
+                    <h2>Consignee AutoFills</h2>
                     <button class="btn-add" onclick="openContactModal('Consignee', null)">+ Add Consignee</button>
                 </div>
                 <div id="consignees-list" class="contacts-list">
@@ -310,7 +310,7 @@
             <div id="profile-tab" class="tab-content">
                 <div class="user-profile-section">
                     <div class="user-profile-header">
-                        <h2>My Information</h2>
+                        <h2>My Autofills</h2>
                         <button class="btn-add" onclick="openUserProfileModal()">Edit Profile</button>
                     </div>
                     <div id="user-profile-display" class="user-profile-info">
@@ -362,6 +362,11 @@
                         <label for="contactField06">AWB form Autofill 06</label>
                         <textarea id="contactField06" rows="4" placeholder="Enter agent name and address information. Use line breaks to format."></textarea>
                         <small>This will be used to auto-fill field 06. AGENT NAME when the form loads. Format: Company Name\nContact Name\nEmail\nPhone\nAddress</small>
+                    </div>
+                    
+                    <div class="form-group" id="contactHandlingInfoGroup" style="display: none;">
+                        <label for="contactHandlingInfo">Handling info</label>
+                        <textarea id="contactHandlingInfo" rows="4" placeholder="Enter handling information"></textarea>
                     </div>
                     
                     <div class="form-group" id="formattedValueGroup">
@@ -598,7 +603,7 @@
             // Load shippers
             const shippersList = document.getElementById('shippers-list');
             if (shippers.length === 0) {
-                shippersList.innerHTML = '<div class="empty-state"><h3>No Shippers</h3><p>Click "+ Add Shipper" to create your first shipper contact.</p></div>';
+                shippersList.innerHTML = '<div class="empty-state"><h3>No Shipper AutoFills</h3><p>Click "+ Add Shipper" to create your first shipper contact.</p></div>';
             } else {
                 shippersList.innerHTML = createContactsTable(shippers);
             }
@@ -606,7 +611,7 @@
             // Load consignees
             const consigneesList = document.getElementById('consignees-list');
             if (consignees.length === 0) {
-                consigneesList.innerHTML = '<div class="empty-state"><h3>No Consignees</h3><p>Click "+ Add Consignee" to create your first consignee contact.</p></div>';
+                consigneesList.innerHTML = '<div class="empty-state"><h3>No Consignee AutoFills</h3><p>Click "+ Add Consignee" to create your first consignee contact.</p></div>';
             } else {
                 consigneesList.innerHTML = createContactsTable(consignees);
             }
@@ -738,6 +743,7 @@
             const contactPhoneGroup = document.getElementById('contactPhoneGroup');
             const contactAddressGroup = document.getElementById('contactAddressGroup');
             const contactField06Group = document.getElementById('contactField06Group');
+            const contactHandlingInfoGroup = document.getElementById('contactHandlingInfoGroup');
             if (contactNameGroup) {
                 contactNameGroup.style.display = (type === 'User' || type === 'UserAccount') ? 'block' : 'none';
             }
@@ -749,6 +755,9 @@
             }
             if (contactField06Group) {
                 contactField06Group.style.display = (type === 'User' || type === 'UserAccount') ? 'block' : 'none';
+            }
+            if (contactHandlingInfoGroup) {
+                contactHandlingInfoGroup.style.display = (type === 'User' || type === 'UserAccount') ? 'block' : 'none';
             }
             
             // Update formatted value label based on contact type
@@ -763,7 +772,7 @@
                 if (type === 'User' && contactIdToEdit === 'user') {
                     const profile = getUserProfile();
                     if (profile) {
-                        modalTitle.textContent = 'Edit My Information';
+                        modalTitle.textContent = 'Edit My Autofills';
                         contactCompanyName.value = profile.companyName || '';
                         if (contactEmail) contactEmail.value = profile.email || '';
                         const contactNameEl = document.getElementById('contactName');
@@ -774,6 +783,8 @@
                         if (contactAddressEl) contactAddressEl.value = profile.address || '';
                         const contactField06El = document.getElementById('contactField06');
                         if (contactField06El) contactField06El.value = profile.field06 || profile.formattedValue || '';
+                        const contactHandlingInfoEl = document.getElementById('contactHandlingInfo');
+                        if (contactHandlingInfoEl) contactHandlingInfoEl.value = profile.handlingInfo || '';
                     }
                 } else {
                     const contacts = await getContacts();
@@ -876,13 +887,15 @@
             // UserAccount type has its own validation
             
             if (type === 'User') {
-                // For User profile, get phone, address, and field 06 if they exist
+                // For User profile, get phone, address, field 06, and handling info if they exist
                 const contactPhoneElement = document.getElementById('contactPhone');
                 const contactAddressElement = document.getElementById('contactAddress');
                 const contactField06Element = document.getElementById('contactField06');
+                const contactHandlingInfoElement = document.getElementById('contactHandlingInfo');
                 const phone = contactPhoneElement ? contactPhoneElement.value.trim() : '';
                 const address = contactAddressElement ? contactAddressElement.value.trim() : '';
                 const field06 = contactField06Element ? contactField06Element.value.trim() : '';
+                const handlingInfo = contactHandlingInfoElement ? contactHandlingInfoElement.value.trim() : '';
                 
                 const profile = {
                     companyName,
@@ -890,7 +903,8 @@
                     email,
                     phone,
                     address,
-                    field06: field06
+                    field06: field06,
+                    handlingInfo: handlingInfo
                     // Note: formattedValue is not included - it's only for AWB form contacts, not user profiles
                 };
                 
@@ -1129,6 +1143,10 @@
                         <strong>AWB form Autofill 06</strong>
                         <span style="white-space: pre-line;">${escapeHtml(profile.field06 || profile.formattedValue || 'Not set')}</span>
                     </div>
+                    <div class="user-info-item" style="grid-column: 1 / -1;">
+                        <strong>Handling info</strong>
+                        <span style="white-space: pre-line;">${escapeHtml(profile.handlingInfo || 'Not set')}</span>
+                    </div>
                 `;
             }
         }
@@ -1142,7 +1160,7 @@
             
             document.getElementById('contactType').value = 'User';
             document.getElementById('contactId').value = 'user';
-            document.getElementById('modalTitle').textContent = 'Edit My Information';
+            document.getElementById('modalTitle').textContent = 'Edit My Autofills';
             
             // Hide account info for user profile
             if (accountInfoGroup) {
@@ -1166,10 +1184,12 @@
             const contactPhoneGroup = document.getElementById('contactPhoneGroup');
             const contactAddressGroup = document.getElementById('contactAddressGroup');
             const contactField06Group = document.getElementById('contactField06Group');
+            const contactHandlingInfoGroup = document.getElementById('contactHandlingInfoGroup');
             if (contactNameGroup) contactNameGroup.style.display = 'block';
             if (contactPhoneGroup) contactPhoneGroup.style.display = 'block';
             if (contactAddressGroup) contactAddressGroup.style.display = 'block';
             if (contactField06Group) contactField06Group.style.display = 'block';
+            if (contactHandlingInfoGroup) contactHandlingInfoGroup.style.display = 'block';
             
             if (profile) {
                 document.getElementById('contactCompanyName').value = profile.companyName || '';
@@ -1182,6 +1202,8 @@
                 if (contactAddressEl) contactAddressEl.value = profile.address || '';
                 const contactField06El = document.getElementById('contactField06');
                 if (contactField06El) contactField06El.value = profile.field06 || profile.formattedValue || '';
+                const contactHandlingInfoEl = document.getElementById('contactHandlingInfo');
+                if (contactHandlingInfoEl) contactHandlingInfoEl.value = profile.handlingInfo || '';
             } else {
                 form.reset();
                 document.getElementById('contactId').value = 'user';
