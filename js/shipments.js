@@ -1,5 +1,7 @@
 // Shipment management system
 // Uses Upstash Redis database via API
+// Database required everywhere (localhost and production)
+// Note: localStorage may be used for caching, but NOT as a data source
 
 const SHIPMENTS_STORAGE_KEY = 'awb_shipments';
 
@@ -18,7 +20,7 @@ if (typeof window !== 'undefined') {
 // Get all shipments
 async function getAllShipments() {
     if (!shipmentsAPI) {
-        return getAllShipmentsLocalStorage();
+        throw new Error('Database API not available. Please ensure the database is configured.');
     }
     
     try {
@@ -27,7 +29,7 @@ async function getAllShipments() {
         if (window.Shipment) {
             return shipments.map(s => new Shipment(s));
         }
-        // Update localStorage cache
+        // Update localStorage cache (optional caching, not a data source)
         try {
             localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
         } catch (e) {
@@ -36,49 +38,30 @@ async function getAllShipments() {
         return shipments;
     } catch (error) {
         console.error('Error fetching shipments from API:', error);
-        return getAllShipmentsLocalStorage();
+        throw error; // Database required
     }
 }
 
-// Get all shipments from localStorage (fallback)
-function getAllShipmentsLocalStorage() {
-    const shipmentsData = localStorage.getItem(SHIPMENTS_STORAGE_KEY);
-    if (!shipmentsData) {
-        return [];
-    }
-    
-    try {
-        const shipments = JSON.parse(shipmentsData);
-        if (window.Shipment) {
-            return shipments.map(s => new Shipment(s));
-        }
-        return shipments;
-    } catch (e) {
-        console.error('Error parsing shipments:', e);
-        return [];
-    }
-}
+// Note: localStorage fallback functions removed - database required everywhere
 
 // Get shipment by AWB number
 async function getShipmentByAWB(awbNumber) {
     if (!shipmentsAPI) {
-        const shipments = getAllShipmentsLocalStorage();
-        return shipments.find(s => s.awbNumber === awbNumber);
+        throw new Error('Database API not available. Please ensure the database is configured.');
     }
     
     try {
         return await shipmentsAPI.getByAWB(awbNumber);
     } catch (error) {
         console.error('Error fetching shipment from API:', error);
-        const shipments = getAllShipmentsLocalStorage();
-        return shipments.find(s => s.awbNumber === awbNumber);
+        throw error; // Database required
     }
 }
 
 // Get shipment by space ID
 async function getShipmentBySpaceId(spaceId) {
     if (!shipmentsAPI) {
-        const shipments = getAllShipmentsLocalStorage();
+        throw new Error('Database API not available. Please ensure the database is configured.');
         const shipment = shipments.find(s => s.spaceId === spaceId);
         if (shipment && window.Shipment) {
             return new Shipment(shipment);
@@ -94,7 +77,7 @@ async function getShipmentBySpaceId(spaceId) {
         return shipment;
     } catch (error) {
         console.error('Error fetching shipment from API:', error);
-        const shipments = getAllShipmentsLocalStorage();
+        throw new Error('Database API not available. Please ensure the database is configured.');
         const shipment = shipments.find(s => s.spaceId === spaceId);
         if (shipment && window.Shipment) {
             return new Shipment(shipment);
@@ -112,18 +95,7 @@ async function getUserShipments(userId = null) {
     }
     
     if (!shipmentsAPI) {
-        const user = getCurrentUser();
-        const shipments = getAllShipmentsLocalStorage();
-        
-        if (user && user.role === 'admin') {
-            return shipments.filter(s => s.status !== 'deleted');
-        }
-        
-        return shipments.filter(s => {
-            if (s.status === 'deleted') return false;
-            return s.createdBy === userId || 
-                   (s.participants && s.participants.some(p => p.userId === userId));
-        });
+        throw new Error('Database API not available. Please ensure the database is configured.');
     }
     
     try {
@@ -139,18 +111,7 @@ async function getUserShipments(userId = null) {
         return shipments.filter(s => s.status !== 'deleted');
     } catch (error) {
         console.error('Error fetching user shipments from API:', error);
-        const user = getCurrentUser();
-        const shipments = getAllShipmentsLocalStorage();
-        
-        if (user && user.role === 'admin') {
-            return shipments.filter(s => s.status !== 'deleted');
-        }
-        
-        return shipments.filter(s => {
-            if (s.status === 'deleted') return false;
-            return s.createdBy === userId || 
-                   (s.participants && s.participants.some(p => p.userId === userId));
-        });
+        throw error; // Database required
     }
 }
 
@@ -250,16 +211,14 @@ async function createShipment(formDataOrOptions = {}) {
             return { success: true, shipment: newShipment };
         } catch (error) {
             console.error('Error creating shipment via API:', error);
-            // Fallback to localStorage
+            // Database required - no localStorage fallback
+            throw error;
         }
     }
     
-    // Fallback to localStorage
-    const shipments = getAllShipmentsLocalStorage();
-    shipments.push(shipmentData);
-    localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+    // Database required - no localStorage fallback
     
-    return { success: true, shipment: newShipment };
+    throw new Error('Database API not available. Please ensure the database is configured.');
 }
 
 // Create shipment space (without AWB initially)
@@ -374,30 +333,32 @@ async function createShipmentSpace(participants = []) {
                     if (newShipment.spaceId !== saved.spaceId) {
                         newShipment.spaceId = saved.spaceId;
                     }
-                    // Also update localStorage cache for immediate access
-                    const shipments = getAllShipmentsLocalStorage();
-                    const existingIndex = shipments.findIndex(s => s.spaceId === saved.spaceId);
-                    if (existingIndex >= 0) {
-                        shipments[existingIndex] = saved;
-                    } else {
-                        shipments.push(saved);
+                    // Also update localStorage cache for immediate access (optional caching)
+                    try {
+                        const shipments = JSON.parse(localStorage.getItem(SHIPMENTS_STORAGE_KEY) || '[]');
+                        const existingIndex = shipments.findIndex(s => s.spaceId === saved.spaceId);
+                        if (existingIndex >= 0) {
+                            shipments[existingIndex] = saved;
+                        } else {
+                            shipments.push(saved);
+                        }
+                        localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+                    } catch (e) {
+                        console.warn('Could not update localStorage cache:', e);
                     }
-                    localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
                     return { success: true, shipment: saved };
                 }
                 return { success: true, shipment: newShipment };
             } catch (error) {
                 console.error('Error creating shipment via API:', error);
-                // Fallback to localStorage
+            // Database required - no localStorage fallback
+                throw error; // Require database in production
             }
         }
         
-        // Fallback to localStorage
-        const shipments = getAllShipmentsLocalStorage();
-        shipments.push(shipmentData);
-        localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+            // Database required - no localStorage fallback
         
-        return { success: true, shipment: newShipment };
+        throw new Error('Database API not available. Please ensure the database is configured.');
     }
     
     // Use Shipment class if available
@@ -426,30 +387,32 @@ async function createShipmentSpace(participants = []) {
                 if (newShipment.spaceId !== saved.spaceId) {
                     newShipment.spaceId = saved.spaceId;
                 }
-                // Also update localStorage cache for immediate access
-                const shipments = getAllShipmentsLocalStorage();
-                const existingIndex = shipments.findIndex(s => s.spaceId === saved.spaceId);
-                if (existingIndex >= 0) {
-                    shipments[existingIndex] = saved;
-                } else {
-                    shipments.push(saved);
+                // Also update localStorage cache for immediate access (optional caching)
+                try {
+                    const shipments = JSON.parse(localStorage.getItem(SHIPMENTS_STORAGE_KEY) || '[]');
+                    const existingIndex = shipments.findIndex(s => s.spaceId === saved.spaceId);
+                    if (existingIndex >= 0) {
+                        shipments[existingIndex] = saved;
+                    } else {
+                        shipments.push(saved);
+                    }
+                    localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+                } catch (e) {
+                    console.warn('Could not update localStorage cache:', e);
                 }
-                localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
                 return { success: true, shipment: saved };
             }
             return { success: true, shipment: newShipment };
         } catch (error) {
             console.error('Error creating shipment via API:', error);
-            // Fallback to localStorage
+            // Database required - no localStorage fallback
+            throw error;
         }
     }
     
-    // Fallback to localStorage
-    const shipments = getAllShipmentsLocalStorage();
-    shipments.push(shipmentData);
-    localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+    // Database required - no localStorage fallback
     
-    return { success: true, shipment: newShipment };
+    throw new Error('Database API not available. Please ensure the database is configured.');
 }
 
 // Update shipment (by spaceId or awbNumber)
@@ -492,20 +455,14 @@ async function updateShipment(identifier, updates) {
             return { success: true, shipment: saved };
         } catch (error) {
             console.error('Error updating shipment via API:', error);
-            // Fallback to localStorage
+            // Database required - no localStorage fallback
+            throw error; // Require database in production
         }
     }
     
-    // Fallback to localStorage
-    const shipments = getAllShipmentsLocalStorage();
-    const index = shipments.findIndex(s => s.spaceId === spaceId);
-    if (index >= 0) {
-        shipments[index] = updatedShipment;
-        localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
-        return { success: true, shipment: shipments[index] };
-    }
+    // Database required - no localStorage fallback
     
-    return { success: false, message: 'Shipment not found' };
+    throw new Error('Database API not available. Please ensure the database is configured.');
 }
 
 // Cancel shipment
@@ -563,22 +520,14 @@ async function deleteShipment(spaceId) {
             return { success: true };
         } catch (error) {
             console.error('Error deleting shipment via API:', error);
-            // Fallback to localStorage
+            // Database required - no localStorage fallback
+            throw error; // Require database in production
         }
     }
     
-    // Fallback to localStorage
-    const shipments = getAllShipmentsLocalStorage();
-    const index = shipments.findIndex(s => s.spaceId === spaceId);
-    if (index !== -1) {
-        shipments[index].status = 'deleted';
-        shipments[index].deletedAt = new Date().toISOString();
-        shipments[index].deletedBy = user.id;
-        localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
-        return { success: true };
-    }
+    // Database required - no localStorage fallback
     
-    return { success: false, message: 'Shipment not found' };
+    throw new Error('Database API not available. Please ensure the database is configured.');
 }
 
 // Mark shipment as shared

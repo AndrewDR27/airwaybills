@@ -105,11 +105,28 @@
     </div>
 
     <!-- Load required scripts -->
+    <script type="module" src="js/utils.js"></script>
     <script type="module" src="js/api.js"></script>
     <script src="models/user.js"></script>
     <script src="js/roles.js"></script>
-    <script src="js/auth.js"></script>
-    
+    <script type="module" src="js/auth.js"></script>
+
+    <script>
+        // Production guard: Clear localStorage on production
+        (function() {
+            // Wait for utils to be available
+            if (window.clearLocalStorageOnProduction) {
+                window.clearLocalStorageOnProduction();
+            } else {
+                // If utils not loaded yet, wait a bit
+                setTimeout(() => {
+                    if (window.clearLocalStorageOnProduction) {
+                        window.clearLocalStorageOnProduction();
+                    }
+                }, 100);
+            }
+        })();
+    </script>
     <script>
         // Show debug logs if available
         function showDebugLogs() {
@@ -134,12 +151,33 @@
         // Show logs on login page
         showDebugLogs();
         
-        // Check if already logged in
-        if (isAuthenticated()) {
-            window.location.href = 'dashboard.html';
-        }
-
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        // Wait for auth.js module to load before using its functions
+        async function waitForAuth() {
+            // Wait for isAuthenticated and login functions to be available
+            let attempts = 0;
+            while ((typeof isAuthenticated === 'undefined' || typeof login === 'undefined') && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            if (typeof isAuthenticated === 'undefined') {
+                console.error('isAuthenticated function not available after waiting');
+                return;
+            }
+            
+            // Check if already logged in
+            if (isAuthenticated()) {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+            
+            // Set up login form handler
+            if (typeof login === 'undefined') {
+                console.error('login function not available');
+                return;
+            }
+            
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const email = document.getElementById('username').value; // Using email as username
@@ -174,7 +212,10 @@
                 submitButton.disabled = false;
                 submitButton.textContent = 'Login';
             }
-        });
+            });
+        }
+        
+        waitForAuth();
     </script>
 </body>
 </html>

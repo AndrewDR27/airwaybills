@@ -137,26 +137,61 @@
     <script src="../models/user.js"></script>
     <script src="../models/shipment.js"></script>
     <script src="../js/roles.js"></script>
-    <script src="../js/auth.js"></script>
-    <script src="../js/shipments.js"></script>
+    <script type="module" src="../js/auth.js"></script>
+    <script type="module" src="../js/shipments.js"></script>
 
     <script>
-        // Check authentication and role
-        if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
-            window.location.href = '../login.html';
-        }
+        // Wait for auth functions to be available (modules load asynchronously)
+        (async function() {
+            // Wait for isAuthenticated and getCurrentUser to be available
+            let attempts = 0;
+            while ((typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined') && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            // Check authentication and role
+            if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
+                window.location.href = '../login.html';
+                return;
+            }
 
-        const user = getCurrentUser();
-        if (!user || user.role !== 'issuing-carrier-agent') {
-            alert('Only Issuing Carrier Agents can create shipment spaces.');
-            goBack();
-        }
-
-        let invitedParticipants = [];
+            const user = getCurrentUser();
+            if (!user || user.role !== 'issuing-carrier-agent') {
+                alert('Only Issuing Carrier Agents can create shipment spaces.');
+                goBack();
+                return;
+            }
+            
+            // Continue with page setup after authentication check
+            setupPage();
+        })();
+        
+        function setupPage() {
+            let invitedParticipants = [];
 
         // Load users for invitation dropdowns
-        function loadUsers() {
-            const allUsers = getAllUsers();
+        async function loadUsers() {
+            // Wait for getAllUsers to be available
+            let attempts = 0;
+            while (typeof getAllUsers === 'undefined' && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            if (typeof getAllUsers === 'undefined') {
+                console.error('getAllUsers not available');
+                return;
+            }
+            
+            // getAllUsers is async, so we need to await it
+            const allUsers = await getAllUsers();
+            
+            // Ensure allUsers is an array
+            if (!Array.isArray(allUsers)) {
+                console.error('getAllUsers did not return an array:', allUsers);
+                return;
+            }
             
             const shipperSelect = document.getElementById('shipperSelect');
             const consigneeSelect = document.getElementById('consigneeSelect');
@@ -303,9 +338,12 @@
                 window.location.href = 'list.html';
             }
         }
-
-        // Load users on page load
-        loadUsers();
+        
+        // Load users on page load (inside setupPage)
+        loadUsers().catch(error => {
+            console.error('Error loading users:', error);
+        });
+        }
     </script>
 </body>
 </html>

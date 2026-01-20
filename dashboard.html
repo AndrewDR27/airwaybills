@@ -249,12 +249,29 @@
     </div>
 
     <!-- Load required scripts -->
+    <script type="module" src="js/utils.js"></script>
     <script type="module" src="js/api.js"></script>
     <script src="models/user.js"></script>
     <script src="js/roles.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/shipments.js"></script>
-    
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/shipments.js"></script>
+
+    <script>
+        // Production guard: Clear localStorage on production
+        (function() {
+            // Wait for utils to be available
+            if (window.clearLocalStorageOnProduction) {
+                window.clearLocalStorageOnProduction();
+            } else {
+                // If utils not loaded yet, wait a bit
+                setTimeout(() => {
+                    if (window.clearLocalStorageOnProduction) {
+                        window.clearLocalStorageOnProduction();
+                    }
+                }, 100);
+            }
+        })();
+    </script>
     <script>
         // Debug logging function that persists to localStorage
         function debugLog(message, data = null) {
@@ -278,6 +295,19 @@
         (async () => {
             debugLog('Dashboard: Starting auth check');
             
+            // Wait for auth.js module to load
+            let attempts = 0;
+            while ((typeof getCurrentUser === 'undefined' || typeof getCurrentUserAsync === 'undefined') && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            if (typeof getCurrentUser === 'undefined') {
+                debugLog('Dashboard: getCurrentUser not available after waiting');
+                console.error('getCurrentUser function not available');
+                return;
+            }
+            
             // Check localStorage auth data
             const authData = JSON.parse(localStorage.getItem('awb_auth') || '{}');
             debugLog('Dashboard: localStorage awb_auth', { 
@@ -298,8 +328,12 @@
             if (!user) {
                 debugLog('Dashboard: User not found synchronously, trying async');
                 try {
-                    user = await getCurrentUserAsync();
-                    debugLog('Dashboard: getCurrentUserAsync() result', user ? { email: user.email, id: user.id } : 'null');
+                    if (typeof getCurrentUserAsync === 'function') {
+                        user = await getCurrentUserAsync();
+                        debugLog('Dashboard: getCurrentUserAsync() result', user ? { email: user.email, id: user.id } : 'null');
+                    } else {
+                        debugLog('Dashboard: getCurrentUserAsync not available');
+                    }
                 } catch (error) {
                     debugLog('Dashboard: Error getting current user', { error: error.message });
                 }
@@ -317,9 +351,19 @@
             
             debugLog('Dashboard: User authenticated successfully', { email: user.email, role: user.role });
 
+        // Wait for getRoleLabel to be available
+        if (typeof getRoleLabel === 'undefined') {
+            let roleAttempts = 0;
+            while (typeof getRoleLabel === 'undefined' && roleAttempts < 20) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                roleAttempts++;
+            }
+        }
+
         // Display user info
+        const roleLabel = typeof getRoleLabel === 'function' ? getRoleLabel(user.role) : user.role;
         document.getElementById('usernameDisplay').textContent = user.name || user.email;
-        document.getElementById('userDisplay').textContent = `${user.name || user.email} (${getRoleLabel(user.role)})`;
+        document.getElementById('userDisplay').textContent = `${user.name || user.email} (${roleLabel})`;
         document.querySelector('.sidebar-header h2').textContent = '📄 Airway Bills';
         
         // Display storage indicator

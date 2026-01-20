@@ -245,11 +245,25 @@ function initializeApp() {
     if (airlineSelect1) {
         airlineSelect1.addEventListener('change', (e) => {
             const value = e.target.value;
+            console.log('airlineSelect1 changed to:', value);
             if (value) {
-                fillAirlineField(value);
+                // Wait a bit to ensure form is ready, then fill
+                // Try multiple times in case form is still loading
+                let attempts = 0;
+                const tryFill = () => {
+                    attempts++;
+                    if (!generatedForm && attempts < 10) {
+                        setTimeout(tryFill, 100);
+                        return;
+                    }
+                    await fillAirlineField(value);
+                };
+                tryFill();
                 updateContactButtonText('Airline', addAirlineBtn1, airlineSelect1);
                 setTimeout(() => updatePromptIndicators(), 100);
             } else {
+                // Clear fields when no airline selected
+                clearAirlineFields();
                 updateContactButtonText('Airline', addAirlineBtn1, airlineSelect1);
                 setTimeout(() => updatePromptIndicators(), 100);
             }
@@ -3630,7 +3644,7 @@ function saveUserProfile(profile) {
 }
 
 // Update contact dropdowns
-function updateContactDropdowns() {
+async function updateContactDropdowns() {
     if (!shipperSelect || !consigneeSelect) return;
     
     const contacts = getContacts();
@@ -3673,16 +3687,35 @@ function updateContactDropdowns() {
     updateContactButtonText('Consignee', addConsigneeBtn, consigneeSelect);
     
     // Helper function to populate airline dropdown
-    const populateAirlineDropdown = (select, btn, currentValue) => {
+    const populateAirlineDropdown = async (select, btn, currentValue) => {
         if (!select) return;
         select.innerHTML = '<option value="">-- Select Airline --</option>';
-        contacts.filter(c => c.type === 'Airline').forEach(contact => {
+        
+        // Try to use airlinesAPI first (database), fallback to contacts (localStorage)
+        let airlines = [];
+        if (window.airlinesAPI) {
+            try {
+                airlines = await window.airlinesAPI.getAll();
+                console.log('Loaded airlines from API:', airlines.length);
+            } catch (error) {
+                console.warn('Could not load airlines from API, using contacts:', error);
+                // Fallback to contacts
+                const contacts = getContacts();
+                airlines = contacts.filter(c => c.type === 'Airline');
+            }
+        } else {
+            // Fallback to contacts if airlinesAPI not available
+            const contacts = getContacts();
+            airlines = contacts.filter(c => c.type === 'Airline');
+        }
+        
+        airlines.forEach(airline => {
             const option = document.createElement('option');
-            option.value = contact.id;
+            option.value = airline.id;
             // Format: "ABBREVIATION - Company Name" or just "Company Name" if no abbreviation
-            const displayText = contact.airlineAbbreviation 
-                ? `${contact.airlineAbbreviation} - ${contact.companyName}`
-                : contact.companyName;
+            const displayText = airline.airlineAbbreviation 
+                ? `${airline.airlineAbbreviation} - ${airline.companyName}`
+                : airline.companyName;
             option.textContent = displayText;
             select.appendChild(option);
         });
@@ -3698,8 +3731,8 @@ function updateContactDropdowns() {
         }
     };
     
-    // Populate airline dropdown
-    populateAirlineDropdown(airlineSelect1, addAirlineBtn1, currentAirlineValue1);
+    // Populate airline dropdown (now async)
+    await populateAirlineDropdown(airlineSelect1, addAirlineBtn1, currentAirlineValue1);
     
     // Populate destination dropdown
     if (destinationSelect) {
@@ -3737,9 +3770,9 @@ function updateContactDropdowns() {
         }
     }
     
-    // Populate interline carrier dropdown
+    // Populate interline carrier dropdown (now async)
     const currentInterlineCarrierValue1 = interlineCarrierSelect1 ? interlineCarrierSelect1.value : null;
-    populateAirlineDropdown(interlineCarrierSelect1, null, currentInterlineCarrierValue1);
+    await populateAirlineDropdown(interlineCarrierSelect1, null, currentInterlineCarrierValue1);
 }
 
 // Update contact button text (Add vs Edit)
@@ -4131,7 +4164,7 @@ function saveContactWithImage(contact, contactIndex, contacts) {
 }
 
 // Fill airline fields (01. AWBP and 10. BFC/Airline Abbreviation)
-function fillAirlineField(airlineId) {
+async function fillAirlineField(airlineId) {
     console.log('fillAirlineField called with airlineId:', airlineId);
     
     if (!generatedForm) {
@@ -4139,8 +4172,28 @@ function fillAirlineField(airlineId) {
         return;
     }
     
-    const contacts = getContacts();
-    const airline = contacts.find(c => c.id === airlineId && c.type === 'Airline');
+    // Try to get airline from airlinesAPI first (database), fallback to contacts (localStorage)
+    let airline = null;
+    if (window.airlinesAPI) {
+        try {
+            const airlines = await window.airlinesAPI.getAll();
+            airline = airlines.find(a => a.id === airlineId);
+            if (airline) {
+                console.log('Found airline from API:', airline.companyName);
+            }
+        } catch (error) {
+            console.warn('Could not load airlines from API, trying contacts:', error);
+        }
+    }
+    
+    // Fallback to contacts if not found in API
+    if (!airline) {
+        const contacts = getContacts();
+        airline = contacts.find(c => c.id === airlineId && c.type === 'Airline');
+        if (airline) {
+            console.log('Found airline from contacts:', airline.companyName);
+        }
+    }
     
     if (!airline) {
         console.warn(`Airline not found for ${airlineId}`);
@@ -4165,6 +4218,7 @@ function fillAirlineField(airlineId) {
     
     // Fill field 01 (AWBP) - search in all forms and all elements
     if (airline.awbp) {
+        console.log('Attempting to fill field 01 with AWBP:', airline.awbp);
         for (const form of formsToCheck) {
             if (!form) continue;
             
@@ -4218,6 +4272,7 @@ function fillAirlineField(airlineId) {
     
     // Fill field 10 with Airline Abbreviation - search in all forms and all elements
     if (airline.airlineAbbreviation) {
+        console.log('Attempting to fill field 10 with abbreviation:', airline.airlineAbbreviation);
         for (const form of formsToCheck) {
             if (!form) continue;
             

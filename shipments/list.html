@@ -303,13 +303,21 @@
     <script src="../models/user.js"></script>
     <script src="../models/shipment.js"></script>
     <script src="../js/roles.js"></script>
-    <script src="../js/auth.js"></script>
-    <script src="../js/shipments.js"></script>
+    <script type="module" src="../js/auth.js"></script>
+    <script type="module" src="../js/shipments.js"></script>
     
     <script>
         // Wait for DOM to be ready
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for auth functions to be available
+            let attempts = 0;
+            while ((typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined') && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
             // Check authentication with error handling
+            
             let user = null;
             try {
                 if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
@@ -337,9 +345,12 @@
             if (createSpaceBtn && user && user.role === 'issuing-carrier-agent') {
                     createSpaceBtn.style.display = 'block';
                     createSpaceBtn.addEventListener('click', function() {
-                        if (window.parent && window.parent !== window) {
+                        // Check if we're in an iframe (dashboard)
+                        if (window.parent && window.parent !== window && window.parent.document.getElementById('contentFrame')) {
+                            // We're in the dashboard iframe - update the iframe src
                             window.parent.document.getElementById('contentFrame').src = 'shipments/create-space.html';
                         } else {
+                            // We're not in an iframe - navigate directly
                             window.location.href = 'create-space.html';
                         }
                     });
@@ -378,19 +389,18 @@
                     return;
                 }
                 
-                // Wait for getUserShipments to be available
+                // Wait for getUserShipments to be available (modules load asynchronously)
+                let attempts = 0;
+                while (typeof window.getUserShipments !== 'function' && attempts < 50) {
+                    if (attempts === 0) {
+                        console.warn('getUserShipments not available yet, waiting...');
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
                 if (typeof window.getUserShipments !== 'function') {
-                    console.warn('getUserShipments not available yet, waiting...');
-                    // Wait up to 2 seconds for the function to load
-                    let attempts = 0;
-                    while (typeof window.getUserShipments !== 'function' && attempts < 20) {
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        attempts++;
-                    }
-                    if (typeof window.getUserShipments !== 'function') {
-                        console.error('getUserShipments still not available after waiting');
-                        return;
-                    }
+                    console.error('getUserShipments still not available after waiting');
+                    return;
                 }
                 
                 let shipments = [];

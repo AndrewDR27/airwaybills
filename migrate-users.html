@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migrate Users to Database</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .user-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f9f9f9;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background: #5568d3;
+        }
+        .success {
+            color: #28a745;
+            margin: 10px 0;
+        }
+        .error {
+            color: #dc3545;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Migrate Users to Database</h1>
+        <p>This tool will copy users from localStorage to the database.</p>
+        
+        <div id="usersList"></div>
+        
+        <button class="btn" onclick="migrateUsers()">Migrate All Users to Database</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script type="module">
+        import { usersAPI } from './js/api.js';
+        
+        // Load users from localStorage
+        function getLocalStorageUsers() {
+            try {
+                const usersData = localStorage.getItem('awb_users');
+                if (!usersData) return [];
+                return JSON.parse(usersData);
+            } catch (e) {
+                console.error('Error reading users from localStorage:', e);
+                return [];
+            }
+        }
+        
+        // Display users
+        function displayUsers() {
+            const users = getLocalStorageUsers();
+            const container = document.getElementById('usersList');
+            
+            if (users.length === 0) {
+                container.innerHTML = '<p>No users found in localStorage.</p>';
+                return;
+            }
+            
+            container.innerHTML = '<h3>Users in localStorage:</h3>' + 
+                users.map(u => `
+                    <div class="user-item">
+                        <div>
+                            <strong>${u.name || u.email}</strong> (${u.email})<br>
+                            <small>Role: ${u.role || 'N/A'}</small>
+                        </div>
+                    </div>
+                `).join('');
+        }
+        
+        // Migrate users to database
+        window.migrateUsers = async function() {
+            const users = getLocalStorageUsers();
+            const resultDiv = document.getElementById('result');
+            
+            if (users.length === 0) {
+                resultDiv.innerHTML = '<p class="error">No users found in localStorage.</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p>Migrating users...</p>';
+            
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+            
+            for (const user of users) {
+                try {
+                    // Get password from localStorage
+                    const password = localStorage.getItem(`user_password_${user.id}`);
+                    
+                    // Check if user already exists in database
+                    try {
+                        const existing = await usersAPI.getByEmail(user.email);
+                        if (existing) {
+                            console.log(`User ${user.email} already exists in database, skipping...`);
+                            successCount++;
+                            continue;
+                        }
+                    } catch (e) {
+                        // User doesn't exist, continue with migration
+                    }
+                    
+                    // Register user in database
+                    const userData = {
+                        email: user.email,
+                        name: user.name,
+                        role: user.role,
+                        company: user.company || '',
+                        password: password || 'temp_password_123' // Default password if not found
+                    };
+                    
+                    await usersAPI.register(userData);
+                    successCount++;
+                } catch (error) {
+                    errorCount++;
+                    errors.push(`${user.email}: ${error.message}`);
+                    console.error(`Error migrating user ${user.email}:`, error);
+                }
+            }
+            
+            resultDiv.innerHTML = `
+                <p class="success">✅ Migration complete!</p>
+                <p>Successfully migrated: ${successCount} users</p>
+                ${errorCount > 0 ? `<p class="error">Errors: ${errorCount} users</p>` : ''}
+                ${errors.length > 0 ? `<ul class="error">${errors.map(e => `<li>${e}</li>`).join('')}</ul>` : ''}
+                <p><strong>Note:</strong> If passwords were not found, users were created with default password "temp_password_123". They should reset their passwords.</p>
+            `;
+        };
+        
+        // Display users on load
+        displayUsers();
+    </script>
+</body>
+</html>

@@ -1,14 +1,7 @@
 // API service for server-side data storage
-// Database required in production, localStorage fallback allowed on localhost for development
+// Database required everywhere (localhost and production)
 
 const API_BASE_URL = window.location.origin;
-
-// Check if running on localhost (for development)
-function isLocalhost() {
-    if (typeof window === 'undefined') return false;
-    const hostname = window.location.hostname;
-    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0';
-}
 
 // Note: APIs are exported below and will be exposed to window at the end of the file
 
@@ -21,11 +14,7 @@ export const airlinesAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching airlines:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return getAirlinesFromLocalStorage();
-            }
-            throw error; // Require database in production
+            throw error; // Database required
         }
     },
 
@@ -40,11 +29,7 @@ export const airlinesAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error creating airline:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return createAirlineInLocalStorage(airline);
-            }
-            throw error; // Require database in production
+            throw error; // Database required
         }
     },
 
@@ -59,11 +44,7 @@ export const airlinesAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error updating airline:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return updateAirlineInLocalStorage(airline);
-            }
-            throw error; // Require database in production
+            throw error; // Database required
         }
     },
 
@@ -76,11 +57,7 @@ export const airlinesAPI = {
             return { success: true };
         } catch (error) {
             console.error('Error deleting airline:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return deleteAirlineFromLocalStorage(id);
-            }
-            throw error; // Require database in production
+            throw error; // Database required
         }
     }
 };
@@ -94,11 +71,9 @@ export const destinationsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching destinations:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return getDestinationsFromLocalStorage();
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -113,11 +88,9 @@ export const destinationsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error creating destination:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return createDestinationInLocalStorage(destination);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -132,11 +105,9 @@ export const destinationsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error updating destination:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return updateDestinationInLocalStorage(destination);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -149,11 +120,9 @@ export const destinationsAPI = {
             return { success: true };
         } catch (error) {
             console.error('Error deleting destination:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return deleteDestinationFromLocalStorage(id);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     }
 };
@@ -167,11 +136,9 @@ export const terminalsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching terminals:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return getTerminalsFromLocalStorage();
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -186,11 +153,9 @@ export const terminalsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error creating terminal:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return createTerminalInLocalStorage(terminal);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -205,11 +170,9 @@ export const terminalsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error updating terminal:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return updateTerminalInLocalStorage(terminal);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -222,11 +185,9 @@ export const terminalsAPI = {
             return { success: true };
         } catch (error) {
             console.error('Error deleting terminal:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return deleteTerminalFromLocalStorage(id);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     }
 };
@@ -240,11 +201,9 @@ export const usersAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching users:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return getUsersFromLocalStorage();
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -264,11 +223,9 @@ export const usersAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching current user:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return getCurrentUserFromLocalStorage();
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -279,11 +236,9 @@ export const usersAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching user:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return getUsersFromLocalStorage().find(u => u.id === userId);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -294,11 +249,9 @@ export const usersAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching user:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return getUsersFromLocalStorage().find(u => u.email === email);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -373,11 +326,9 @@ export const usersAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error updating user:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return updateUserInLocalStorage(user);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -390,11 +341,9 @@ export const usersAPI = {
             return { success: true };
         } catch (error) {
             console.error('Error deleting user:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return deleteUserFromLocalStorage(userId);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     }
 };
@@ -408,11 +357,9 @@ export const shipmentsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching shipments:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return getShipmentsFromLocalStorage();
+            // Database required - no localStorage fallback
+            throw error; getShipmentsFromLocalStorage();
             }
-            throw error; // Require database in production
         }
     },
 
@@ -423,13 +370,11 @@ export const shipmentsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching user shipments:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return getShipmentsFromLocalStorage().filter(s => 
+            // Database required - no localStorage fallback
+            throw error; getShipmentsFromLocalStorage().filter(s => 
                     s.createdBy === userId || s.participants?.some(p => p.userId === userId)
                 );
             }
-            throw error; // Require database in production
         }
     },
 
@@ -440,11 +385,9 @@ export const shipmentsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching shipment:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return getShipmentsFromLocalStorage().find(s => s.spaceId === spaceId);
+            // Database required - no localStorage fallback
+            throw error; getShipmentsFromLocalStorage().find(s => s.spaceId === spaceId);
             }
-            throw error; // Require database in production
         }
     },
 
@@ -455,11 +398,9 @@ export const shipmentsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching shipment:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return getShipmentsFromLocalStorage().find(s => s.awbNumber === awbNumber);
+            // Database required - no localStorage fallback
+            throw error; getShipmentsFromLocalStorage().find(s => s.awbNumber === awbNumber);
             }
-            throw error; // Require database in production
         }
     },
 
@@ -474,11 +415,9 @@ export const shipmentsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error creating shipment:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return createShipmentInLocalStorage(shipment);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -493,11 +432,9 @@ export const shipmentsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error updating shipment:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return updateShipmentInLocalStorage(shipment);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -510,11 +447,9 @@ export const shipmentsAPI = {
             return { success: true };
         } catch (error) {
             console.error('Error deleting shipment:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return deleteShipmentFromLocalStorage(spaceId);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     }
 };
@@ -531,11 +466,9 @@ export const contactsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching contacts:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return getContactsFromLocalStorage(type);
+            // Database required - no localStorage fallback
+            throw error; getContactsFromLocalStorage(type);
             }
-            throw error; // Require database in production
         }
     },
 
@@ -550,11 +483,9 @@ export const contactsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error creating contact:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return createContactInLocalStorage(contact);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -569,11 +500,9 @@ export const contactsAPI = {
             return await response.json();
         } catch (error) {
             console.error('Error updating contact:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return updateContactInLocalStorage(contact);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     },
 
@@ -586,242 +515,15 @@ export const contactsAPI = {
             return { success: true };
         } catch (error) {
             console.error('Error deleting contact:', error);
-            if (isLocalhost()) {
-                console.log('📦 Localhost: Falling back to localStorage');
-                return deleteContactFromLocalStorage(id);
+            // Database required - no localStorage fallback
+            throw error;
             }
-            throw error; // Require database in production
         }
     }
 };
 
-// LocalStorage fallback functions (only used on localhost for development)
-function getAirlinesFromLocalStorage() {
-    try {
-        const contacts = JSON.parse(localStorage.getItem('awbContacts') || '[]');
-        return contacts.filter(c => c.type === 'Airline');
-    } catch {
-        return [];
-    }
-}
-
-function saveAirlinesToLocalStorage(airlines) {
-    try {
-        const contacts = JSON.parse(localStorage.getItem('awbContacts') || '[]');
-        const otherContacts = contacts.filter(c => c.type !== 'Airline');
-        localStorage.setItem('awbContacts', JSON.stringify([...otherContacts, ...airlines]));
-    } catch (error) {
-        console.error('Error saving to localStorage:', error);
-    }
-}
-
-function createAirlineInLocalStorage(airline) {
-    const airlines = getAirlinesFromLocalStorage();
-    const newAirline = { ...airline, id: airline.id || `airline_${Date.now()}` };
-    airlines.push(newAirline);
-    saveAirlinesToLocalStorage(airlines);
-    return newAirline;
-}
-
-function updateAirlineInLocalStorage(airline) {
-    const airlines = getAirlinesFromLocalStorage();
-    const index = airlines.findIndex(a => a.id === airline.id);
-    if (index >= 0) {
-        airlines[index] = airline;
-        saveAirlinesToLocalStorage(airlines);
-    }
-    return airline;
-}
-
-function deleteAirlineFromLocalStorage(id) {
-    const airlines = getAirlinesFromLocalStorage();
-    const filtered = airlines.filter(a => a.id !== id);
-    saveAirlinesToLocalStorage(filtered);
-    return { success: true };
-}
-
-function getDestinationsFromLocalStorage() {
-    try {
-        return JSON.parse(localStorage.getItem('awbDestinations') || '[]');
-    } catch {
-        return [];
-    }
-}
-
-function saveDestinationsToLocalStorage(destinations) {
-    try {
-        localStorage.setItem('awbDestinations', JSON.stringify(destinations));
-    } catch (error) {
-        console.error('Error saving to localStorage:', error);
-    }
-}
-
-function createDestinationInLocalStorage(destination) {
-    const destinations = getDestinationsFromLocalStorage();
-    const newDest = { ...destination, id: destination.id || `dest_${Date.now()}` };
-    destinations.push(newDest);
-    saveDestinationsToLocalStorage(destinations);
-    return newDest;
-}
-
-function updateDestinationInLocalStorage(destination) {
-    const destinations = getDestinationsFromLocalStorage();
-    const index = destinations.findIndex(d => d.id === destination.id);
-    if (index >= 0) {
-        destinations[index] = destination;
-        saveDestinationsToLocalStorage(destinations);
-    }
-    return destination;
-}
-
-function deleteDestinationFromLocalStorage(id) {
-    const destinations = getDestinationsFromLocalStorage();
-    const filtered = destinations.filter(d => d.id !== id);
-    saveDestinationsToLocalStorage(filtered);
-    return { success: true };
-}
-
-function getTerminalsFromLocalStorage() {
-    try {
-        return JSON.parse(localStorage.getItem('awb_terminals') || '[]');
-    } catch {
-        return [];
-    }
-}
-
-function saveTerminalsToLocalStorage(terminals) {
-    try {
-        localStorage.setItem('awb_terminals', JSON.stringify(terminals));
-    } catch (error) {
-        console.error('Error saving to localStorage:', error);
-    }
-}
-
-function createTerminalInLocalStorage(terminal) {
-    const terminals = getTerminalsFromLocalStorage();
-    const newTerminal = { ...terminal, id: terminal.id || `terminal_${Date.now()}` };
-    terminals.push(newTerminal);
-    saveTerminalsToLocalStorage(terminals);
-    return newTerminal;
-}
-
-function updateTerminalInLocalStorage(terminal) {
-    const terminals = getTerminalsFromLocalStorage();
-    const index = terminals.findIndex(t => t.id === terminal.id);
-    if (index >= 0) {
-        terminals[index] = terminal;
-        saveTerminalsToLocalStorage(terminals);
-    }
-    return terminal;
-}
-
-function deleteTerminalFromLocalStorage(id) {
-    const terminals = getTerminalsFromLocalStorage();
-    const filtered = terminals.filter(t => t.id !== id);
-    saveTerminalsToLocalStorage(filtered);
-    return { success: true };
-}
-
-function getUsersFromLocalStorage() {
-    try {
-        return JSON.parse(localStorage.getItem('awb_users') || '[]');
-    } catch {
-        return [];
-    }
-}
-
-function getCurrentUserFromLocalStorage() {
-    try {
-        const authData = JSON.parse(localStorage.getItem('awb_auth') || '{}');
-        if (!authData.userId) return null;
-        const users = getUsersFromLocalStorage();
-        return users.find(u => u.id === authData.userId) || null;
-    } catch {
-        return null;
-    }
-}
-
-function updateUserInLocalStorage(user) {
-    const users = getUsersFromLocalStorage();
-    const index = users.findIndex(u => u.id === user.id);
-    if (index >= 0) {
-        users[index] = user;
-        localStorage.setItem('awb_users', JSON.stringify(users));
-    }
-    return user;
-}
-
-function deleteUserFromLocalStorage(userId) {
-    const users = getUsersFromLocalStorage();
-    const filtered = users.filter(u => u.id !== userId);
-    localStorage.setItem('awb_users', JSON.stringify(filtered));
-    return { success: true };
-}
-
-function getShipmentsFromLocalStorage() {
-    try {
-        return JSON.parse(localStorage.getItem('awb_shipments') || '[]');
-    } catch {
-        return [];
-    }
-}
-
-function createShipmentInLocalStorage(shipment) {
-    const shipments = getShipmentsFromLocalStorage();
-    shipments.push(shipment);
-    localStorage.setItem('awb_shipments', JSON.stringify(shipments));
-    return shipment;
-}
-
-function updateShipmentInLocalStorage(shipment) {
-    const shipments = getShipmentsFromLocalStorage();
-    const index = shipments.findIndex(s => s.spaceId === shipment.spaceId);
-    if (index >= 0) {
-        shipments[index] = shipment;
-        localStorage.setItem('awb_shipments', JSON.stringify(shipments));
-    }
-    return shipment;
-}
-
-function deleteShipmentFromLocalStorage(spaceId) {
-    const shipments = getShipmentsFromLocalStorage();
-    const filtered = shipments.filter(s => s.spaceId !== spaceId);
-    localStorage.setItem('awb_shipments', JSON.stringify(filtered));
-    return { success: true };
-}
-
-function getContactsFromLocalStorage(type = null) {
-    try {
-        const contacts = JSON.parse(localStorage.getItem('awbContacts') || '[]');
-        return type ? contacts.filter(c => c.type === type) : contacts;
-    } catch {
-        return [];
-    }
-}
-
-function createContactInLocalStorage(contact) {
-    const contacts = getContactsFromLocalStorage();
-    contacts.push(contact);
-    localStorage.setItem('awbContacts', JSON.stringify(contacts));
-    return contact;
-}
-
-function updateContactInLocalStorage(contact) {
-    const contacts = getContactsFromLocalStorage();
-    const index = contacts.findIndex(c => c.id === contact.id);
-    if (index >= 0) {
-        contacts[index] = contact;
-        localStorage.setItem('awbContacts', JSON.stringify(contacts));
-    }
-    return contact;
-}
-
-function deleteContactFromLocalStorage(id) {
-    const contacts = getContactsFromLocalStorage();
-    const filtered = contacts.filter(c => c.id !== id);
-    localStorage.setItem('awbContacts', JSON.stringify(filtered));
-    return { success: true };
-}
+// Note: localStorage is still used for session tokens (awb_auth) for authentication
+// but NOT as a data source - all data comes from the database
 
 // Expose APIs globally for non-module scripts (after all APIs are defined)
 if (typeof window !== 'undefined') {
