@@ -307,8 +307,28 @@ async function login(email, password) {
 
 // Register new user - requires API, fallback on localhost
 async function register(userData) {
+    // Wait for API to be ready if it's not available yet (but only wait a short time)
+    if (!usersAPI) {
+        // Wait for apiReady event (max 1 second)
+        await new Promise((resolve) => {
+            if (window.usersAPI) {
+                usersAPI = window.usersAPI;
+                resolve();
+            } else {
+                window.addEventListener('apiReady', () => {
+                    usersAPI = window.usersAPI;
+                    resolve();
+                }, { once: true });
+                // Timeout after 1 second
+                setTimeout(resolve, 1000);
+            }
+        });
+    }
+    
+    // If still no API and on localhost, use localStorage
     if (!usersAPI) {
         if (isLocalhost()) {
+            console.log('📦 Localhost: Using localStorage registration');
             return registerLocalStorage(userData);
         }
         return { 
@@ -328,6 +348,7 @@ async function register(userData) {
     } catch (error) {
         console.error('Error registering via API:', error);
         if (isLocalhost()) {
+            console.log('📦 Localhost: Falling back to localStorage registration');
             return registerLocalStorage(userData);
         }
         return { 
