@@ -97,8 +97,19 @@ async function getCurrentUserAsync() {
             } catch (e) {
                 console.warn('Could not update localStorage:', e);
             }
+            return user;
+        } else {
+            // API returned null - preserve existing cache if available
+            console.log('API returned null user, preserving existing cache if available');
+            if (currentUserCache) {
+                return currentUserCache;
+            }
+            // Try localStorage fallback on localhost
+            if (isLocalhost()) {
+                return getCurrentUser();
+            }
+            return null;
         }
-        return user;
     } catch (error) {
         console.error('Error fetching current user from API:', error);
         if (isLocalhost()) {
@@ -468,8 +479,11 @@ if (typeof window !== 'undefined') {
         if (window.usersAPI) {
             usersAPI = window.usersAPI;
             clearInterval(checkAPI);
-            // Refresh current user from API
-            getCurrentUserAsync();
+            // Refresh current user from API (but don't clear cache if it fails)
+            getCurrentUserAsync().catch(error => {
+                // Silently fail - don't clear existing cache
+                console.log('Background user refresh failed, keeping existing cache:', error.message);
+            });
         }
     }, 100);
     

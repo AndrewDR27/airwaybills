@@ -258,28 +258,31 @@
     <script>
         // Check authentication - wait for user to be available
         (async () => {
-            // First check synchronously
-            if (!isAuthenticated()) {
-                window.location.href = '/login.html';
-                return;
-            }
-
+            console.log('Dashboard: Starting auth check...');
+            
             // Try to get user synchronously first
             let user = getCurrentUser();
+            console.log('Dashboard: getCurrentUser() returned:', user ? user.email : 'null');
             
             // If not found, try async (might be loading from API)
             if (!user) {
+                console.log('Dashboard: User not found synchronously, trying async...');
                 try {
                     user = await getCurrentUserAsync();
+                    console.log('Dashboard: getCurrentUserAsync() returned:', user ? user.email : 'null');
                 } catch (error) {
-                    console.error('Error getting current user:', error);
+                    console.error('Dashboard: Error getting current user:', error);
                 }
             }
 
+            // Check authentication after getting user
             if (!user) {
+                console.log('Dashboard: No user found, redirecting to login');
                 window.location.href = 'login.html';
                 return;
             }
+            
+            console.log('Dashboard: User authenticated:', user.email, 'role:', user.role);
 
         // Display user info
         document.getElementById('usernameDisplay').textContent = user.name || user.email;
