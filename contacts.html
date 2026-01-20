@@ -543,8 +543,16 @@
             document.getElementById('consignees-count').textContent = `(${consignees.length})`;
             
             // Check if user is admin and show/hide Users tab
-            const user = getCurrentUser();
-            const isAdmin = user && user.role === 'admin';
+            let user = null;
+            let isAdmin = false;
+            try {
+                if (typeof getCurrentUser === 'function') {
+                    user = getCurrentUser();
+                    isAdmin = user && user.role === 'admin';
+                }
+            } catch (error) {
+                console.warn('Error getting current user:', error);
+            }
             
             // Sort all contacts by type, then by company name
             const allContacts = [...userContacts].sort((a, b) => {
@@ -842,19 +850,35 @@
                 // Check if email matches an existing user and auto-link
                 let linkedUserId = null;
                 if (email) {
-                    const users = await getAllUsers();
-                    const matchingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-                    if (matchingUser) {
-                        linkedUserId = matchingUser.id;
-                        // Check if user role matches contact type (optional validation)
-                        const roleMatchesType = (
-                            (type === 'Shipper' && matchingUser.role === 'shipper') ||
-                            (type === 'Consignee' && matchingUser.role === 'consignee')
-                        );
-                        if (!roleMatchesType && matchingUser.role !== 'admin') {
-                            // Warn but don't prevent linking
-                            console.log(`Contact type ${type} doesn't match user role ${matchingUser.role}, but linking anyway.`);
+                    try {
+                        // Wait for getAllUsers to be available
+                        let attempts = 0;
+                        while (typeof getAllUsers === 'undefined' && attempts < 50) {
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                            attempts++;
                         }
+                        
+                        if (typeof getAllUsers === 'function') {
+                            const users = await getAllUsers();
+                            const matchingUser = users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+                            if (matchingUser) {
+                                linkedUserId = matchingUser.id;
+                                // Check if user role matches contact type (optional validation)
+                                const roleMatchesType = (
+                                    (type === 'Shipper' && matchingUser.role === 'shipper') ||
+                                    (type === 'Consignee' && matchingUser.role === 'consignee')
+                                );
+                                if (!roleMatchesType && matchingUser.role !== 'admin') {
+                                    // Warn but don't prevent linking
+                                    console.log(`Contact type ${type} doesn't match user role ${matchingUser.role}, but linking anyway.`);
+                                }
+                            }
+                        } else {
+                            console.warn('getAllUsers not available, skipping user auto-linking');
+                        }
+                    } catch (error) {
+                        console.warn('Error checking user email for auto-linking:', error);
+                        // Continue without auto-linking - don't fail the save
                     }
                 }
                 
@@ -862,8 +886,16 @@
                 const existingContact = contactIndex >= 0 ? contacts[contactIndex] : null;
                 
                 // Collect agent custom fields if agent is editing
-                const user = getCurrentUser();
-                const isAgent = user && (user.role === 'issuing-carrier-agent' || user.role === 'admin');
+                let user = null;
+                let isAgent = false;
+                try {
+                    if (typeof getCurrentUser === 'function') {
+                        user = getCurrentUser();
+                        isAgent = user && (user.role === 'issuing-carrier-agent' || user.role === 'admin');
+                    }
+                } catch (error) {
+                    console.warn('Error getting current user for agent check:', error);
+                }
                 let agentCustomFields = existingContact ? (existingContact.agentCustomFields || {}) : {};
                 
                 if (isAgent) {
@@ -913,10 +945,26 @@
             // Check if email matches an existing user and auto-link
             let linkedUserId = null;
             if (contact.email) {
-                const users = await getAllUsers();
-                const matchingUser = users.find(u => u.email.toLowerCase() === contact.email.toLowerCase());
-                if (matchingUser) {
-                    linkedUserId = matchingUser.id;
+                try {
+                    // Wait for getAllUsers to be available
+                    let attempts = 0;
+                    while (typeof getAllUsers === 'undefined' && attempts < 50) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        attempts++;
+                    }
+                    
+                    if (typeof getAllUsers === 'function') {
+                        const users = await getAllUsers();
+                        const matchingUser = users.find(u => u.email && u.email.toLowerCase() === contact.email.toLowerCase());
+                        if (matchingUser) {
+                            linkedUserId = matchingUser.id;
+                        }
+                    } else {
+                        console.warn('getAllUsers not available, skipping user auto-linking');
+                    }
+                } catch (error) {
+                    console.warn('Error checking user email for auto-linking:', error);
+                    // Continue without auto-linking - don't fail the save
                 }
             }
             
@@ -1059,6 +1107,11 @@
             
             modal.style.display = 'flex';
         }
+        
+        // Make functions available globally for onclick handlers
+        window.openUserProfileModal = openUserProfileModal;
+        window.openContactModal = openContactModal;
+        window.deleteContact = deleteContact;
 
         // Load contacts and profile on page load
         // Initialize on page load
