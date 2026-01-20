@@ -37,8 +37,9 @@ function getCurrentUser() {
         return currentUserCache;
     }
     
-    // Try localStorage as fallback (only on localhost)
-    if (isLocalhost()) {
+    // Try localStorage as fallback (always try on localhost, or if no API available)
+    const shouldUseLocalStorage = isLocalhost() || !usersAPI;
+    if (shouldUseLocalStorage) {
         try {
             const authData = localStorage.getItem('awb_auth');
             if (authData) {
@@ -49,9 +50,16 @@ function getCurrentUser() {
                     if (user) {
                         currentUserCache = user;
                         cacheTimestamp = Date.now();
+                        console.log('getCurrentUser: Found user in localStorage', user.email);
                         return user;
+                    } else {
+                        console.log('getCurrentUser: User ID', auth.userId, 'not found in users array. Available IDs:', users.map(u => u.id));
                     }
+                } else {
+                    console.log('getCurrentUser: Auth data invalid or missing userId', auth);
                 }
+            } else {
+                console.log('getCurrentUser: No auth data in localStorage');
             }
         } catch (e) {
             console.error('Error getting current user from cache:', e);
@@ -64,9 +72,15 @@ function getCurrentUser() {
 // Get current user from API (async) - requires API, fallback on localhost
 async function getCurrentUserAsync() {
     if (!usersAPI) {
+        // Always fallback to localStorage if API not available (for localhost development)
+        console.log('📦 API not available: Using localStorage fallback');
+        const user = getCurrentUser();
+        if (user) {
+            return user;
+        }
+        // If still not found and on localhost, that's okay - return null
         if (isLocalhost()) {
-            console.log('📦 Localhost: Using localStorage (development)');
-            return getCurrentUser();
+            return null;
         }
         throw new Error('Database API not available. Please ensure the database is configured.');
     }
