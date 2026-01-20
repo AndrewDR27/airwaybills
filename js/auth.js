@@ -77,7 +77,7 @@ async function getCurrentUserAsync() {
             console.log('💾 Storage: Using database (Upstash Redis)');
             currentUserCache = user;
             cacheTimestamp = Date.now();
-            // Store session token in localStorage (for API requests only, not as data source)
+            // Store session token and user in localStorage (for cache and localhost fallback)
             try {
                 const existingAuth = JSON.parse(localStorage.getItem('awb_auth') || '{}');
                 localStorage.setItem('awb_auth', JSON.stringify({
@@ -85,8 +85,17 @@ async function getCurrentUserAsync() {
                     userId: user.id,
                     sessionToken: existingAuth.sessionToken || null // Preserve session token
                 }));
+                // Also store user in awb_users array for getCurrentUser() to find
+                const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
+                const index = users.findIndex(u => u.id === user.id);
+                if (index >= 0) {
+                    users[index] = user;
+                } else {
+                    users.push(user);
+                }
+                localStorage.setItem('awb_users', JSON.stringify(users));
             } catch (e) {
-                console.warn('Could not update localStorage session token:', e);
+                console.warn('Could not update localStorage:', e);
             }
         }
         return user;

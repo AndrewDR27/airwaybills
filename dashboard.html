@@ -256,17 +256,30 @@
     <script src="js/shipments.js"></script>
     
     <script>
-        // Check authentication
-        if (!requireAuth()) {
-            // Redirect handled by requireAuth
-            exit;
-        }
+        // Check authentication - wait for user to be available
+        (async () => {
+            // First check synchronously
+            if (!isAuthenticated()) {
+                window.location.href = '/login.html';
+                return;
+            }
 
-        const user = getCurrentUser();
-        if (!user) {
-            window.location.href = 'login.html';
-            exit;
-        }
+            // Try to get user synchronously first
+            let user = getCurrentUser();
+            
+            // If not found, try async (might be loading from API)
+            if (!user) {
+                try {
+                    user = await getCurrentUserAsync();
+                } catch (error) {
+                    console.error('Error getting current user:', error);
+                }
+            }
+
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
 
         // Display user info
         document.getElementById('usernameDisplay').textContent = user.name || user.email;
@@ -500,6 +513,7 @@
                 return false;
             }
         });
+        })(); // Close async IIFE
     </script>
 </body>
 </html>
