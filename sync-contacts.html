@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sync Contacts to Database</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        .success {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+        .error {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #1976d2;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .contact-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        .contact-item strong {
+            color: #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Sync Contacts to Database</h1>
+        <p>This tool will sync AWB form contacts from localStorage to the production database.</p>
+        
+        <div id="status"></div>
+        <div id="contacts-list"></div>
+        
+        <button id="syncBtn" onclick="syncContacts()">Sync Contacts to Database</button>
+        <button onclick="checkContacts()">Check Local Contacts</button>
+        
+        <script type="module">
+            const API_BASE_URL = window.location.hostname === 'localhost' 
+                ? 'http://localhost:3000' 
+                : 'https://airwaybills.vercel.app';
+            
+            async function checkContacts() {
+                const statusDiv = document.getElementById('status');
+                const contactsList = document.getElementById('contacts-list');
+                
+                try {
+                    // Check localStorage
+                    const localContactsJson = localStorage.getItem('awbContacts');
+                    const localContacts = localContactsJson ? JSON.parse(localContactsJson) : [];
+                    
+                    // Filter for AWB form contacts (Shipper, Consignee)
+                    const awbContacts = localContacts.filter(c => 
+                        c && c.id && (c.type === 'Shipper' || c.type === 'Consignee')
+                    );
+                    
+                    statusDiv.innerHTML = `
+                        <div class="status">
+                            <strong>Local Storage:</strong> Found ${awbContacts.length} AWB form contact(s)
+                        </div>
+                    `;
+                    
+                    if (awbContacts.length === 0) {
+                        contactsList.innerHTML = '<p>No AWB form contacts found in localStorage.</p>';
+                        return;
+                    }
+                    
+                    // Check database
+                    const response = await fetch(`${API_BASE_URL}/api/contacts`);
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch contacts from database: ${response.status} ${response.statusText}`);
+                    }
+                    const dbContacts = await response.json();
+                    const dbContactsArray = Array.isArray(dbContacts) ? dbContacts : [];
+                    const dbAwbContacts = dbContactsArray.filter(c => 
+                        c && c.id && (c.type === 'Shipper' || c.type === 'Consignee')
+                    );
+                    
+                    statusDiv.innerHTML += `
+                        <div class="status">
+                            <strong>Database:</strong> Found ${dbAwbContacts.length} AWB form contact(s)
+                        </div>
+                    `;
+                    
+                    // Display contacts
+                    let html = '<h3>Local Contacts to Sync:</h3>';
+                    awbContacts.forEach(contact => {
+                        const exists = dbAwbContacts.some(c => c.id === contact.id);
+                        html += `
+                            <div class="contact-item">
+                                <strong>${contact.type}:</strong> ${contact.companyName || contact.name || 'N/A'}
+                                ${exists ? '<span style="color: green;"> (Already in DB)</span>' : '<span style="color: orange;"> (Not in DB)</span>'}
+                            </div>
+                        `;
+                    });
+                    contactsList.innerHTML = html;
+                    
+                } catch (error) {
+                    statusDiv.innerHTML = `
+                        <div class="status error">
+                            <strong>Error:</strong> ${error.message}
+                        </div>
+                    `;
+                    console.error('Error checking contacts:', error);
+                }
+            }
+            
+            window.checkContacts = checkContacts;
+            
+            async function syncContacts() {
+                const statusDiv = document.getElementById('status');
+                const syncBtn = document.getElementById('syncBtn');
+                syncBtn.disabled = true;
+                syncBtn.textContent = 'Syncing...';
+                
+                try {
+                    // Get contacts from localStorage
+                    const localContactsJson = localStorage.getItem('awbContacts');
+                    const localContacts = localContactsJson ? JSON.parse(localContactsJson) : [];
+                    
+                    // Filter for AWB form contacts
+                    const awbContacts = localContacts.filter(c => 
+                        c && c.id && (c.type === 'Shipper' || c.type === 'Consignee')
+                    );
+                    
+                    if (awbContacts.length === 0) {
+                        statusDiv.innerHTML = `
+                            <div class="status error">
+                                No AWB form contacts found in localStorage to sync.
+                            </div>
+                        `;
+                        syncBtn.disabled = false;
+                        syncBtn.textContent = 'Sync Contacts to Database';
+                        return;
+                    }
+                    
+                    // Get existing contacts from database
+                    const response = await fetch(`${API_BASE_URL}/api/contacts`);
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch contacts from database: ${response.status} ${response.statusText}`);
+                    }
+                    const dbContacts = await response.json();
+                    const dbContactsArray = Array.isArray(dbContacts) ? dbContacts : [];
+                    
+                    let synced = 0;
+                    let skipped = 0;
+                    let errors = 0;
+                    
+                    for (const contact of awbContacts) {
+                        try {
+                            // Check if contact already exists
+                            const exists = dbContactsArray.some(c => c.id === contact.id);
+                            
+                            if (exists) {
+                                // Update existing
+                                const updateResponse = await fetch(`${API_BASE_URL}/api/contacts`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(contact)
+                                });
+                                
+                                if (updateResponse.ok) {
+                                    synced++;
+                                    console.log(`Updated contact: ${contact.id}`);
+                                } else {
+                                    errors++;
+                                    console.error(`Failed to update contact: ${contact.id}`);
+                                }
+                            } else {
+                                // Create new
+                                const createResponse = await fetch(`${API_BASE_URL}/api/contacts`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(contact)
+                                });
+                                
+                                if (createResponse.ok) {
+                                    synced++;
+                                    console.log(`Created contact: ${contact.id}`);
+                                } else {
+                                    errors++;
+                                    console.error(`Failed to create contact: ${contact.id}`);
+                                }
+                            }
+                        } catch (error) {
+                            errors++;
+                            console.error(`Error syncing contact ${contact.id}:`, error);
+                        }
+                    }
+                    
+                    statusDiv.innerHTML = `
+                        <div class="status success">
+                            <strong>Sync Complete!</strong><br>
+                            Synced: ${synced} contact(s)<br>
+                            Skipped: ${skipped} contact(s)<br>
+                            Errors: ${errors} contact(s)
+                        </div>
+                    `;
+                    
+                    // Refresh the contacts list
+                    await checkContacts();
+                    
+                } catch (error) {
+                    statusDiv.innerHTML = `
+                        <div class="status error">
+                            <strong>Error:</strong> ${error.message}
+                        </div>
+                    `;
+                    console.error('Error syncing contacts:', error);
+                } finally {
+                    syncBtn.disabled = false;
+                    syncBtn.textContent = 'Sync Contacts to Database';
+                }
+            }
+            
+            window.syncContacts = syncContacts;
+            
+            // Auto-check on load
+            checkContacts();
+        </script>
+    </div>
+</body>
+</html>

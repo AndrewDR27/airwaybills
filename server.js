@@ -550,69 +550,100 @@ app.delete('/api/shipments', async (req, res) => {
 });
 
 // Contacts API
+const CONTACTS_KEY = 'awb_contacts';
+
 app.get('/api/contacts', async (req, res) => {
+    console.log('=== Contacts API GET called ===');
     try {
+        if (!redis) {
+            console.error('Contacts API: Redis not configured');
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+
         const { type, userId } = req.query;
-        const contacts = readDataFile('contacts');
+        console.log('Contacts API: Fetching from Redis, key:', CONTACTS_KEY);
+        const contacts = await redis.get(CONTACTS_KEY);
+        console.log('Contacts API: Raw result from Redis:', typeof contacts, contacts === null ? 'null' : contacts === undefined ? 'undefined' : Array.isArray(contacts) ? `array with ${contacts.length} items` : 'not an array');
+        const contactsArray = Array.isArray(contacts) ? contacts : (contacts || []);
 
         if (type) {
-            const filtered = contacts.filter(c => c.type === type);
-            res.json(filtered);
+            const filtered = contactsArray.filter(c => c && c.type === type);
+            console.log('Contacts API: Returning', filtered.length, 'contacts filtered by type:', type);
+            res.json(Array.isArray(filtered) ? filtered : []);
         } else if (userId) {
-            const userContacts = contacts.filter(c => c.userId === userId);
-            res.json(userContacts);
+            const userContacts = contactsArray.filter(c => c && c.userId === userId);
+            console.log('Contacts API: Returning', userContacts.length, 'contacts for user:', userId);
+            res.json(Array.isArray(userContacts) ? userContacts : []);
         } else {
-            res.json(contacts);
+            console.log('Contacts API: Returning', contactsArray.length, 'contacts');
+            res.json(Array.isArray(contactsArray) ? contactsArray : []);
         }
     } catch (error) {
-        console.error('Contacts API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Contacts API ERROR:', error.message);
+        console.error('Contacts API ERROR stack:', error.stack);
+        res.status(500).json({ error: 'Internal server error', message: error.message, stack: process.env.NODE_ENV === 'development' ? error.stack : undefined });
     }
 });
 
 app.post('/api/contacts', async (req, res) => {
     try {
-        const contacts = readDataFile('contacts');
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+
+        const contacts = (await redis.get(CONTACTS_KEY)) || [];
         const newContact = {
             id: req.body.id || `contact_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             ...req.body,
-            created_at: new Date().toISOString()
+            createdAt: new Date().toISOString()
         };
         contacts.push(newContact);
-        writeDataFile('contacts', contacts);
+        await redis.set(CONTACTS_KEY, contacts);
         res.status(201).json(newContact);
     } catch (error) {
         console.error('Contacts API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
 app.put('/api/contacts', async (req, res) => {
     try {
-        const contacts = readDataFile('contacts');
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+
+        const contacts = (await redis.get(CONTACTS_KEY)) || [];
         const index = contacts.findIndex(c => c.id === req.body.id);
         if (index >= 0) {
             contacts[index] = { ...contacts[index], ...req.body };
-            writeDataFile('contacts', contacts);
+            await redis.set(CONTACTS_KEY, contacts);
             res.json(contacts[index]);
         } else {
             res.status(404).json({ error: 'Contact not found' });
         }
     } catch (error) {
         console.error('Contacts API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
 app.delete('/api/contacts', async (req, res) => {
     try {
-        const contacts = readDataFile('contacts');
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+
+        const contacts = (await redis.get(CONTACTS_KEY)) || [];
         const filtered = contacts.filter(c => c.id !== req.query.id);
-        writeDataFile('contacts', filtered);
+        await redis.set(CONTACTS_KEY, filtered);
         res.json({ success: true });
     } catch (error) {
         console.error('Contacts API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
