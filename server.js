@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
+const { Redis } = require('@upstash/redis');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,39 +10,33 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// Data storage for localhost (using JSON files)
-const DATA_DIR = path.join(__dirname, 'data');
+// Connect to Upstash Redis database (same as production)
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+const redis = redisUrl && redisToken
+    ? new Redis({
+        url: redisUrl,
+        token: redisToken,
+      })
+    : null;
+
+if (!redis) {
+    console.error('❌ WARNING: Upstash Redis not configured!');
+    console.error('Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in your .env file');
+    console.error('These should match your Vercel environment variables');
 }
 
-// Helper functions for localhost data storage
-function readDataFile(key) {
-    const filePath = path.join(DATA_DIR, `${key}.json`);
-    if (!fs.existsSync(filePath)) {
-        return [];
-    }
-    try {
-        const data = fs.readFileSync(filePath, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        console.error(`Error reading ${key}:`, error);
-        return [];
-    }
+// Helper functions for session management (same as api/users.js)
+function generateSessionToken() {
+    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
 }
 
-function writeDataFile(key, data) {
-    const filePath = path.join(DATA_DIR, `${key}.json`);
-    try {
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
-        return true;
-    } catch (error) {
-        console.error(`Error writing ${key}:`, error);
-        return false;
-    }
+function getSessionKey(token) {
+    return `awb_session:${token}`;
 }
+
+const USERS_KEY = 'awb_users';
 
 // CORS middleware
 app.use('/api', (req, res, next) => {
@@ -59,25 +53,38 @@ app.use('/api', (req, res, next) => {
 // Users API
 app.get('/api/users', async (req, res) => {
     try {
-        const { action, userId, email } = req.query;
-        const users = readDataFile('users');
-        const auth = readDataFile('auth')[0] || null;
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+
+        const { action, userId, email, sessionToken } = req.query;
+        const users = (await redis.get(USERS_KEY)) || [];
 
         if (action === 'all') {
             const safeUsers = users.map(u => {
                 const { password, ...safeUser } = u;
                 return safeUser;
             });
-            res.json(safeUsers);
+            res.json(Array.isArray(safeUsers) ? safeUsers : []);
         } else if (action === 'current') {
-            if (!auth || !auth.userId) {
-                res.json(null);
-                return;
-            }
-            const user = users.find(u => u.id === auth.userId);
-            if (user) {
-                const { password, ...safeUser } = user;
-                res.json(safeUser);
+            if (sessionToken) {
+                // Use session token (new method)
+                const sessionKey = getSessionKey(sessionToken);
+                const sessionData = await redis.get(sessionKey);
+                
+                if (!sessionData || !sessionData.userId) {
+                    res.json(null);
+                    return;
+                }
+                
+                const user = users.find(u => u.id === sessionData.userId);
+                if (user) {
+                    const { password, ...safeUser } = user;
+                    res.json(safeUser);
+                } else {
+                    res.json(null);
+                }
             } else {
                 res.json(null);
             }
@@ -108,9 +115,13 @@ app.get('/api/users', async (req, res) => {
 
 app.post('/api/users', async (req, res) => {
     try {
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+
         const { action } = req.query;
-        const users = readDataFile('users');
-        const passwords = readDataFile('passwords') || {};
+        const users = (await redis.get(USERS_KEY)) || [];
 
         if (action === 'register') {
             if (users.some(u => u.email === req.body.email)) {
@@ -129,37 +140,75 @@ app.post('/api/users', async (req, res) => {
             };
 
             users.push(newUser);
-            passwords[newUser.id] = req.body.password;
-            writeDataFile('users', users);
-            writeDataFile('passwords', passwords);
+            await redis.set(USERS_KEY, users);
+            
+            // Store password separately (in production, use proper hashing)
+            await redis.set(`user_password_${newUser.id}`, req.body.password);
 
             const { password, ...safeUser } = newUser;
             res.status(201).json(safeUser);
         } else if (action === 'login') {
-            const user = users.find(u => u.email === req.body.email);
+            // Login - check credentials
+            const users = (await redis.get(USERS_KEY)) || [];
+            console.log('Login attempt for email:', req.body.email);
+            console.log('Total users in database:', users.length);
+            
+            // Case-insensitive email matching
+            const user = users.find(u => u.email && u.email.toLowerCase() === req.body.email.toLowerCase());
+            
             if (!user) {
+                console.log('User not found in database');
+                console.log('Available emails:', users.map(u => u.email).filter(Boolean));
                 res.status(401).json({ success: false, message: 'Invalid email or password' });
                 return;
             }
 
-            if (passwords[user.id] !== req.body.password) {
+            console.log('User found:', user.email, 'role:', user.role);
+            const storedPassword = await redis.get(`user_password_${user.id}`);
+            
+            if (!storedPassword) {
+                console.log('No password stored for user:', user.id);
                 res.status(401).json({ success: false, message: 'Invalid email or password' });
                 return;
             }
+            
+            if (storedPassword !== req.body.password) {
+                console.log('Password mismatch');
+                console.log('Stored password length:', storedPassword.length);
+                console.log('Provided password length:', req.body.password.length);
+                res.status(401).json({ success: false, message: 'Invalid email or password' });
+                return;
+            }
+            
+            console.log('Login successful for:', user.email);
 
-            const authData = {
-                isAuthenticated: true,
+            // Generate unique session token
+            const sessionToken = generateSessionToken();
+            
+            // Store session data with token as key
+            const sessionData = {
                 userId: user.id,
                 email: user.email,
                 role: user.role,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
             };
-            writeDataFile('auth', [authData]);
+            
+            const sessionKey = getSessionKey(sessionToken);
+            await redis.set(sessionKey, sessionData);
 
             const { password, ...safeUser } = user;
-            res.json({ success: true, user: safeUser });
+            res.json({ 
+                success: true, 
+                user: safeUser,
+                sessionToken: sessionToken
+            });
         } else if (action === 'logout') {
-            writeDataFile('auth', []);
+            const sessionToken = req.body.sessionToken;
+            if (sessionToken) {
+                const sessionKey = getSessionKey(sessionToken);
+                await redis.del(sessionKey);
+            }
             res.json({ success: true });
         } else {
             res.status(400).json({ error: 'Invalid action' });
@@ -552,5 +601,9 @@ app.listen(PORT, () => {
     console.log(`🚀 Server running at http://localhost:${PORT}`);
     console.log(`📄 Login page: http://localhost:${PORT}/login.html`);
     console.log(`📋 Dashboard: http://localhost:${PORT}/dashboard.html`);
-    console.log(`💾 Data stored in: ${DATA_DIR}`);
+    if (redis) {
+        console.log(`💾 Database: Upstash Redis connected`);
+    } else {
+        console.log(`⚠️  Database: Redis not configured - check .env file`);
+    }
 });
