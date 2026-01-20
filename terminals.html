@@ -40,40 +40,49 @@
             padding: 8px;
         }
         .terminals-list {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .terminal-item {
-            padding: 4px 8px;
             background: white;
+            overflow: hidden;
             border: 2px inset #C0C0C0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
-        .terminal-item:hover {
+        .terminals-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .terminals-table thead {
+            background: #C0C0C0;
+            border-bottom: 2px inset #C0C0C0;
+        }
+        .terminals-table th {
+            padding: 4px 8px;
+            text-align: left;
+            font-weight: bold;
+            color: #000000;
+            font-size: 11px;
+            text-transform: uppercase;
+            border-right: 1px solid #808080;
+        }
+        .terminals-table th:last-child {
+            border-right: none;
+        }
+        .terminals-table td {
+            padding: 4px 8px;
+            border-bottom: 1px solid #C0C0C0;
+            border-right: 1px solid #C0C0C0;
+            color: #000000;
+            font-size: 11px;
+        }
+        .terminals-table td:last-child {
+            border-right: none;
+        }
+        .terminals-table tbody tr {
+            background: white;
+        }
+        .terminals-table tbody tr:hover {
             background: #316AC5;
             color: white;
         }
-        .terminal-info {
-            flex: 1;
-        }
-        .terminal-code {
-            font-size: 14px;
-            font-weight: bold;
-            color: #000000;
-            margin-bottom: 2px;
-        }
-        .terminal-item:hover .terminal-code {
-            color: white;
-        }
-        .terminal-name {
-            font-size: 11px;
-            color: #000000;
-        }
-        .terminal-item:hover .terminal-name {
-            color: white;
+        .terminals-table tbody tr:last-child td {
+            border-bottom: none;
         }
         .terminal-actions {
             display: flex;
@@ -293,20 +302,42 @@
                     return;
                 }
 
-                listContainer.innerHTML = terminals.map(terminal => `
-                    <div class="terminal-item">
-                        <div class="terminal-info">
-                            <div class="terminal-code">${escapeHtml(terminal.terminalCode || terminal.code || '')}</div>
-                            <div class="terminal-name">${escapeHtml(terminal.terminalName || terminal.name || '')}</div>
-                        </div>
-                        ${isAdmin() ? `
-                        <div class="terminal-actions">
-                            <button class="btn-edit" onclick="openTerminalModal('${terminal.id}')">Edit</button>
-                            <button class="btn-delete" onclick="deleteTerminal('${terminal.id}')">Delete</button>
-                        </div>
-                        ` : ''}
-                    </div>
-                `).join('');
+                const isUserAdmin = isAdmin();
+                const actionsColumn = '<th>Actions</th>';
+                const tableRows = terminals.map(terminal => {
+                    const escapedId = (terminal.id || '').replace(/'/g, "\\'");
+                    const deleteButton = isUserAdmin ? `<button class="btn-delete" onclick="deleteTerminal('${escapedId}')">Delete</button>` : '';
+                    const actionsCell = `
+                        <td>
+                            <div class="terminal-actions">
+                                <button class="btn-edit" onclick="openTerminalModal('${escapedId}')">Edit</button>
+                                ${deleteButton}
+                            </div>
+                        </td>
+                    `;
+                    return `
+                    <tr>
+                        <td>${escapeHtml(terminal.terminalCode || terminal.code || '')}</td>
+                        <td>${escapeHtml(terminal.terminalName || terminal.name || '')}</td>
+                        ${actionsCell}
+                    </tr>
+                `;
+                }).join('');
+                
+                listContainer.innerHTML = `
+                    <table class="terminals-table">
+                        <thead>
+                            <tr>
+                                <th>Terminal Code</th>
+                                <th>Terminal Name</th>
+                                ${actionsColumn}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                `;
             } catch (error) {
                 console.error('Error loading terminals:', error);
                 const listContainer = document.getElementById('terminals-list');
@@ -321,8 +352,9 @@
         }
 
         async function openTerminalModal(terminalId) {
-            if (!isAdmin()) {
-                alert('Only administrators can manage terminals.');
+            // Only check admin for adding new terminals
+            if (!terminalId && !isAdmin()) {
+                alert('Only administrators can add new terminals.');
                 return;
             }
 
@@ -383,11 +415,6 @@
         document.getElementById('terminalForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            if (!isAdmin()) {
-                alert('Only administrators can save terminals.');
-                return;
-            }
-
             const terminalId = document.getElementById('terminalId').value;
             const code = document.getElementById('terminalCode').value.trim().toUpperCase();
             const name = document.getElementById('terminalName').value.trim();
@@ -406,6 +433,7 @@
                 };
 
                 if (terminalId) {
+                    // Editing existing terminal - allowed for all users
                     // Check if code is already used by another terminal
                     if (terminals.some(t => (t.terminalCode || t.code) === code && t.id !== terminalId)) {
                         alert('Terminal code already exists.');
@@ -413,6 +441,11 @@
                     }
                     await terminalsAPI.update(terminal);
                 } else {
+                    // Creating new terminal - only admins
+                    if (!isAdmin()) {
+                        alert('Only administrators can add new terminals.');
+                        return;
+                    }
                     // Check if code already exists
                     if (terminals.some(t => (t.terminalCode || t.code) === code)) {
                         alert('Terminal code already exists.');

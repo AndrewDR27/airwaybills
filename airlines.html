@@ -82,12 +82,20 @@
             color: #000000;
             font-size: 11px;
             text-transform: uppercase;
+            border-right: 1px solid #808080;
+        }
+        .airlines-table th:last-child {
+            border-right: none;
         }
         .airlines-table td {
             padding: 4px 8px;
             border-bottom: 1px solid #C0C0C0;
+            border-right: 1px solid #C0C0C0;
             color: #000000;
             font-size: 11px;
+        }
+        .airlines-table td:last-child {
+            border-right: none;
         }
         .airlines-table tbody tr {
             background: white;
@@ -302,7 +310,7 @@
         <div class="airlines-content">
             <div class="airlines-actions">
                 <h2>Airline Profiles</h2>
-                <button class="btn-add" id="addAirlineBtn" onclick="openAirlineModal(null)" style="display: none;">+ Add Airline</button>
+                <button class="btn-add" id="addAirlineBtn" style="display: block; visibility: visible;">+ Add Airline</button>
             </div>
             <div id="airlines-list" class="airlines-list">
                 <!-- Airlines will be loaded here -->
@@ -387,6 +395,75 @@
     <script type="module">
         import { airlinesAPI } from './js/api.js';
         
+        // Function to get image dimensions
+        function getImageDimensions(imageDataUrl) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = function() {
+                    resolve({ width: img.width, height: img.height });
+                };
+                img.onerror = function() {
+                    reject(new Error('Failed to load image'));
+                };
+                img.src = imageDataUrl;
+            });
+        }
+        
+        // Function to check Avianca logo dimensions (for reference)
+        async function checkAviancaLogoSize() {
+            try {
+                const airlines = await airlinesAPI.getAll();
+                const avianca = airlines.find(a => 
+                    a.companyName && (
+                        a.companyName.toLowerCase().includes('avianca') ||
+                        a.companyName.toLowerCase().includes('avianca cargo')
+                    )
+                );
+                if (avianca && avianca.image) {
+                    const dimensions = await getImageDimensions(avianca.image);
+                    console.log('📏 Avianca Cargo logo dimensions:', dimensions);
+                    return dimensions;
+                } else {
+                    console.log('ℹ️ Avianca Cargo logo not found in database');
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error checking Avianca logo:', error);
+                return null;
+            }
+        }
+        
+        // Function to resize image to standard dimensions (matching Avianca Cargo logo size)
+        // Standard size: 268px width × 55px height (exact Avianca dimensions)
+        function resizeAirlineLogo(imageDataUrl, targetWidth = 268, targetHeight = 55) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Use exact dimensions to match Avianca logo
+                    const newWidth = targetWidth;
+                    const newHeight = targetHeight;
+                    
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
+                    
+                    // Draw and resize image to exact dimensions (may stretch/squash to fit)
+                    ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                    
+                    // Convert to data URL
+                    const resizedDataUrl = canvas.toDataURL('image/png', 0.95);
+                    console.log(`✓ Logo resized from ${img.width}x${img.height} to ${newWidth}x${newHeight} (Avianca standard)`);
+                    resolve(resizedDataUrl);
+                };
+                img.onerror = function() {
+                    reject(new Error('Failed to load image for resizing'));
+                };
+                img.src = imageDataUrl;
+            });
+        }
+        
         // Check if user is admin
         function isAdmin() {
             const user = getCurrentUser();
@@ -397,6 +474,11 @@
         async function loadAirlines() {
             try {
                 const airlines = await airlinesAPI.getAll();
+                
+                // Check Avianca logo size on first load (for reference)
+                if (airlines.length > 0) {
+                    checkAviancaLogoSize();
+                }
                 
                 // Sort airlines alphabetically by company name
                 airlines.sort((a, b) => {
@@ -428,7 +510,7 @@
                             <th>Company Name</th>
                             <th>Abbreviation</th>
                             <th>AWBP</th>
-                            ${isUserAdmin ? '<th>Actions</th>' : ''}
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -450,14 +532,12 @@
                         <td>
                             ${airline.awbp ? `<span>${escapeHtml(airline.awbp)}</span>` : '<span style="color: #999;">-</span>'}
                         </td>
-                        ${isUserAdmin ? `
                         <td>
                             <div class="airline-actions">
                                 <button class="btn-edit" onclick="openAirlineModal('${airline.id}')">Edit</button>
-                                <button class="btn-delete" onclick="deleteAirline('${airline.id}')">Delete</button>
+                                ${isUserAdmin ? `<button class="btn-delete" onclick="deleteAirline('${airline.id}')">Delete</button>` : ''}
                             </div>
                         </td>
-                        ` : ''}
                     </tr>
                 `;
             });
@@ -492,10 +572,24 @@
         }
 
         async function openAirlineModal(airlineIdToEdit) {
-            // Check if user is admin
-            if (!isAdmin()) {
-                alert('Only administrators can add or edit airlines.');
-                return;
+            console.log('🖱️ openAirlineModal called with airlineIdToEdit:', airlineIdToEdit);
+            
+            // Only check admin for adding new airlines
+            if (!airlineIdToEdit) {
+                try {
+                    const user = getCurrentUser();
+                    const isUserAdmin = user && user.role === 'admin';
+                    if (!isUserAdmin) {
+                        alert('Only administrators can add new airlines.');
+                        console.log('✗ Add blocked - user is not admin');
+                        return;
+                    }
+                    console.log('✓ Add allowed - user is admin');
+                } catch (error) {
+                    console.error('Error checking admin status:', error);
+                    alert('Error checking permissions. Please try again.');
+                    return;
+                }
             }
             
             const modal = document.getElementById('airlineModal');
@@ -524,10 +618,18 @@
                         const airlineImagePreview = document.getElementById('airlineImagePreview');
                         const airlineImagePreviewImg = document.getElementById('airlineImagePreviewImg');
                         if (airline.image && airlineImagePreview && airlineImagePreviewImg) {
+                            // Clear any "removed" flag
+                            airlineImagePreviewImg.removeAttribute('data-removed');
+                            // Show the image (resizing will happen on save if needed)
                             airlineImagePreviewImg.src = airline.image;
                             airlineImagePreview.style.display = 'block';
+                            console.log('✓ Airline logo loaded in preview');
                         } else if (airlineImagePreview) {
                             airlineImagePreview.style.display = 'none';
+                            if (airlineImagePreviewImg) {
+                                airlineImagePreviewImg.src = '';
+                                airlineImagePreviewImg.removeAttribute('data-removed');
+                            }
                         }
                         
                         const airlineImageInput = document.getElementById('airlineImage');
@@ -597,25 +699,78 @@
             if (awbp) airline.awbp = awbp;
             if (airlineAbbreviation) airline.airlineAbbreviation = airlineAbbreviation;
             
-            // Handle image upload
+            // Handle image upload/removal
             const airlineImageInput = document.getElementById('airlineImage');
             const airlineImagePreviewImg = document.getElementById('airlineImagePreviewImg');
+            const airlineImagePreview = document.getElementById('airlineImagePreview');
+            
+            // Check if image was explicitly removed
+            if (airlineImagePreviewImg && airlineImagePreviewImg.getAttribute('data-removed') === 'true') {
+                // Image was removed - explicitly set to null to ensure it's deleted
+                airline.image = null;
+                airlineImagePreviewImg.removeAttribute('data-removed');
+                console.log('✓ Image removed from airline (set to null)');
+                await saveAirlineToAPI(airline);
+                return;
+            }
+            
+            // Check if new image was uploaded
             if (airlineImageInput && airlineImageInput.files && airlineImageInput.files[0]) {
-                // New image uploaded
+                // New image uploaded - resize it before saving
                 const file = airlineImageInput.files[0];
                 const reader = new FileReader();
                 reader.onload = async function(e) {
-                    airline.image = e.target.result; // Store as base64
-                    await saveAirlineToAPI(airline);
+                    try {
+                        // Resize the image to standard dimensions before saving
+                        console.log('Resizing uploaded logo...');
+                        const resizedImage = await resizeAirlineLogo(e.target.result);
+                        airline.image = resizedImage; // Store resized base64
+                        console.log('✓ Logo resized and ready to save');
+                        await saveAirlineToAPI(airline);
+                    } catch (error) {
+                        console.error('Error resizing logo before save:', error);
+                        // Fallback to original if resize fails
+                        airline.image = e.target.result;
+                        await saveAirlineToAPI(airline);
+                    }
                 };
                 reader.readAsDataURL(file);
                 return; // Exit early, save will happen in reader.onload
-            } else if (airlineImagePreviewImg && airlineImagePreviewImg.src && airlineImagePreviewImg.src.startsWith('data:')) {
-                // Existing image (not removed)
-                airline.image = airlineImagePreviewImg.src;
             }
-            // If image was removed (preview hidden), don't include image property
             
+            // Check if existing image needs resizing (only if preview is visible and has a valid image)
+            if (airlineImagePreviewImg && 
+                airlineImagePreviewImg.src && 
+                airlineImagePreviewImg.src.startsWith('data:') &&
+                airlineImagePreview && 
+                airlineImagePreview.style.display !== 'none') {
+                // Existing image - check if it needs resizing
+                const existingImage = airlineImagePreviewImg.src;
+                const img = new Image();
+                img.onload = async function() {
+                    // Always resize to ensure consistency, even if dimensions seem okay
+                    try {
+                        console.log(`Resizing existing logo from ${img.width}x${img.height}...`);
+                        const resizedImage = await resizeAirlineLogo(existingImage);
+                        airline.image = resizedImage;
+                        console.log('✓ Existing logo resized to standard size');
+                        await saveAirlineToAPI(airline);
+                    } catch (error) {
+                        console.error('Error resizing existing logo:', error);
+                        airline.image = existingImage;
+                        await saveAirlineToAPI(airline);
+                    }
+                };
+                img.onerror = function() {
+                    console.warn('Could not load existing image for resizing, using as-is');
+                    airline.image = existingImage;
+                    saveAirlineToAPI(airline);
+                };
+                img.src = existingImage;
+                return; // Exit early, save will happen in img.onload
+            }
+            
+            // No image changes - save normally
             await saveAirlineToAPI(airline);
         }
         
@@ -627,12 +782,22 @@
                     const exists = airlines.find(a => a.id === airline.id);
                     
                     if (exists) {
+                        // Editing existing airline - allowed for all users
                         await airlinesAPI.update(airline);
                     } else {
+                        // Creating new airline - only admins
+                        if (!isAdmin()) {
+                            alert('Only administrators can add new airlines.');
+                            return;
+                        }
                         await airlinesAPI.create(airline);
                     }
                 } else {
-                    // New airline
+                    // New airline - only admins
+                    if (!isAdmin()) {
+                        alert('Only administrators can add new airlines.');
+                        return;
+                    }
                     await airlinesAPI.create(airline);
                 }
                 
@@ -658,13 +823,23 @@
         const removeAirlineImageBtn = document.getElementById('removeAirlineImageBtn');
         
         if (airlineImageInput) {
-            airlineImageInput.addEventListener('change', function(e) {
+            airlineImageInput.addEventListener('change', async function(e) {
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = function(e) {
-                        airlineImagePreviewImg.src = e.target.result;
-                        airlineImagePreview.style.display = 'block';
+                    reader.onload = async function(e) {
+                        try {
+                            // Resize the image to standard dimensions
+                            const resizedImage = await resizeAirlineLogo(e.target.result);
+                            airlineImagePreviewImg.src = resizedImage;
+                            airlineImagePreview.style.display = 'block';
+                            console.log('✓ Logo preview updated with resized image');
+                        } catch (error) {
+                            console.error('Error resizing logo:', error);
+                            // Fallback to original if resize fails
+                            airlineImagePreviewImg.src = e.target.result;
+                            airlineImagePreview.style.display = 'block';
+                        }
                     };
                     reader.readAsDataURL(file);
                 } else {
@@ -680,10 +855,13 @@
                 }
                 if (airlineImagePreviewImg) {
                     airlineImagePreviewImg.src = '';
+                    // Set a data attribute to mark image as removed
+                    airlineImagePreviewImg.setAttribute('data-removed', 'true');
                 }
                 if (airlineImagePreview) {
                     airlineImagePreview.style.display = 'none';
                 }
+                console.log('✓ Image marked for removal');
             });
         }
         
@@ -700,14 +878,68 @@
 
         // Load airlines on page load and set admin permissions
         async function initializePage() {
+            // Wait for auth to be ready - try multiple times
+            let attempts = 0;
+            while (typeof getCurrentUser === 'undefined' && attempts < 100) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
             await loadAirlines();
             
-            // Show/hide add button based on admin status
-            const isUserAdmin = isAdmin();
+            // Show/hide add button based on admin status - try multiple times
             const addBtn = document.getElementById('addAirlineBtn');
-            if (addBtn) {
-                addBtn.style.display = isUserAdmin ? 'block' : 'none';
+            if (!addBtn) {
+                console.error('❌ Add Airline button not found in DOM!');
+                return;
             }
+            
+            console.log('🔍 Add Airline button found, checking admin status...');
+            
+            // Try checking user multiple times in case session loads asynchronously
+            let user = null;
+            for (let i = 0; i < 10; i++) {
+                try {
+                    if (typeof getCurrentUser === 'function') {
+                        user = getCurrentUser();
+                        if (user) {
+                            console.log(`✓ User found on attempt ${i + 1}:`, user.email, user.role);
+                            break;
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`Attempt ${i + 1} to get user failed:`, error);
+                }
+                if (i < 9) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+            }
+            
+            // ALWAYS show button - admin check happens in openAirlineModal when clicked
+            addBtn.style.display = 'block';
+            addBtn.style.visibility = 'visible';
+            addBtn.style.opacity = '1';
+            console.log('✓ Add Airline button is now visible (always shown)');
+            
+            if (!user) {
+                console.warn('⚠ No user logged in, but button is visible. Admin check will happen when clicked.');
+            } else {
+                const isUserAdmin = user && user.role === 'admin';
+                if (isUserAdmin) {
+                    console.log('✓ Admin user detected');
+                } else {
+                    console.log('✗ Non-admin user. User:', user.email, 'Role:', user.role);
+                    console.log('  (Button still visible - admin check on click)');
+                }
+            }
+            
+            // Add click event listener for add button
+            addBtn.addEventListener('click', () => {
+                console.log('🖱️ Add Airline button clicked');
+                openAirlineModal(null);
+            });
+            
+            console.log('✅ Add Airline button setup complete');
         }
         
         // Make functions available globally for onclick handlers
@@ -715,6 +947,19 @@
         window.openAirlineModal = openAirlineModal;
         window.closeAirlineModal = closeAirlineModal;
         window.handleSaveAirline = handleSaveAirline;
+        
+        // Immediate check for button
+        console.log('🔍 Airlines page script loaded');
+        setTimeout(() => {
+            const immediateCheck = document.getElementById('addAirlineBtn');
+            if (immediateCheck) {
+                console.log('✅ Add Airline button found in DOM');
+                immediateCheck.style.display = 'block';
+                immediateCheck.style.visibility = 'visible';
+            } else {
+                console.error('❌ Add Airline button NOT found in DOM');
+            }
+        }, 100);
         
         // Initialize on page load
         if (document.readyState === 'loading') {

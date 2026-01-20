@@ -40,38 +40,49 @@
             padding: 8px;
         }
         .destinations-list {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .destination-item {
-            padding: 4px 8px;
             background: white;
+            overflow: hidden;
             border: 2px inset #C0C0C0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
-        .destination-item:hover {
+        .destinations-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .destinations-table thead {
+            background: #C0C0C0;
+            border-bottom: 2px inset #C0C0C0;
+        }
+        .destinations-table th {
+            padding: 4px 8px;
+            text-align: left;
+            font-weight: bold;
+            color: #000000;
+            font-size: 11px;
+            text-transform: uppercase;
+            border-right: 1px solid #808080;
+        }
+        .destinations-table th:last-child {
+            border-right: none;
+        }
+        .destinations-table td {
+            padding: 4px 8px;
+            border-bottom: 1px solid #C0C0C0;
+            border-right: 1px solid #C0C0C0;
+            color: #000000;
+            font-size: 11px;
+        }
+        .destinations-table td:last-child {
+            border-right: none;
+        }
+        .destinations-table tbody tr {
+            background: white;
+        }
+        .destinations-table tbody tr:hover {
             background: #316AC5;
             color: white;
         }
-        .destination-info {
-            flex: 1;
-        }
-        .destination-name {
-            font-size: 12px;
-            font-weight: bold;
-            color: #000000;
-            margin-bottom: 2px;
-        }
-        .destination-code {
-            font-size: 11px;
-            color: #000000;
-        }
-        .destination-item:hover .destination-name,
-        .destination-item:hover .destination-code {
-            color: white;
+        .destinations-table tbody tr:last-child td {
+            border-bottom: none;
         }
         .destination-actions {
             display: flex;
@@ -419,21 +430,45 @@
             }
             
             const isUserAdmin = isAdmin();
-            destinationsList.innerHTML = destinations.map(dest => {
+            const actionsColumn = '<th>Actions</th>';
+            const tableRows = destinations.map(dest => {
                 const escapedId = (dest.id || '').replace(/'/g, "\\'");
+                const deleteButton = isUserAdmin ? `<button class="btn-delete" onclick="deleteDestination('${escapedId}')">Delete</button>` : '';
+                const actionsCell = `
+                    <td>
+                        <div class="destination-actions">
+                            <button class="btn-edit" onclick="editDestination('${escapedId}')">Edit</button>
+                            ${deleteButton}
+                        </div>
+                    </td>
+                `;
                 return `
-                <div class="destination-item">
-                    <div class="destination-info">
-                        <div class="destination-name">${escapeHtml(dest.airportCode || '')}</div>
-                        <div class="destination-code">${escapeHtml(dest.cityName || '')}${dest.stateName ? ', ' + escapeHtml(dest.stateName) : ''} - ${escapeHtml(dest.airportName || '')}</div>
-                    </div>
-                    <div class="destination-actions" style="display: ${isUserAdmin ? 'flex' : 'none'};">
-                        <button class="btn-edit" onclick="editDestination('${escapedId}')">Edit</button>
-                        <button class="btn-delete" onclick="deleteDestination('${escapedId}')">Delete</button>
-                    </div>
-                </div>
+                <tr>
+                    <td>${escapeHtml(dest.airportCode || '')}</td>
+                    <td>${escapeHtml(dest.cityName || '')}</td>
+                    <td>${escapeHtml(dest.stateName || '')}</td>
+                    <td>${escapeHtml(dest.airportName || '')}</td>
+                    ${actionsCell}
+                </tr>
             `;
             }).join('');
+            
+            destinationsList.innerHTML = `
+                <table class="destinations-table">
+                    <thead>
+                        <tr>
+                            <th>Airport Code</th>
+                            <th>City Name</th>
+                            <th>State Name</th>
+                            <th>Airport Name</th>
+                            ${actionsColumn}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            `;
         }
         
         function escapeHtml(text) {
@@ -444,9 +479,9 @@
 
         // Open destination modal
         async function openDestinationModal(destinationId) {
-            // Check if user is admin
-            if (!isAdmin()) {
-                alert('Only administrators can add or edit destinations.');
+            // Only check admin for adding new destinations
+            if (!destinationId && !isAdmin()) {
+                alert('Only administrators can add new destinations.');
                 return;
             }
             
@@ -558,8 +593,14 @@
                     const exists = destinations.find(d => d.id === id);
                     
                     if (exists) {
+                        // Editing existing destination - allowed for all users
                         await destinationsAPI.update(destination);
                     } else {
+                        // Creating new destination - only admins
+                        if (!isAdmin()) {
+                            alert('Only administrators can add new destinations.');
+                            return;
+                        }
                         await destinationsAPI.create(destination);
                     }
                     

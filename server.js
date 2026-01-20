@@ -315,7 +315,13 @@ app.put('/api/airlines', async (req, res) => {
         const airlines = (await redis.get(AIRLINES_KEY)) || [];
         const index = airlines.findIndex(a => a.id === req.body.id);
         if (index >= 0) {
+            // Update airline with new data
             airlines[index] = { ...airlines[index], ...req.body };
+            // If image is explicitly null or undefined, delete the property
+            if (req.body.hasOwnProperty('image') && (req.body.image === null || req.body.image === undefined || req.body.image === '')) {
+                delete airlines[index].image;
+                console.log('✓ Image property deleted from airline:', airlines[index].id);
+            }
             await redis.set(AIRLINES_KEY, airlines);
             res.json(airlines[index]);
         } else {
