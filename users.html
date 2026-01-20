@@ -580,18 +580,32 @@
         }
 
         async function loadMyUsers() {
-            const userIds = getMyUserList();
-            const allUsers = await getAllUsers();
-            const myUsers = allUsers.filter(u => userIds.includes(u.id));
-            
-            // Update count
-            const countElement = document.getElementById('my-users-count');
-            if (countElement) {
-                countElement.textContent = `(${myUsers.length})`;
+            try {
+                const userIds = getMyUserList();
+                const allUsers = await getAllUsers();
+                const myUsers = allUsers.filter(u => userIds.includes(u.id));
+                
+                // Update count
+                const countElement = document.getElementById('my-users-count');
+                if (countElement) {
+                    countElement.textContent = `(${myUsers.length})`;
+                }
+                
+                // Render table
+                renderMyUsersTable(myUsers);
+            } catch (error) {
+                console.error('Error loading my users:', error);
+                // Update count to show error
+                const countElement = document.getElementById('my-users-count');
+                if (countElement) {
+                    countElement.textContent = '(error)';
+                }
+                // Show error message
+                const usersList = document.getElementById('my-users-list');
+                if (usersList) {
+                    usersList.innerHTML = '<div class="empty-state"><h3>Error Loading Users</h3><p>Could not load users. Please try again.</p></div>';
+                }
             }
-            
-            // Render table
-            renderMyUsersTable(myUsers);
         }
 
         function renderMyUsersTable(users) {
@@ -1364,11 +1378,17 @@
                 
                 // Reload data when tabs are clicked
                 if (tabName === 'my-users') {
-                    loadMyUsers();
+                    loadMyUsers().catch(error => {
+                        console.error('Error loading my users:', error);
+                    });
                 } else if (tabName === 'added-me') {
-                    loadUsersWhoAddedMe();
+                    loadUsersWhoAddedMe().catch(error => {
+                        console.error('Error loading users who added me:', error);
+                    });
                 } else if (tabName === 'all' || tabName === 'shipper' || tabName === 'issuing-carrier-agent' || tabName === 'consignee' || tabName === 'customs-broker' || tabName === 'courier' || tabName === 'admin') {
-                    loadUsers();
+                    loadUsers().catch(error => {
+                        console.error('Error loading users:', error);
+                    });
                 }
             });
         });
@@ -1386,8 +1406,35 @@
         });
 
         // Load My Users and Added Me for all users
-        loadMyUsers();
-        loadUsersWhoAddedMe();
+        // Wait for API to be ready if needed
+        (async () => {
+            // Wait for usersAPI to be available
+            if (window.usersAPI) {
+                // API is ready, load immediately
+            } else {
+                // Wait for API to load
+                await new Promise((resolve) => {
+                    if (window.usersAPI) {
+                        resolve();
+                    } else {
+                        window.addEventListener('apiReady', () => resolve(), { once: true });
+                        // Timeout after 2 seconds
+                        setTimeout(resolve, 2000);
+                    }
+                });
+            }
+            
+            try {
+                await loadMyUsers();
+            } catch (error) {
+                console.error('Error loading my users on page load:', error);
+            }
+            try {
+                await loadUsersWhoAddedMe();
+            } catch (error) {
+                console.error('Error loading users who added me on page load:', error);
+            }
+        })();
         
         // Check if user is admin and show/hide role tabs
         const isUserAdmin = isAdmin();
