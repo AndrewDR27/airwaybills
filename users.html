@@ -582,8 +582,27 @@
         async function loadMyUsers() {
             try {
                 const userIds = getMyUserList();
-                const allUsers = await getAllUsers();
+                console.log('loadMyUsers: userIds from list:', userIds);
+                
+                let allUsers = [];
+                try {
+                    allUsers = await getAllUsers();
+                    console.log('loadMyUsers: getAllUsers() returned', allUsers.length, 'users');
+                } catch (error) {
+                    console.error('loadMyUsers: getAllUsers() failed:', error);
+                    // Try again after a short delay
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    try {
+                        allUsers = await getAllUsers();
+                        console.log('loadMyUsers: getAllUsers() retry returned', allUsers.length, 'users');
+                    } catch (retryError) {
+                        console.error('loadMyUsers: getAllUsers() retry also failed:', retryError);
+                        throw retryError;
+                    }
+                }
+                
                 const myUsers = allUsers.filter(u => userIds.includes(u.id));
+                console.log('loadMyUsers: filtered to', myUsers.length, 'my users');
                 
                 // Update count
                 const countElement = document.getElementById('my-users-count');
@@ -603,7 +622,7 @@
                 // Show error message
                 const usersList = document.getElementById('my-users-list');
                 if (usersList) {
-                    usersList.innerHTML = '<div class="empty-state"><h3>Error Loading Users</h3><p>Could not load users. Please try again.</p></div>';
+                    usersList.innerHTML = '<div class="empty-state"><h3>Error Loading Users</h3><p>Could not load users: ' + error.message + '</p></div>';
                 }
             }
         }
@@ -810,16 +829,38 @@
         }
 
         async function loadUsersWhoAddedMe() {
-            const users = await getUsersWhoAddedMe();
-            
-            // Update count
-            const countElement = document.getElementById('added-me-count');
-            if (countElement) {
-                countElement.textContent = `(${users.length})`;
+            try {
+                let users = [];
+                try {
+                    users = await getUsersWhoAddedMe();
+                    console.log('loadUsersWhoAddedMe: returned', users.length, 'users');
+                } catch (error) {
+                    console.error('loadUsersWhoAddedMe: getUsersWhoAddedMe() failed:', error);
+                    // Try again after a short delay
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    users = await getUsersWhoAddedMe();
+                    console.log('loadUsersWhoAddedMe: retry returned', users.length, 'users');
+                }
+                
+                // Update count
+                const countElement = document.getElementById('added-me-count');
+                if (countElement) {
+                    countElement.textContent = `(${users.length})`;
+                }
+                
+                // Render table
+                renderUsersWhoAddedMeTable(users);
+            } catch (error) {
+                console.error('Error loading users who added me:', error);
+                const countElement = document.getElementById('added-me-count');
+                if (countElement) {
+                    countElement.textContent = '(error)';
+                }
+                const usersList = document.getElementById('added-me-list');
+                if (usersList) {
+                    usersList.innerHTML = '<div class="empty-state"><h3>Error Loading Users</h3><p>Could not load users: ' + error.message + '</p></div>';
+                }
             }
-            
-            // Render table
-            renderUsersWhoAddedMeTable(users);
         }
 
         function renderUsersWhoAddedMeTable(users) {
@@ -1409,9 +1450,7 @@
         // Wait for API to be ready if needed
         (async () => {
             // Wait for usersAPI to be available
-            if (window.usersAPI) {
-                // API is ready, load immediately
-            } else {
+            if (!window.usersAPI) {
                 // Wait for API to load
                 await new Promise((resolve) => {
                     if (window.usersAPI) {
@@ -1424,15 +1463,40 @@
                 });
             }
             
-            try {
-                await loadMyUsers();
-            } catch (error) {
-                console.error('Error loading my users on page load:', error);
-            }
-            try {
-                await loadUsersWhoAddedMe();
-            } catch (error) {
-                console.error('Error loading users who added me on page load:', error);
+            // Additional wait to ensure API is fully initialized
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Try loading with retries
+            let retries = 3;
+            while (retries > 0) {
+                try {
+                    const users = await getAllUsers();
+                    if (users && users.length > 0) {
+                        console.log('getAllUsers() successful, loading My Users');
+                        await loadMyUsers();
+                        await loadUsersWhoAddedMe();
+                        break;
+                    } else if (users && users.length === 0) {
+                        console.log('getAllUsers() returned empty array, but continuing');
+                        await loadMyUsers();
+                        await loadUsersWhoAddedMe();
+                        break;
+                    }
+                } catch (error) {
+                    console.error(`Error loading (${retries} retries left):`, error);
+                    retries--;
+                    if (retries > 0) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    } else {
+                        // Final attempt - load anyway
+                        try {
+                            await loadMyUsers();
+                            await loadUsersWhoAddedMe();
+                        } catch (finalError) {
+                            console.error('Final attempt failed:', finalError);
+                        }
+                    }
+                }
             }
         })();
         
