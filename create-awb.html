@@ -63,8 +63,12 @@
                         Routing
                         <span class="tab-validation-indicator" id="routing-validation-indicator"></span>
                     </button>
+                    <button class="awb-tab-button" data-tab="dimensions">
+                        Dimensions
+                        <span class="tab-validation-indicator" id="dimensions-validation-indicator"></span>
+                    </button>
                     <button class="awb-tab-button" data-tab="billing">
-                        DIMS & Billing
+                        Billing
                         <span class="tab-validation-indicator" id="billing-validation-indicator"></span>
                     </button>
                     <button class="awb-tab-button" data-tab="form">
@@ -189,7 +193,32 @@
                     </form>
                 </div>
                 
-                <!-- DIMS & Billing Tab -->
+                <!-- Dimensions Tab -->
+                <div id="dimensions-tab" class="awb-tab-content">
+                    <div class="form-header">
+                        <h2>Dimensions</h2>
+                        <p style="color: #666; font-size: 14px; margin-top: 5px;">Enter package dimensions and quantities</p>
+                    </div>
+                    <div class="dimensions-controls-section" id="dimensionsControlsSection" style="display: block;">
+                        <div class="routing-controls">
+                            <div class="contact-select-group dimensions-group">
+                                <label>Dimensions:</label>
+                                <div class="dimensions-container" id="dimensionsContainer">
+                                    <div class="dimensions-row" data-row-index="0" style="position: relative;">
+                                        <button type="button" class="dim-minimize-btn" id="minimizeDimensionsBtn" style="display: none;">▼</button>
+                                        <input type="number" class="dim-input dim-length" placeholder="L (cm)" min="0" step="0.1">
+                                        <input type="number" class="dim-input dim-width" placeholder="W (cm)" min="0" step="0.1">
+                                        <input type="number" class="dim-input dim-height" placeholder="H (cm)" min="0" step="0.1">
+                                        <input type="number" class="dim-input dim-qty" placeholder="QTY" min="1" step="1">
+                                        <button type="button" class="dim-add-box-btn" id="addDimensionsBoxBtn">+ Add Box</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Billing Tab -->
                 <div id="billing-tab" class="awb-tab-content">
                     <div class="billing-controls-section" id="billingControlsSection" style="display: block;">
                         <div class="routing-controls">
@@ -209,33 +238,18 @@
                                     <option value="No">No</option>
                                 </select>
                             </div>
-                            <div class="prepaid-dimensions-wrapper">
-                                <div class="contact-select-group">
-                                    <label for="prepaidCollectSelect">Prepaid or Collect:</label>
-                                    <select id="prepaidCollectSelect" class="contact-select">
-                                        <option value="">-- Select --</option>
-                                        <option value="Prepaid">Prepaid</option>
-                                        <option value="Collect">Collect</option>
-                                    </select>
-                                </div>
-                                <div class="contact-select-group dimensions-group">
-                                    <label>Dimensions:</label>
-                                    <div class="dimensions-container" id="dimensionsContainer">
-                                        <div class="dimensions-row" data-row-index="0" style="position: relative;">
-                                            <button type="button" class="dim-minimize-btn" id="minimizeDimensionsBtn" style="display: none;">▼</button>
-                                            <input type="number" class="dim-input dim-length" placeholder="L (cm)" min="0" step="0.1">
-                                            <input type="number" class="dim-input dim-width" placeholder="W (cm)" min="0" step="0.1">
-                                            <input type="number" class="dim-input dim-height" placeholder="H (cm)" min="0" step="0.1">
-                                            <input type="number" class="dim-input dim-qty" placeholder="QTY" min="1" step="1">
-                                            <button type="button" class="dim-add-box-btn" id="addDimensionsBoxBtn">+ Add Box</button>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="contact-select-group">
+                                <label for="prepaidCollectSelect">Prepaid or Collect:</label>
+                                <select id="prepaidCollectSelect" class="contact-select">
+                                    <option value="">-- Select --</option>
+                                    <option value="Prepaid">Prepaid</option>
+                                    <option value="Collect">Collect</option>
+                                </select>
                             </div>
                         </div>
                     </div>
                     <div class="form-header">
-                        <h2>DIMS & Billing Information</h2>
+                        <h2>Billing Information</h2>
                     </div>
                     <form id="billingFieldsForm">
                         <!-- Dynamically generated billing fields will appear here -->
@@ -399,6 +413,11 @@
                 // Update active tab content
                 document.querySelectorAll('.awb-tab-content').forEach(content => content.classList.remove('active'));
                 document.getElementById(`${tabName}-tab`).classList.add('active');
+                
+                // Update prompt indicators when switching tabs
+                if (typeof updatePromptIndicators === 'function') {
+                    setTimeout(() => updatePromptIndicators(), 100);
+                }
             });
         });
 
@@ -688,7 +707,47 @@
                 
                 if (typeof getCurrentUser === 'undefined' || typeof collectFormData === 'undefined' || typeof updateShipment === 'undefined' || typeof fillPdfWithData === 'undefined') {
                     console.error('Required functions not available');
+                    alert('Error: Required functions not loaded. Please refresh the page.');
                     return;
+                }
+                
+                // Update validation indicators before checking
+                if (typeof updateTabValidationIndicators === 'function') {
+                    updateTabValidationIndicators();
+                }
+                
+                // Check for missing required fields
+                if (typeof getMissingFieldNames === 'function') {
+                    const missingFields = getMissingFieldNames();
+                    if (missingFields.length > 0) {
+                        const fieldList = missingFields.map(field => `• ${field}`).join('\n');
+                        const message = `The following required fields are missing:\n\n${fieldList}\n\nDo you want to continue anyway?`;
+                        if (!confirm(message)) {
+                            return; // User cancelled
+                        }
+                    }
+                }
+                
+                // Show loading state
+                const loadingEl = document.getElementById('loading');
+                const errorEl = document.getElementById('error');
+                const contentWrapper = document.getElementById('contentWrapper');
+                if (loadingEl) {
+                    loadingEl.style.display = 'block';
+                }
+                if (errorEl) {
+                    errorEl.style.display = 'none';
+                }
+                if (contentWrapper) {
+                    contentWrapper.style.opacity = '0.5';
+                    contentWrapper.style.pointerEvents = 'none';
+                }
+                
+                // Disable the button to prevent double-clicks
+                const createBtn = document.getElementById('fillAndFlattenBtn');
+                if (createBtn) {
+                    createBtn.disabled = true;
+                    createBtn.textContent = 'Creating AWB...';
                 }
                 
                 const user = getCurrentUser();
@@ -851,28 +910,100 @@
                         console.log('✅✅✅ SHIPMENT SPACE UPDATED WITH AWB:', result.shipment.awbNumber);
                         console.log('All form fields, dropdowns, and PDF stored in space:', spaceId);
                         
-                        // Show success message and redirect back to space
-                        alert('AWB created successfully and saved to shipment space! Redirecting...');
+                        // Hide loading, show success
+                        if (loadingEl) {
+                            loadingEl.style.display = 'none';
+                        }
+                        if (errorEl) {
+                            errorEl.style.display = 'block';
+                            errorEl.style.background = '#28a745';
+                            errorEl.style.color = 'white';
+                            errorEl.textContent = '✓ AWB created successfully! Redirecting...';
+                        }
+                        
+                        // Redirect back to space after a short delay
                         setTimeout(() => {
                             if (window.parent && window.parent !== window) {
-                                window.parent.document.getElementById('contentFrame').src = `shipments/space.html?spaceId=${spaceId}`;
+                                const contentFrame = window.parent.document.getElementById('contentFrame');
+                                if (contentFrame) {
+                                    contentFrame.src = `shipments/space.html?spaceId=${spaceId}`;
+                                } else {
+                                    window.location.href = `shipments/space.html?spaceId=${spaceId}`;
+                                }
                             } else {
                                 window.location.href = `shipments/space.html?spaceId=${spaceId}`;
                             }
-                        }, 500);
+                        }, 1500);
                     } else {
                         console.error('Error updating shipment:', result.message);
+                        
+                        // Hide loading, show error
+                        if (loadingEl) {
+                            loadingEl.style.display = 'none';
+                        }
+                        if (errorEl) {
+                            errorEl.style.display = 'block';
+                            errorEl.style.background = '#dc3545';
+                            errorEl.style.color = 'white';
+                            errorEl.textContent = 'Error saving AWB: ' + result.message;
+                        }
+                        if (contentWrapper) {
+                            contentWrapper.style.opacity = '1';
+                            contentWrapper.style.pointerEvents = 'auto';
+                        }
+                        if (createBtn) {
+                            createBtn.disabled = false;
+                            createBtn.textContent = 'Create AWB';
+                        }
+                        
                         alert('Error saving AWB: ' + result.message);
                     }
                 } catch (saveError) {
                     console.error('Error saving AWB to shipment space:', saveError);
+                    
+                    // Hide loading, show error
+                    if (loadingEl) {
+                        loadingEl.style.display = 'none';
+                    }
+                    if (errorEl) {
+                        errorEl.style.display = 'block';
+                        errorEl.style.background = '#dc3545';
+                        errorEl.style.color = 'white';
+                        errorEl.textContent = 'Error: ' + (saveError.message || 'An unexpected error occurred');
+                    }
+                    if (contentWrapper) {
+                        contentWrapper.style.opacity = '1';
+                        contentWrapper.style.pointerEvents = 'auto';
+                    }
+                    if (createBtn) {
+                        createBtn.disabled = false;
+                        createBtn.textContent = 'Create AWB';
+                    }
+                    
+                    alert('Error saving AWB: ' + (saveError.message || 'An unexpected error occurred'));
                 }
             }
             
             // Legacy function for creating new shipment (when no spaceId)
             async function createNewShipment() {
                 if (typeof createShipment === 'undefined') {
+                    alert('Error: Shipment creation function not available. Please refresh the page.');
                     return;
+                }
+                
+                // Show loading state
+                const loadingEl = document.getElementById('loading');
+                const errorEl = document.getElementById('error');
+                const contentWrapper = document.getElementById('contentWrapper');
+                if (loadingEl) {
+                    loadingEl.style.display = 'block';
+                }
+                if (errorEl) {
+                    errorEl.style.display = 'none';
+                }
+                if (contentWrapper) {
+                    contentWrapper.style.opacity = '0.5';
+                    contentWrapper.style.pointerEvents = 'none';
                 }
                 
                 try {
@@ -913,9 +1044,53 @@
                     if (result.success) {
                         shipmentUpdated = true;
                         console.log('✅ Shipment created (legacy mode):', result.shipment.awbNumber);
+                        
+                        // Hide loading, show success
+                        if (loadingEl) {
+                            loadingEl.style.display = 'none';
+                        }
+                        if (errorEl) {
+                            errorEl.style.display = 'block';
+                            errorEl.style.background = '#28a745';
+                            errorEl.style.color = 'white';
+                            errorEl.textContent = '✓ AWB created successfully!';
+                        }
+                        
+                        // Redirect to shipments list
+                        setTimeout(() => {
+                            if (window.parent && window.parent !== window) {
+                                const contentFrame = window.parent.document.getElementById('contentFrame');
+                                if (contentFrame) {
+                                    contentFrame.src = 'shipments/list.html';
+                                } else {
+                                    window.location.href = 'shipments/list.html';
+                                }
+                            } else {
+                                window.location.href = 'shipments/list.html';
+                            }
+                        }, 1500);
+                    } else {
+                        throw new Error(result.message || 'Failed to create shipment');
                     }
                 } catch (error) {
                     console.error('Error creating shipment:', error);
+                    
+                    // Hide loading, show error
+                    if (loadingEl) {
+                        loadingEl.style.display = 'none';
+                    }
+                    if (errorEl) {
+                        errorEl.style.display = 'block';
+                        errorEl.style.background = '#dc3545';
+                        errorEl.style.color = 'white';
+                        errorEl.textContent = 'Error: ' + (error.message || 'Failed to create shipment');
+                    }
+                    if (contentWrapper) {
+                        contentWrapper.style.opacity = '1';
+                        contentWrapper.style.pointerEvents = 'auto';
+                    }
+                    
+                    alert('Error creating shipment: ' + (error.message || 'An unexpected error occurred'));
                 }
             }
             

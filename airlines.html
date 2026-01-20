@@ -233,56 +233,37 @@
     </div>
 
     <script src="js/auth.js"></script>
-    <script>
+    <script type="module">
+        import { airlinesAPI } from './js/api.js';
+        
         // Check if user is admin
         function isAdmin() {
             const user = getCurrentUser();
             return user && user.role === 'admin';
         }
 
-        // Get all contacts (airlines are stored with type 'Airline')
-        function getContacts() {
+        // Load airlines from API
+        async function loadAirlines() {
             try {
-                const contactsJson = localStorage.getItem('awbContacts');
-                return contactsJson ? JSON.parse(contactsJson) : [];
+                const airlines = await airlinesAPI.getAll();
+                
+                // Sort airlines alphabetically by company name
+                airlines.sort((a, b) => {
+                    const nameA = (a.companyName || '').toLowerCase();
+                    const nameB = (b.companyName || '').toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+                
+                const airlinesList = document.getElementById('airlines-list');
+                if (airlines.length === 0) {
+                    airlinesList.innerHTML = '<div class="empty-state"><h3>No Airlines</h3><p>Click "+ Add Airline" to create your first airline profile.</p></div>';
+                } else {
+                    airlinesList.innerHTML = createAirlinesTable(airlines);
+                }
             } catch (error) {
-                console.warn('Could not read contacts from localStorage:', error);
-                return [];
-            }
-        }
-
-        // Get only airlines
-        function getAirlines() {
-            return getContacts().filter(c => c.type === 'Airline');
-        }
-
-        function saveContacts(contacts) {
-            try {
-                localStorage.setItem('awbContacts', JSON.stringify(contacts));
-                loadAirlines();
-                return true;
-            } catch (error) {
-                console.warn('Could not save contacts to localStorage:', error);
-                alert('Error saving airline. Storage may be full.');
-                return false;
-            }
-        }
-
-        function loadAirlines() {
-            const airlines = getAirlines();
-            
-            // Sort airlines alphabetically by company name
-            airlines.sort((a, b) => {
-                const nameA = (a.companyName || '').toLowerCase();
-                const nameB = (b.companyName || '').toLowerCase();
-                return nameA.localeCompare(nameB);
-            });
-            
-            const airlinesList = document.getElementById('airlines-list');
-            if (airlines.length === 0) {
-                airlinesList.innerHTML = '<div class="empty-state"><h3>No Airlines</h3><p>Click "+ Add Airline" to create your first airline profile.</p></div>';
-            } else {
-                airlinesList.innerHTML = createAirlinesTable(airlines);
+                console.error('Error loading airlines:', error);
+                const airlinesList = document.getElementById('airlines-list');
+                airlinesList.innerHTML = '<div class="empty-state"><h3>Error Loading Airlines</h3><p>Please refresh the page or check your connection.</p></div>';
             }
         }
 
@@ -338,7 +319,7 @@
             return tableHTML;
         }
 
-        function deleteAirline(airlineId) {
+        async function deleteAirline(airlineId) {
             // Check if user is admin
             if (!isAdmin()) {
                 alert('Only administrators can delete airlines.');
@@ -349,15 +330,17 @@
                 return;
             }
             
-            const contacts = getContacts();
-            const filtered = contacts.filter(c => c.id !== airlineId);
-            
-            if (saveContacts(filtered)) {
+            try {
+                await airlinesAPI.delete(airlineId);
                 alert('Airline deleted successfully!');
+                await loadAirlines();
+            } catch (error) {
+                console.error('Error deleting airline:', error);
+                alert('Error deleting airline. Please try again.');
             }
         }
 
-        function openAirlineModal(airlineIdToEdit) {
+        async function openAirlineModal(airlineIdToEdit) {
             // Check if user is admin
             if (!isAdmin()) {
                 alert('Only administrators can add or edit airlines.');
@@ -372,33 +355,38 @@
             airlineId.value = airlineIdToEdit || '';
             
             if (airlineIdToEdit) {
-                const contacts = getContacts();
-                const airline = contacts.find(c => c.id === airlineIdToEdit && c.type === 'Airline');
-                if (airline) {
-                    modalTitle.textContent = 'Edit Airline';
-                    document.getElementById('airlineCompanyName').value = airline.companyName || '';
-                    document.getElementById('airlineName').value = airline.contactName || '';
-                    document.getElementById('airlineEmail').value = airline.email || '';
-                    document.getElementById('airlinePhone').value = airline.phone || '';
-                    document.getElementById('airlineAddress').value = airline.address || '';
-                    document.getElementById('airlineFormattedValue').value = airline.formattedValue || '';
-                    document.getElementById('airlineAWBP').value = airline.awbp || '';
-                    document.getElementById('airlineAbbreviation').value = airline.airlineAbbreviation || '';
-                    
-                    // Load airline image if it exists
-                    const airlineImagePreview = document.getElementById('airlineImagePreview');
-                    const airlineImagePreviewImg = document.getElementById('airlineImagePreviewImg');
-                    if (airline.image && airlineImagePreview && airlineImagePreviewImg) {
-                        airlineImagePreviewImg.src = airline.image;
-                        airlineImagePreview.style.display = 'block';
-                    } else if (airlineImagePreview) {
-                        airlineImagePreview.style.display = 'none';
+                try {
+                    const airlines = await airlinesAPI.getAll();
+                    const airline = airlines.find(a => a.id === airlineIdToEdit);
+                    if (airline) {
+                        modalTitle.textContent = 'Edit Airline';
+                        document.getElementById('airlineCompanyName').value = airline.companyName || '';
+                        document.getElementById('airlineName').value = airline.contactName || '';
+                        document.getElementById('airlineEmail').value = airline.email || '';
+                        document.getElementById('airlinePhone').value = airline.phone || '';
+                        document.getElementById('airlineAddress').value = airline.address || '';
+                        document.getElementById('airlineFormattedValue').value = airline.formattedValue || '';
+                        document.getElementById('airlineAWBP').value = airline.awbp || '';
+                        document.getElementById('airlineAbbreviation').value = airline.airlineAbbreviation || '';
+                        
+                        // Load airline image if it exists
+                        const airlineImagePreview = document.getElementById('airlineImagePreview');
+                        const airlineImagePreviewImg = document.getElementById('airlineImagePreviewImg');
+                        if (airline.image && airlineImagePreview && airlineImagePreviewImg) {
+                            airlineImagePreviewImg.src = airline.image;
+                            airlineImagePreview.style.display = 'block';
+                        } else if (airlineImagePreview) {
+                            airlineImagePreview.style.display = 'none';
+                        }
+                        
+                        const airlineImageInput = document.getElementById('airlineImage');
+                        if (airlineImageInput) {
+                            airlineImageInput.value = ''; // Clear file input
+                        }
                     }
-                    
-                    const airlineImageInput = document.getElementById('airlineImage');
-                    if (airlineImageInput) {
-                        airlineImageInput.value = ''; // Clear file input
-                    }
+                } catch (error) {
+                    console.error('Error loading airline:', error);
+                    alert('Error loading airline data.');
                 }
             } else {
                 modalTitle.textContent = 'Add Airline';
@@ -425,10 +413,10 @@
             }
         }
 
-        function handleSaveAirline(e) {
+        async function handleSaveAirline(e) {
             e.preventDefault();
             
-            const id = document.getElementById('airlineId').value || Date.now().toString();
+            const id = document.getElementById('airlineId').value || `airline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             const companyName = document.getElementById('airlineCompanyName').value.trim();
             const contactNameValue = document.getElementById('airlineName').value.trim();
             const email = document.getElementById('airlineEmail').value.trim();
@@ -442,9 +430,6 @@
                 alert('Company Name is required.');
                 return;
             }
-            
-            const contacts = getContacts();
-            const contactIndex = contacts.findIndex(c => c.id === id);
             
             const airline = {
                 id,
@@ -468,9 +453,9 @@
                 // New image uploaded
                 const file = airlineImageInput.files[0];
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = async function(e) {
                     airline.image = e.target.result; // Store as base64
-                    saveAirlineWithImage(airline, contactIndex, contacts);
+                    await saveAirlineToAPI(airline);
                 };
                 reader.readAsDataURL(file);
                 return; // Exit early, save will happen in reader.onload
@@ -480,28 +465,32 @@
             }
             // If image was removed (preview hidden), don't include image property
             
-            if (contactIndex >= 0) {
-                contacts[contactIndex] = airline;
-            } else {
-                contacts.push(airline);
-            }
-            
-            if (saveContacts(contacts)) {
-                closeAirlineModal();
-                alert('✓ Airline saved successfully!');
-            }
+            await saveAirlineToAPI(airline);
         }
         
-        function saveAirlineWithImage(airline, contactIndex, contacts) {
-            if (contactIndex >= 0) {
-                contacts[contactIndex] = airline;
-            } else {
-                contacts.push(airline);
-            }
-            
-            if (saveContacts(contacts)) {
+        async function saveAirlineToAPI(airline) {
+            try {
+                if (airline.id && airline.id.startsWith('airline_')) {
+                    // Check if airline exists
+                    const airlines = await airlinesAPI.getAll();
+                    const exists = airlines.find(a => a.id === airline.id);
+                    
+                    if (exists) {
+                        await airlinesAPI.update(airline);
+                    } else {
+                        await airlinesAPI.create(airline);
+                    }
+                } else {
+                    // New airline
+                    await airlinesAPI.create(airline);
+                }
+                
                 closeAirlineModal();
                 alert('✓ Airline saved successfully!');
+                await loadAirlines();
+            } catch (error) {
+                console.error('Error saving airline:', error);
+                alert('Error saving airline. Please try again.');
             }
         }
 
@@ -559,8 +548,8 @@
         });
 
         // Load airlines on page load and set admin permissions
-        function initializePage() {
-            loadAirlines();
+        async function initializePage() {
+            await loadAirlines();
             
             // Show/hide add button based on admin status
             const isUserAdmin = isAdmin();
@@ -569,6 +558,12 @@
                 addBtn.style.display = isUserAdmin ? 'block' : 'none';
             }
         }
+        
+        // Make functions available globally for onclick handlers
+        window.deleteAirline = deleteAirline;
+        window.openAirlineModal = openAirlineModal;
+        window.closeAirlineModal = closeAirlineModal;
+        window.handleSaveAirline = handleSaveAirline;
         
         // Initialize on page load
         if (document.readyState === 'loading') {

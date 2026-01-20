@@ -248,8 +248,10 @@ function initializeApp() {
             if (value) {
                 fillAirlineField(value);
                 updateContactButtonText('Airline', addAirlineBtn1, airlineSelect1);
+                setTimeout(() => updatePromptIndicators(), 100);
             } else {
                 updateContactButtonText('Airline', addAirlineBtn1, airlineSelect1);
+                setTimeout(() => updatePromptIndicators(), 100);
             }
         });
     }
@@ -267,8 +269,10 @@ function initializeApp() {
             const value = e.target.value;
             if (value) {
                 fillDestinationFields(value);
+                setTimeout(() => updatePromptIndicators(), 100);
             }
             updateContactButtonText('Destination', addDestinationBtn, destinationSelect);
+            setTimeout(() => updatePromptIndicators(), 100);
         });
     }
     
@@ -423,8 +427,10 @@ function initializeApp() {
             if (value) {
                 fillContactField('04', value);
                 updateContactButtonText('Shipper', addShipperBtn, shipperSelect);
+                setTimeout(() => updatePromptIndicators(), 100);
             } else {
                 updateContactButtonText('Shipper', addShipperBtn, shipperSelect);
+                setTimeout(() => updatePromptIndicators(), 100);
             }
         });
     }
@@ -435,8 +441,10 @@ function initializeApp() {
             if (value) {
                 fillContactField('05', value);
                 updateContactButtonText('Consignee', addConsigneeBtn, consigneeSelect);
+                setTimeout(() => updatePromptIndicators(), 100);
             } else {
                 updateContactButtonText('Consignee', addConsigneeBtn, consigneeSelect);
+                setTimeout(() => updatePromptIndicators(), 100);
             }
         });
     }
@@ -4124,15 +4132,23 @@ function saveContactWithImage(contact, contactIndex, contacts) {
 
 // Fill airline fields (01. AWBP and 10. BFC/Airline Abbreviation)
 function fillAirlineField(airlineId) {
-    if (!generatedForm) return;
+    console.log('fillAirlineField called with airlineId:', airlineId);
+    
+    if (!generatedForm) {
+        console.warn('fillAirlineField: generatedForm not found');
+        return;
+    }
     
     const contacts = getContacts();
     const airline = contacts.find(c => c.id === airlineId && c.type === 'Airline');
     
     if (!airline) {
         console.warn(`Airline not found for ${airlineId}`);
+        console.log('Available contacts:', contacts.map(c => ({ id: c.id, type: c.type, companyName: c.companyName })));
         return;
     }
+    
+    console.log('Found airline:', { id: airline.id, companyName: airline.companyName, awbp: airline.awbp, airlineAbbreviation: airline.airlineAbbreviation });
     
     const contactFieldsForm = document.getElementById('contactFieldsForm');
     const billingFieldsForm = document.getElementById('billingFieldsForm');
@@ -4144,38 +4160,113 @@ function fillAirlineField(airlineId) {
         formsToCheck.push(billingFieldsForm);
     }
     
-    // Fill field 01 (AWBP)
+    let field01Filled = false;
+    let field10Filled = false;
+    
+    // Fill field 01 (AWBP) - search in all forms and all elements
     if (airline.awbp) {
         for (const form of formsToCheck) {
             if (!form) continue;
+            
+            // Try form.elements first
             const formElements = form.elements;
             for (let i = 0; i < formElements.length; i++) {
                 const element = formElements[i];
                 if (element.name && element.name.startsWith('01')) {
                     element.value = airline.awbp;
                     element.dispatchEvent(new Event('input', { bubbles: true }));
-                    console.log(`Filled field ${element.name} with AWBP: ${airline.awbp}`);
+                    console.log(`✓ Filled field ${element.name} with AWBP: ${airline.awbp}`);
+                    field01Filled = true;
                     break;
                 }
             }
+            
+            // Also try querySelector as fallback
+            if (!field01Filled) {
+                const field01Elements = form.querySelectorAll('input[name^="01"], textarea[name^="01"], select[name^="01"]');
+                field01Elements.forEach(element => {
+                    if (element.name && element.name.startsWith('01')) {
+                        element.value = airline.awbp;
+                        element.dispatchEvent(new Event('input', { bubbles: true }));
+                        console.log(`✓ Filled field ${element.name} with AWBP (via querySelector): ${airline.awbp}`);
+                        field01Filled = true;
+                    }
+                });
+            }
+            
+            if (field01Filled) break;
         }
+        if (!field01Filled) {
+            console.warn('Field 01 (AWBP) not found in any form. Searched forms:', formsToCheck.map(f => f ? f.id : 'null'));
+            // Try searching in the entire document as last resort
+            const allField01 = document.querySelectorAll('input[name^="01"], textarea[name^="01"], select[name^="01"]');
+            if (allField01.length > 0) {
+                console.log('Found field 01 elements in document:', allField01.length);
+                allField01.forEach(element => {
+                    if (element.name && element.name.startsWith('01')) {
+                        element.value = airline.awbp;
+                        element.dispatchEvent(new Event('input', { bubbles: true }));
+                        console.log(`✓ Filled field ${element.name} with AWBP (document search): ${airline.awbp}`);
+                        field01Filled = true;
+                    }
+                });
+            }
+        }
+    } else {
+        console.warn('Airline has no AWBP value');
     }
     
-    // Fill field 10 with Airline Abbreviation
+    // Fill field 10 with Airline Abbreviation - search in all forms and all elements
     if (airline.airlineAbbreviation) {
         for (const form of formsToCheck) {
             if (!form) continue;
+            
+            // Try form.elements first
             const formElements = form.elements;
             for (let i = 0; i < formElements.length; i++) {
                 const element = formElements[i];
                 if (element.name && element.name.startsWith('10')) {
                     element.value = airline.airlineAbbreviation;
                     element.dispatchEvent(new Event('input', { bubbles: true }));
-                    console.log(`Filled field ${element.name} with Airline Abbreviation: ${airline.airlineAbbreviation}`);
+                    console.log(`✓ Filled field ${element.name} with Airline Abbreviation: ${airline.airlineAbbreviation}`);
+                    field10Filled = true;
                     break;
                 }
             }
+            
+            // Also try querySelector as fallback
+            if (!field10Filled) {
+                const field10Elements = form.querySelectorAll('input[name^="10"], textarea[name^="10"], select[name^="10"]');
+                field10Elements.forEach(element => {
+                    if (element.name && element.name.startsWith('10')) {
+                        element.value = airline.airlineAbbreviation;
+                        element.dispatchEvent(new Event('input', { bubbles: true }));
+                        console.log(`✓ Filled field ${element.name} with Airline Abbreviation (via querySelector): ${airline.airlineAbbreviation}`);
+                        field10Filled = true;
+                    }
+                });
+            }
+            
+            if (field10Filled) break;
         }
+        if (!field10Filled) {
+            console.warn('Field 10 (Airline Abbreviation) not found in any form. Searched forms:', formsToCheck.map(f => f ? f.id : 'null'));
+            // Try searching in the entire document as last resort
+            const allField10 = document.querySelectorAll('input[name^="10"], textarea[name^="10"], select[name^="10"]');
+            if (allField10.length > 0) {
+                console.log('Found field 10 elements in document:', allField10.length);
+                allField10.forEach(element => {
+                    if (element.name && element.name.startsWith('10')) {
+                        element.value = airline.airlineAbbreviation;
+                        element.dispatchEvent(new Event('input', { bubbles: true }));
+                        console.log(`✓ Filled field ${element.name} with Airline Abbreviation (document search): ${airline.airlineAbbreviation}`);
+                        field10Filled = true;
+                    }
+                });
+            }
+        }
+    } else {
+        console.warn('Airline has no airlineAbbreviation value');
     }
     
     // Store airline image for PDF filling into field 99
@@ -4191,7 +4282,10 @@ function fillAirlineField(airlineId) {
         displayAirlineLogoInField99(null);
     }
     
-    setTimeout(() => updateTabValidationIndicators(), 50);
+    setTimeout(() => {
+        updateTabValidationIndicators();
+        updatePromptIndicators();
+    }, 100);
 }
 
 // Display airline logo in field 99 on the form
@@ -5009,7 +5103,10 @@ function handleDirectFlightChange(isDirectFlight) {
     }
     
     // Update validation indicators
-    setTimeout(() => updateTabValidationIndicators(), 50);
+    setTimeout(() => {
+        updateTabValidationIndicators();
+        updatePromptIndicators();
+    }, 100);
 }
 
 // Handle Interline Shipment change - show/hide Interline Carrier dropdown and add button
@@ -5046,7 +5143,10 @@ function handleInterlineShipmentChange(isInterlineYes) {
     }
     
     // Update validation indicators
-    setTimeout(() => updateTabValidationIndicators(), 50);
+    setTimeout(() => {
+        updateTabValidationIndicators();
+        updatePromptIndicators();
+    }, 100);
 }
 
 // Handle Interline Carrier 2 change - unlock fields 13 and 14, fill field 14 with abbreviation
@@ -5197,7 +5297,10 @@ function handleDangerousGoodsChange(isDangerousGoods) {
     }
     
     // Update validation indicators
-    setTimeout(() => updateTabValidationIndicators(), 50);
+    setTimeout(() => {
+        updateTabValidationIndicators();
+        updatePromptIndicators();
+    }, 100);
 }
 
 // Handle Declared Values change - grey out fields 16 and 17 when No
@@ -5279,7 +5382,10 @@ function handleDeclaredValuesChange(isDeclaredNo) {
     });
     
     // Update validation indicators
-    setTimeout(() => updateTabValidationIndicators(), 50);
+    setTimeout(() => {
+        updateTabValidationIndicators();
+        updatePromptIndicators();
+    }, 100);
 }
 
 // Handle Insurance change - grey out field 21 when No
@@ -5354,7 +5460,10 @@ function handleInsuranceChange(isInsuranceNo) {
     }
     
     // Update validation indicators
-    setTimeout(() => updateTabValidationIndicators(), 50);
+    setTimeout(() => {
+        updateTabValidationIndicators();
+        updatePromptIndicators();
+    }, 100);
 }
 
 // Handle Prepaid or Collect change - fill field 23 and check/grey out fields 24 and 25
@@ -6048,10 +6157,18 @@ function updateTabValidationIndicators() {
     
     updateTabIndicator('routing', routingMissing);
     
-    // Count missing fields in DIMS & Billing tab
+    // Count missing fields in Dimensions tab (no form fields, just dimensions inputs)
+    updateTabIndicator('dimensions', 0);
+    
+    // Count missing fields in Billing tab
     const billingFieldsForm = document.getElementById('billingFieldsForm');
     const billingMissing = billingFieldsForm ? countMissingFields(billingFieldsForm) : 0;
     updateTabIndicator('billing', billingMissing);
+    
+    // Update prompt indicators after a short delay to ensure labels are updated
+    setTimeout(() => {
+        updatePromptIndicators();
+    }, 100);
 }
 
 // Get list of missing field names with their labels
@@ -6349,6 +6466,168 @@ function countMissingFields(form) {
     }
     
     return missingCount;
+}
+
+// Map field prefixes to their corresponding prompts
+const fieldToPromptMapping = {
+    '04': { prompt: 'shipperSelect', label: 'Shipper', tab: 'contacts' },
+    '05': { prompt: 'consigneeSelect', label: 'Consignee', tab: 'contacts' },
+    '06': { prompt: 'consigneeSelect', label: 'Consignee', tab: 'contacts' },
+    '07': { prompt: 'consigneeSelect', label: 'Consignee', tab: 'contacts' },
+    '01': { prompt: 'airlineSelect1', label: 'Issuing Carrier', tab: 'routing' },
+    '10': { prompt: 'airlineSelect1', label: 'Issuing Carrier', tab: 'routing' },
+    '09': { prompt: 'destinationSelect', label: 'Destination', tab: 'routing' },
+    '18': { prompt: 'destinationSelect', label: 'Destination', tab: 'routing' },
+    '11': { prompt: 'directFlightSelect', label: 'Direct Flight', tab: 'routing' },
+    '12': { prompt: 'directFlightSelect', label: 'Direct Flight', tab: 'routing' },
+    '13': { prompt: 'interlineCarrierSelect1', label: 'Interline Carrier 1', tab: 'routing' },
+    '14': { prompt: 'interlineCarrierSelect1', label: 'Interline Carrier 1', tab: 'routing' },
+    '16': { prompt: 'declaredValuesSelect', label: 'Declared Values', tab: 'billing' },
+    '17': { prompt: 'declaredValuesSelect', label: 'Declared Values', tab: 'billing' },
+    '21': { prompt: 'insuranceSelect', label: 'Insurance', tab: 'billing' },
+    '24': { prompt: 'prepaidCollectSelect', label: 'Prepaid or Collect', tab: 'billing' },
+    '25': { prompt: 'prepaidCollectSelect', label: 'Prepaid or Collect', tab: 'billing' }
+};
+
+// Update prompt indicators based on missing lower section fields
+function updatePromptIndicators() {
+    // Get all forms with lower section fields
+    const forms = [];
+    const generatedForm = document.getElementById('generatedForm');
+    const contactFieldsForm = document.getElementById('contactFieldsForm');
+    const billingFieldsForm = document.getElementById('billingFieldsForm');
+    
+    if (generatedForm) forms.push(generatedForm);
+    if (contactFieldsForm) forms.push(contactFieldsForm);
+    if (billingFieldsForm) forms.push(billingFieldsForm);
+    
+    // Track which prompts need indicators
+    const promptNeeds = {};
+    
+    // Scan all forms for fields with red labels (empty fields)
+    forms.forEach(form => {
+        if (!form) return;
+        
+        const formElements = form.elements;
+        for (let i = 0; i < formElements.length; i++) {
+            const element = formElements[i];
+            const name = element.name;
+            
+            if (!name) continue;
+            
+            // Skip buttons and hidden inputs
+            if (element.type === 'button' || element.type === 'submit' || element.type === 'hidden') {
+                continue;
+            }
+            
+            // Skip fields marked as complete
+            if (element.hasAttribute('data-direct-flight-complete') ||
+                element.hasAttribute('data-declared-values-complete') ||
+                element.hasAttribute('data-insurance-complete') ||
+                element.hasAttribute('data-prepaid-collect-complete') ||
+                element.hasAttribute('data-logo-complete')) {
+                continue;
+            }
+            
+            // Check if field is empty
+            let isEmpty = false;
+            if (element.type === 'checkbox' || element.type === 'radio') {
+                if (element.type === 'radio') {
+                    const radioGroup = form.querySelectorAll(`input[type="radio"][name="${name}"]`);
+                    const hasChecked = Array.from(radioGroup).some(radio => radio.checked);
+                    isEmpty = !hasChecked;
+                } else {
+                    if (name.startsWith('24') || name.startsWith('25')) {
+                        isEmpty = !element.checked;
+                    }
+                }
+            } else if (element.tagName === 'SELECT') {
+                isEmpty = !element.value || element.value === '';
+            } else {
+                isEmpty = !element.value || element.value.trim() === '';
+            }
+            
+            // Check if label is red (field is missing)
+            if (isEmpty) {
+                const formGroup = element.closest('.form-group');
+                if (formGroup) {
+                    const label = formGroup.querySelector('label');
+                    if (label && label.style.color === 'red') {
+                        // Extract field prefix (first 2 digits)
+                        const fieldPrefix = name.substring(0, 2);
+                        const mapping = fieldToPromptMapping[fieldPrefix];
+                        
+                        if (mapping) {
+                            const promptId = mapping.prompt;
+                            if (!promptNeeds[promptId]) {
+                                promptNeeds[promptId] = {
+                                    prompt: promptId,
+                                    label: mapping.label,
+                                    tab: mapping.tab,
+                                    fields: []
+                                };
+                            }
+                            promptNeeds[promptId].fields.push(name);
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Add/update indicators on prompts
+    Object.keys(promptNeeds).forEach(promptId => {
+        const promptElement = document.getElementById(promptId);
+        if (promptElement) {
+            const promptGroup = promptElement.closest('.contact-select-group');
+            if (promptGroup) {
+                const label = promptGroup.querySelector('label');
+                
+                // Remove existing indicator
+                const existingIndicator = promptGroup.querySelector('.prompt-indicator');
+                if (existingIndicator) {
+                    existingIndicator.remove();
+                }
+                
+                // Add new indicator badge
+                const indicator = document.createElement('span');
+                indicator.className = 'prompt-indicator';
+                indicator.style.cssText = 'margin-left: 8px; padding: 2px 8px; background: #dc3545; color: white; border-radius: 12px; font-size: 11px; font-weight: 600;';
+                indicator.textContent = `${promptNeeds[promptId].fields.length} field${promptNeeds[promptId].fields.length > 1 ? 's' : ''}`;
+                indicator.title = `Missing fields: ${promptNeeds[promptId].fields.join(', ')}`;
+                
+                if (label) {
+                    label.appendChild(indicator);
+                }
+                
+                // Highlight the prompt group
+                promptGroup.style.borderLeft = '3px solid #dc3545';
+                promptGroup.style.paddingLeft = '8px';
+            }
+        }
+    });
+    
+    // Remove indicators from prompts that don't need them
+    const allPrompts = ['shipperSelect', 'consigneeSelect', 'airlineSelect1', 'destinationSelect', 
+                        'directFlightSelect', 'interlineCarrierSelect1', 'interlineCarrierSelect2',
+                        'declaredValuesSelect', 'insuranceSelect', 'prepaidCollectSelect'];
+    
+    allPrompts.forEach(promptId => {
+        if (!promptNeeds[promptId]) {
+            const promptElement = document.getElementById(promptId);
+            if (promptElement) {
+                const promptGroup = promptElement.closest('.contact-select-group');
+                if (promptGroup) {
+                    const indicator = promptGroup.querySelector('.prompt-indicator');
+                    if (indicator) {
+                        indicator.remove();
+                    }
+                    promptGroup.style.borderLeft = '';
+                    promptGroup.style.paddingLeft = '';
+                }
+            }
+        }
+    });
 }
 
 // Update individual tab indicator

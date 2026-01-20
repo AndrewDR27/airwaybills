@@ -235,7 +235,7 @@
         }
 
         // Open destination modal
-        function openDestinationModal(destinationId) {
+        async function openDestinationModal(destinationId) {
             // Check if user is admin
             if (!isAdmin()) {
                 alert('Only administrators can add or edit destinations.');
@@ -248,15 +248,20 @@
             const destinationIdInput = document.getElementById('destinationId');
             
             if (destinationId) {
-                const destinations = getDestinations();
-                const destination = destinations.find(d => d.id === destinationId);
-                if (destination) {
-                    title.textContent = 'Edit Destination';
-                    destinationIdInput.value = destination.id;
-                    document.getElementById('airportCode').value = destination.airportCode || '';
-                    document.getElementById('cityName').value = destination.cityName || '';
-                    document.getElementById('stateName').value = destination.stateName || '';
-                    document.getElementById('airportName').value = destination.airportName || '';
+                try {
+                    const destinations = await destinationsAPI.getAll();
+                    const destination = destinations.find(d => d.id === destinationId);
+                    if (destination) {
+                        title.textContent = 'Edit Destination';
+                        destinationIdInput.value = destination.id;
+                        document.getElementById('airportCode').value = destination.airportCode || '';
+                        document.getElementById('cityName').value = destination.cityName || '';
+                        document.getElementById('stateName').value = destination.stateName || '';
+                        document.getElementById('airportName').value = destination.airportName || '';
+                    }
+                } catch (error) {
+                    console.error('Error loading destination:', error);
+                    alert('Error loading destination data.');
                 }
             } else {
                 title.textContent = 'Add Destination';
@@ -281,7 +286,7 @@
         }
 
         // Delete destination
-        function deleteDestination(id) {
+        async function deleteDestination(id) {
             // Check if user is admin
             if (!isAdmin()) {
                 alert('Only administrators can delete destinations.');
@@ -292,19 +297,21 @@
                 return;
             }
             
-            const destinations = getDestinations();
-            const filtered = destinations.filter(d => d.id !== id);
-            
-            if (saveDestinations(filtered)) {
-                renderDestinations();
+            try {
+                await destinationsAPI.delete(id);
+                alert('Destination deleted successfully!');
+                await renderDestinations();
+            } catch (error) {
+                console.error('Error deleting destination:', error);
+                alert('Error deleting destination. Please try again.');
             }
         }
 
         // Handle save destination
-        function handleSaveDestination(e) {
+        async function handleSaveDestination(e) {
             e.preventDefault();
             
-            const id = document.getElementById('destinationId').value || Date.now().toString();
+            const id = document.getElementById('destinationId').value || `dest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             const airportCode = document.getElementById('airportCode').value.trim().toUpperCase();
             const cityName = document.getElementById('cityName').value.trim();
             const stateName = document.getElementById('stateName').value.trim();
@@ -315,9 +322,6 @@
                 return;
             }
             
-            const destinations = getDestinations();
-            const destinationIndex = destinations.findIndex(d => d.id === id);
-            
             const destination = {
                 id,
                 cityName,
@@ -326,21 +330,35 @@
                 airportName
             };
             
-            if (destinationIndex >= 0) {
-                destinations[destinationIndex] = destination;
-            } else {
-                destinations.push(destination);
-            }
-            
-            if (saveDestinations(destinations)) {
+            try {
+                const destinations = await destinationsAPI.getAll();
+                const exists = destinations.find(d => d.id === id);
+                
+                if (exists) {
+                    await destinationsAPI.update(destination);
+                } else {
+                    await destinationsAPI.create(destination);
+                }
+                
                 closeDestinationModal();
-                renderDestinations();
+                alert('✓ Destination saved successfully!');
+                await renderDestinations();
+            } catch (error) {
+                console.error('Error saving destination:', error);
+                alert('Error saving destination. Please try again.');
             }
         }
 
+        // Make functions available globally
+        window.deleteDestination = deleteDestination;
+        window.editDestination = editDestination;
+        window.openDestinationModal = openDestinationModal;
+        window.closeDestinationModal = closeDestinationModal;
+        window.handleSaveDestination = handleSaveDestination;
+
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            renderDestinations();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await renderDestinations();
             
             // Show/hide add button based on admin status
             const isUserAdmin = isAdmin();

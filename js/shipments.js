@@ -1,8 +1,47 @@
 // Shipment management system
+// Uses Upstash Redis database via API
+
 const SHIPMENTS_STORAGE_KEY = 'awb_shipments';
 
+// Get shipmentsAPI (will be available when api.js loads)
+let shipmentsAPI = null;
+if (typeof window !== 'undefined') {
+    const checkAPI = setInterval(() => {
+        if (window.shipmentsAPI) {
+            shipmentsAPI = window.shipmentsAPI;
+            clearInterval(checkAPI);
+        }
+    }, 100);
+    setTimeout(() => clearInterval(checkAPI), 5000);
+}
+
 // Get all shipments
-function getAllShipments() {
+async function getAllShipments() {
+    if (!shipmentsAPI) {
+        return getAllShipmentsLocalStorage();
+    }
+    
+    try {
+        const shipments = await shipmentsAPI.getAll();
+        // Convert to Shipment objects if Shipment class is available
+        if (window.Shipment) {
+            return shipments.map(s => new Shipment(s));
+        }
+        // Update localStorage cache
+        try {
+            localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+        } catch (e) {
+            console.warn('Could not update localStorage cache:', e);
+        }
+        return shipments;
+    } catch (error) {
+        console.error('Error fetching shipments from API:', error);
+        return getAllShipmentsLocalStorage();
+    }
+}
+
+// Get all shipments from localStorage (fallback)
+function getAllShipmentsLocalStorage() {
     const shipmentsData = localStorage.getItem(SHIPMENTS_STORAGE_KEY);
     if (!shipmentsData) {
         return [];
@@ -10,7 +49,6 @@ function getAllShipments() {
     
     try {
         const shipments = JSON.parse(shipmentsData);
-        // Convert to Shipment objects if Shipment class is available
         if (window.Shipment) {
             return shipments.map(s => new Shipment(s));
         }
@@ -22,45 +60,98 @@ function getAllShipments() {
 }
 
 // Get shipment by AWB number
-function getShipmentByAWB(awbNumber) {
-    const shipments = getAllShipments();
-    return shipments.find(s => s.awbNumber === awbNumber);
+async function getShipmentByAWB(awbNumber) {
+    if (!shipmentsAPI) {
+        const shipments = getAllShipmentsLocalStorage();
+        return shipments.find(s => s.awbNumber === awbNumber);
+    }
+    
+    try {
+        return await shipmentsAPI.getByAWB(awbNumber);
+    } catch (error) {
+        console.error('Error fetching shipment from API:', error);
+        const shipments = getAllShipmentsLocalStorage();
+        return shipments.find(s => s.awbNumber === awbNumber);
+    }
 }
 
 // Get shipment by space ID
-function getShipmentBySpaceId(spaceId) {
-    const shipments = getAllShipments();
-    const shipment = shipments.find(s => s.spaceId === spaceId);
-    if (shipment && window.Shipment) {
-        return new Shipment(shipment);
+async function getShipmentBySpaceId(spaceId) {
+    if (!shipmentsAPI) {
+        const shipments = getAllShipmentsLocalStorage();
+        const shipment = shipments.find(s => s.spaceId === spaceId);
+        if (shipment && window.Shipment) {
+            return new Shipment(shipment);
+        }
+        return shipment;
     }
-    return shipment;
+    
+    try {
+        const shipment = await shipmentsAPI.getBySpaceId(spaceId);
+        if (shipment && window.Shipment) {
+            return new Shipment(shipment);
+        }
+        return shipment;
+    } catch (error) {
+        console.error('Error fetching shipment from API:', error);
+        const shipments = getAllShipmentsLocalStorage();
+        const shipment = shipments.find(s => s.spaceId === spaceId);
+        if (shipment && window.Shipment) {
+            return new Shipment(shipment);
+        }
+        return shipment;
+    }
 }
 
 // Get shipments for current user (excluding deleted)
-function getUserShipments(userId = null) {
+async function getUserShipments(userId = null) {
     if (!userId) {
         const user = getCurrentUser();
         if (!user) return [];
         userId = user.id;
     }
     
-    const user = getCurrentUser();
-    const shipments = getAllShipments();
-    
-    // Admin can see all shipments
-    if (user && user.role === 'admin') {
-        return shipments.filter(s => s.status !== 'deleted');
+    if (!shipmentsAPI) {
+        const user = getCurrentUser();
+        const shipments = getAllShipmentsLocalStorage();
+        
+        if (user && user.role === 'admin') {
+            return shipments.filter(s => s.status !== 'deleted');
+        }
+        
+        return shipments.filter(s => {
+            if (s.status === 'deleted') return false;
+            return s.createdBy === userId || 
+                   (s.participants && s.participants.some(p => p.userId === userId));
+        });
     }
     
-    return shipments.filter(s => {
-        // Exclude deleted shipments
-        if (s.status === 'deleted') return false;
+    try {
+        const shipments = await shipmentsAPI.getByUser(userId);
+        const user = getCurrentUser();
         
-        // Include if user is creator or participant
-        return s.createdBy === userId || 
-               s.participants.some(p => p.userId === userId);
-    });
+        // Admin can see all shipments
+        if (user && user.role === 'admin') {
+            const allShipments = await shipmentsAPI.getAll();
+            return allShipments.filter(s => s.status !== 'deleted');
+        }
+        
+        return shipments.filter(s => s.status !== 'deleted');
+    } catch (error) {
+        console.error('Error fetching user shipments from API:', error);
+        const user = getCurrentUser();
+        const shipments = getAllShipmentsLocalStorage();
+        
+        if (user && user.role === 'admin') {
+            return shipments.filter(s => s.status !== 'deleted');
+        }
+        
+        return shipments.filter(s => {
+            if (s.status === 'deleted') return false;
+            return s.createdBy === userId || 
+                   (s.participants && s.participants.some(p => p.userId === userId));
+        });
+    }
 }
 
 // Create new shipment
@@ -151,8 +242,21 @@ function createShipment(formDataOrOptions = {}) {
     }
     
     // Save shipment
-    const shipments = getAllShipments();
-    shipments.push(newShipment.toJSON ? newShipment.toJSON() : newShipment);
+    const shipmentData = newShipment.toJSON ? newShipment.toJSON() : newShipment;
+    
+    if (shipmentsAPI) {
+        try {
+            const saved = await shipmentsAPI.create(shipmentData);
+            return { success: true, shipment: newShipment };
+        } catch (error) {
+            console.error('Error creating shipment via API:', error);
+            // Fallback to localStorage
+        }
+    }
+    
+    // Fallback to localStorage
+    const shipments = getAllShipmentsLocalStorage();
+    shipments.push(shipmentData);
     localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
     
     return { success: true, shipment: newShipment };
@@ -259,8 +363,21 @@ function createShipmentSpace(participants = []) {
         });
         
         // Save shipment
-        const shipments = getAllShipments();
-        shipments.push(newShipment.toJSON());
+        const shipmentData = newShipment.toJSON();
+        
+        if (shipmentsAPI) {
+            try {
+                await shipmentsAPI.create(shipmentData);
+                return { success: true, shipment: newShipment };
+            } catch (error) {
+                console.error('Error creating shipment via API:', error);
+                // Fallback to localStorage
+            }
+        }
+        
+        // Fallback to localStorage
+        const shipments = getAllShipmentsLocalStorage();
+        shipments.push(shipmentData);
         localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
         
         return { success: true, shipment: newShipment };
@@ -281,35 +398,44 @@ function createShipmentSpace(participants = []) {
     });
     
     // Save shipment
-    const shipments = getAllShipments();
-    shipments.push(newShipment.toJSON());
+    const shipmentData = newShipment.toJSON();
+    
+    if (shipmentsAPI) {
+        try {
+            await shipmentsAPI.create(shipmentData);
+            return { success: true, shipment: newShipment };
+        } catch (error) {
+            console.error('Error creating shipment via API:', error);
+            // Fallback to localStorage
+        }
+    }
+    
+    // Fallback to localStorage
+    const shipments = getAllShipmentsLocalStorage();
+    shipments.push(shipmentData);
     localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
     
     return { success: true, shipment: newShipment };
 }
 
 // Update shipment (by spaceId or awbNumber)
-function updateShipment(identifier, updates) {
-    const shipments = getAllShipments();
-    let index = -1;
-    
-    // Try to find by spaceId first, then by awbNumber
+async function updateShipment(identifier, updates) {
+    // Get shipment first to find spaceId
+    let shipment;
     if (typeof identifier === 'string' && identifier.length === 10) {
-        // Likely a spaceId (10 characters)
-        index = shipments.findIndex(s => s.spaceId === identifier);
+        shipment = await getShipmentBySpaceId(identifier);
+    } else {
+        shipment = await getShipmentByAWB(identifier);
     }
     
-    if (index === -1) {
-        // Try by awbNumber
-        index = shipments.findIndex(s => s.awbNumber === identifier);
-    }
-    
-    if (index === -1) {
+    if (!shipment) {
         return { success: false, message: 'Shipment not found' };
     }
     
-    // Merge updates - handle participants array specially
-    const currentShipment = shipments[index];
+    const spaceId = shipment.spaceId;
+    
+    // Merge updates
+    const currentShipment = shipment;
     if (updates.participants && Array.isArray(updates.participants)) {
         // If participants are explicitly provided, replace them (don't merge)
         // This allows for removal of participants
@@ -318,17 +444,34 @@ function updateShipment(identifier, updates) {
     }
     
     // Merge updates
-    shipments[index] = { ...currentShipment, ...updates };
+    const updatedShipment = { ...currentShipment, ...updates };
     
     // Recalculate fees if needed
     if (updates.fees || updates.fee) {
-        const shipment = shipments[index];
-        shipment.totalFees = (shipment.fees || []).reduce((sum, fee) => sum + (fee.amount || 0), 0);
+        updatedShipment.totalFees = (updatedShipment.fees || []).reduce((sum, fee) => sum + (fee.amount || 0), 0);
     }
     
-    localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+    // Save via API
+    if (shipmentsAPI) {
+        try {
+            const saved = await shipmentsAPI.update({ ...updatedShipment, spaceId });
+            return { success: true, shipment: saved };
+        } catch (error) {
+            console.error('Error updating shipment via API:', error);
+            // Fallback to localStorage
+        }
+    }
     
-    return { success: true, shipment: shipments[index] };
+    // Fallback to localStorage
+    const shipments = getAllShipmentsLocalStorage();
+    const index = shipments.findIndex(s => s.spaceId === spaceId);
+    if (index >= 0) {
+        shipments[index] = updatedShipment;
+        localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+        return { success: true, shipment: shipments[index] };
+    }
+    
+    return { success: false, message: 'Shipment not found' };
 }
 
 // Cancel shipment
@@ -364,13 +507,13 @@ function uncancelShipment(spaceId) {
 }
 
 // Delete shipment (only cancelled ones, by Agent only)
-function deleteShipment(spaceId) {
+async function deleteShipment(spaceId) {
     const user = getCurrentUser();
     if (!user || (user.role !== 'issuing-carrier-agent' && user.role !== 'admin')) {
         return { success: false, message: 'Only Issuing Carrier Agents or Administrators can delete shipments' };
     }
     
-    const shipment = getShipmentBySpaceId(spaceId);
+    const shipment = await getShipmentBySpaceId(spaceId);
     if (!shipment) {
         return { success: false, message: 'Shipment not found' };
     }
@@ -379,16 +522,25 @@ function deleteShipment(spaceId) {
         return { success: false, message: 'Only cancelled shipments can be deleted' };
     }
     
-    // Mark as deleted
-    const shipments = getAllShipments();
+    // Delete via API
+    if (shipmentsAPI) {
+        try {
+            await shipmentsAPI.delete(spaceId, user.id);
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting shipment via API:', error);
+            // Fallback to localStorage
+        }
+    }
+    
+    // Fallback to localStorage
+    const shipments = getAllShipmentsLocalStorage();
     const index = shipments.findIndex(s => s.spaceId === spaceId);
     if (index !== -1) {
         shipments[index].status = 'deleted';
         shipments[index].deletedAt = new Date().toISOString();
         shipments[index].deletedBy = user.id;
         localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
-        
-        // Remove from other participants' views by filtering in getUserShipments
         return { success: true };
     }
     

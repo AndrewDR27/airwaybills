@@ -393,19 +393,24 @@
     <script src="models/user.js"></script>
     <script src="js/roles.js"></script>
     <script src="js/auth.js"></script>
-    <script>
+    <script type="module">
+        import { contactsAPI } from './js/api.js';
+        
+        // Make contactsAPI available globally
+        window.contactsAPI = contactsAPI;
+        
         // Contact management functions (shared with create-awb.html)
-        function getContacts() {
+        async function getContacts() {
+            if (!contactsAPI) {
+                return getContactsFromLocalStorage();
+            }
+            
             try {
-                const contactsJson = localStorage.getItem('awbContacts');
-                const contacts = contactsJson ? JSON.parse(contactsJson) : [];
-                
-                // Migrate old contacts to new structure (remove contactName, phone, address if they exist)
-                // and ensure required fields exist
+                const contacts = await contactsAPI.getAll();
+                // Migrate old contacts to new structure if needed
                 const migratedContacts = contacts.map(contact => {
                     if (!contact) return null;
                     
-                    // Create new contact object with only the fields we need
                     const migrated = {
                         id: contact.id,
                         type: contact.type,
@@ -416,35 +421,85 @@
                         agentCustomFields: contact.agentCustomFields || {}
                     };
                     
-                    // Preserve accountInfo for Consignees
                     if (contact.type === 'Consignee' && contact.accountInfo) {
                         migrated.accountInfo = contact.accountInfo;
                     }
                     
                     return migrated;
-                }).filter(c => c !== null && c.id && c.type); // Remove invalid contacts
+                }).filter(c => c !== null && c.id && c.type);
                 
-                // Save migrated contacts back if they were changed
-                if (migratedContacts.length !== contacts.length || JSON.stringify(migratedContacts) !== JSON.stringify(contacts)) {
+                // Update cache
+                try {
                     localStorage.setItem('awbContacts', JSON.stringify(migratedContacts));
+                } catch (e) {
+                    console.warn('Could not update localStorage cache:', e);
                 }
                 
                 return migratedContacts;
+            } catch (error) {
+                console.error('Error fetching contacts from API:', error);
+                return getContactsFromLocalStorage();
+            }
+        }
+        
+        // Fallback to localStorage
+        function getContactsFromLocalStorage() {
+            try {
+                const contactsJson = localStorage.getItem('awbContacts');
+                const contacts = contactsJson ? JSON.parse(contactsJson) : [];
+                return contacts.filter(c => c !== null && c.id && c.type);
             } catch (error) {
                 console.warn('Could not read contacts from localStorage:', error);
                 return [];
             }
         }
 
-        function saveContacts(contacts) {
+        async function saveContacts(contacts) {
+            if (!contactsAPI) {
+                try {
+                    localStorage.setItem('awbContacts', JSON.stringify(contacts));
+                    await loadContacts();
+                    return true;
+                } catch (error) {
+                    console.warn('Could not save contacts to localStorage:', error);
+                    alert('Error saving contact. Storage may be full.');
+                    return false;
+                }
+            }
+            
+            // Save each contact individually via API
             try {
-                localStorage.setItem('awbContacts', JSON.stringify(contacts));
-                loadContacts();
+                for (const contact of contacts) {
+                    const existing = await contactsAPI.getAll();
+                    const exists = existing.find(c => c.id === contact.id);
+                    
+                    if (exists) {
+                        await contactsAPI.update(contact);
+                    } else {
+                        await contactsAPI.create(contact);
+                    }
+                }
+                
+                // Also update localStorage cache
+                try {
+                    localStorage.setItem('awbContacts', JSON.stringify(contacts));
+                } catch (e) {
+                    console.warn('Could not update localStorage cache:', e);
+                }
+                
+                await loadContacts();
                 return true;
             } catch (error) {
-                console.warn('Could not save contacts to localStorage:', error);
-                alert('Error saving contact. Storage may be full.');
-                return false;
+                console.error('Error saving contacts via API:', error);
+                // Fallback to localStorage
+                try {
+                    localStorage.setItem('awbContacts', JSON.stringify(contacts));
+                    await loadContacts();
+                    return true;
+                } catch (e) {
+                    alert('Error saving contact. Please try again.');
+                    return false;
+                }
             }
         }
 
@@ -470,8 +525,8 @@
             }
         }
 
-        function loadContacts() {
-            const contacts = getContacts();
+        async function loadContacts() {
+            const contacts = await getContacts();
             console.log('Loaded contacts:', contacts);
             
             // Filter out airlines - they're on a separate page
@@ -587,20 +642,33 @@
         }
 
 
-        function deleteContact(contactId) {
+        async function deleteContact(contactId) {
             if (!confirm('Are you sure you want to delete this contact?')) {
                 return;
             }
             
-            const contacts = getContacts();
+            if (contactsAPI) {
+                try {
+                    await contactsAPI.delete(contactId);
+                    alert('Contact deleted successfully!');
+                    await loadContacts();
+                    return;
+                } catch (error) {
+                    console.error('Error deleting contact via API:', error);
+                    // Fallback to localStorage
+                }
+            }
+            
+            // Fallback to localStorage
+            const contacts = await getContacts();
             const filtered = contacts.filter(c => c.id !== contactId);
             
-            if (saveContacts(filtered)) {
+            if (await saveContacts(filtered)) {
                 alert('Contact deleted successfully!');
             }
         }
 
-        function openContactModal(type, contactIdToEdit) {
+        async function openContactModal(type, contactIdToEdit) {
             const modal = document.getElementById('contactModal');
             const form = document.getElementById('contactForm');
             const contactId = document.getElementById('contactId');
@@ -644,7 +712,7 @@
             }
             
             if (contactIdToEdit) {
-                const contacts = getContacts();
+                const contacts = await getContacts();
                 const contact = contacts.find(c => c.id === contactIdToEdit);
                 if (contact) {
                     modalTitle.textContent = `Edit ${type}`;
@@ -768,13 +836,13 @@
                 window.location.href = 'users.html#all';
                 return false;
             } else {
-                const contacts = getContacts();
+                const contacts = await getContacts();
                 const contactIndex = contacts.findIndex(c => c.id === id);
                 
                 // Check if email matches an existing user and auto-link
                 let linkedUserId = null;
                 if (email) {
-                    const users = getAllUsers();
+                    const users = await getAllUsers();
                     const matchingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
                     if (matchingUser) {
                         linkedUserId = matchingUser.id;
@@ -830,7 +898,7 @@
                     contacts.push(contact);
                 }
                 
-                if (saveContacts(contacts)) {
+                if (await saveContacts(contacts)) {
                     closeContactModal();
                     let message = `✓ ${type} contact saved successfully!`;
                     if (linkedUserId) {
@@ -841,11 +909,11 @@
             }
         }
         
-        function saveContactWithImage(contact, contactIndex, contacts) {
+        async function saveContactWithImage(contact, contactIndex, contacts) {
             // Check if email matches an existing user and auto-link
             let linkedUserId = null;
             if (contact.email) {
-                const users = getAllUsers();
+                const users = await getAllUsers();
                 const matchingUser = users.find(u => u.email.toLowerCase() === contact.email.toLowerCase());
                 if (matchingUser) {
                     linkedUserId = matchingUser.id;
@@ -877,7 +945,7 @@
                 contacts.push(contact);
             }
             
-            if (saveContacts(contacts)) {
+            if (await saveContacts(contacts)) {
                 closeContactModal();
                 let message = `✓ ${contact.type} contact saved successfully!`;
                 if (linkedUserId) {
@@ -993,8 +1061,11 @@
         }
 
         // Load contacts and profile on page load
-        loadContacts();
-        loadUserProfile();
+        // Initialize on page load
+        (async () => {
+            await loadContacts();
+            loadUserProfile();
+        })();
     </script>
 </body>
 </html>

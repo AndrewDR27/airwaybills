@@ -237,44 +237,43 @@
     </div>
 
     <script src="js/auth.js"></script>
-    <script>
+    <script type="module">
+        import { terminalsAPI } from './js/api.js';
+        
         function isAdmin() {
             const user = getCurrentUser();
             return user && user.role === 'admin';
         }
 
-        function getTerminals() {
-            const terminals = localStorage.getItem('awb_terminals');
-            return terminals ? JSON.parse(terminals) : [];
-        }
+        async function renderTerminals() {
+            try {
+                const terminals = await terminalsAPI.getAll();
+                const listContainer = document.getElementById('terminals-list');
+                
+                if (terminals.length === 0) {
+                    listContainer.innerHTML = '<div class="empty-state"><h3>No Terminals</h3><p>Click "+ Add Terminal" to create your first terminal.</p></div>';
+                    return;
+                }
 
-        function saveTerminals(terminals) {
-            localStorage.setItem('awb_terminals', JSON.stringify(terminals));
-        }
-
-        function renderTerminals() {
-            const terminals = getTerminals();
-            const listContainer = document.getElementById('terminals-list');
-            
-            if (terminals.length === 0) {
-                listContainer.innerHTML = '<div class="empty-state"><h3>No Terminals</h3><p>Click "+ Add Terminal" to create your first terminal.</p></div>';
-                return;
+                listContainer.innerHTML = terminals.map(terminal => `
+                    <div class="terminal-item">
+                        <div class="terminal-info">
+                            <div class="terminal-code">${escapeHtml(terminal.terminalCode || terminal.code || '')}</div>
+                            <div class="terminal-name">${escapeHtml(terminal.terminalName || terminal.name || '')}</div>
+                        </div>
+                        ${isAdmin() ? `
+                        <div class="terminal-actions">
+                            <button class="btn-edit" onclick="openTerminalModal('${terminal.id}')">Edit</button>
+                            <button class="btn-delete" onclick="deleteTerminal('${terminal.id}')">Delete</button>
+                        </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading terminals:', error);
+                const listContainer = document.getElementById('terminals-list');
+                listContainer.innerHTML = '<div class="empty-state"><h3>Error Loading Terminals</h3><p>Please refresh the page.</p></div>';
             }
-
-            listContainer.innerHTML = terminals.map(terminal => `
-                <div class="terminal-item">
-                    <div class="terminal-info">
-                        <div class="terminal-code">${escapeHtml(terminal.code)}</div>
-                        <div class="terminal-name">${escapeHtml(terminal.name)}</div>
-                    </div>
-                    ${isAdmin() ? `
-                    <div class="terminal-actions">
-                        <button class="btn-edit" onclick="openTerminalModal('${terminal.id}')">Edit</button>
-                        <button class="btn-delete" onclick="deleteTerminal('${terminal.id}')">Delete</button>
-                    </div>
-                    ` : ''}
-                </div>
-            `).join('');
         }
 
         function escapeHtml(text) {
@@ -283,7 +282,7 @@
             return div.innerHTML;
         }
 
-        function openTerminalModal(terminalId) {
+        async function openTerminalModal(terminalId) {
             if (!isAdmin()) {
                 alert('Only administrators can manage terminals.');
                 return;
@@ -297,13 +296,18 @@
             const terminalNameInput = document.getElementById('terminalName');
 
             if (terminalId) {
-                const terminals = getTerminals();
-                const terminal = terminals.find(t => t.id === terminalId);
-                if (terminal) {
-                    modalTitle.textContent = 'Edit Terminal';
-                    terminalIdInput.value = terminal.id;
-                    terminalCodeInput.value = terminal.code;
-                    terminalNameInput.value = terminal.name;
+                try {
+                    const terminals = await terminalsAPI.getAll();
+                    const terminal = terminals.find(t => t.id === terminalId);
+                    if (terminal) {
+                        modalTitle.textContent = 'Edit Terminal';
+                        terminalIdInput.value = terminal.id;
+                        terminalCodeInput.value = terminal.terminalCode || terminal.code || '';
+                        terminalNameInput.value = terminal.terminalName || terminal.name || '';
+                    }
+                } catch (error) {
+                    console.error('Error loading terminal:', error);
+                    alert('Error loading terminal data.');
                 }
             } else {
                 modalTitle.textContent = 'Add Terminal';
@@ -318,7 +322,7 @@
             document.getElementById('terminalModal').style.display = 'none';
         }
 
-        function deleteTerminal(terminalId) {
+        async function deleteTerminal(terminalId) {
             if (!isAdmin()) {
                 alert('Only administrators can delete terminals.');
                 return;
@@ -328,13 +332,17 @@
                 return;
             }
 
-            const terminals = getTerminals();
-            const filtered = terminals.filter(t => t.id !== terminalId);
-            saveTerminals(filtered);
-            renderTerminals();
+            try {
+                await terminalsAPI.delete(terminalId);
+                alert('Terminal deleted successfully!');
+                await renderTerminals();
+            } catch (error) {
+                console.error('Error deleting terminal:', error);
+                alert('Error deleting terminal. Please try again.');
+            }
         }
 
-        document.getElementById('terminalForm').addEventListener('submit', (e) => {
+        document.getElementById('terminalForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             if (!isAdmin()) {
@@ -351,36 +359,37 @@
                 return;
             }
 
-            const terminals = getTerminals();
+            try {
+                const terminals = await terminalsAPI.getAll();
+                const terminal = {
+                    id: terminalId || `terminal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    terminalCode: code,
+                    terminalName: name
+                };
 
-            if (terminalId) {
-                // Edit existing
-                const index = terminals.findIndex(t => t.id === terminalId);
-                if (index >= 0) {
+                if (terminalId) {
                     // Check if code is already used by another terminal
-                    if (terminals.some(t => t.code === code && t.id !== terminalId)) {
+                    if (terminals.some(t => (t.terminalCode || t.code) === code && t.id !== terminalId)) {
                         alert('Terminal code already exists.');
                         return;
                     }
-                    terminals[index] = { ...terminals[index], code, name };
+                    await terminalsAPI.update(terminal);
+                } else {
+                    // Check if code already exists
+                    if (terminals.some(t => (t.terminalCode || t.code) === code)) {
+                        alert('Terminal code already exists.');
+                        return;
+                    }
+                    await terminalsAPI.create(terminal);
                 }
-            } else {
-                // Add new
-                if (terminals.some(t => t.code === code)) {
-                    alert('Terminal code already exists.');
-                    return;
-                }
-                terminals.push({
-                    id: 'terminal_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                    code,
-                    name,
-                    createdAt: new Date().toISOString()
-                });
-            }
 
-            saveTerminals(terminals);
-            renderTerminals();
-            closeTerminalModal();
+                alert('✓ Terminal saved successfully!');
+                await renderTerminals();
+                closeTerminalModal();
+            } catch (error) {
+                console.error('Error saving terminal:', error);
+                alert('Error saving terminal. Please try again.');
+            }
         });
 
         // Close modal when clicking outside
@@ -390,13 +399,29 @@
             }
         });
 
-        // Hide add button for non-admins
-        if (!isAdmin()) {
-            document.querySelector('.btn-add').style.display = 'none';
+        // Make functions available globally
+        window.deleteTerminal = deleteTerminal;
+        window.openTerminalModal = openTerminalModal;
+        window.closeTerminalModal = closeTerminalModal;
+
+        // Initialize on page load
+        async function initializeTerminals() {
+            await renderTerminals();
+            
+            // Hide add button for non-admins
+            if (!isAdmin()) {
+                const addBtn = document.querySelector('.btn-add');
+                if (addBtn) {
+                    addBtn.style.display = 'none';
+                }
+            }
         }
 
-        // Initial render
-        renderTerminals();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeTerminals);
+        } else {
+            initializeTerminals();
+        }
     </script>
 </body>
 </html>

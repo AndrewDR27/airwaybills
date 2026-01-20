@@ -174,8 +174,8 @@
         }
 
         // Load and display shipments with payment info
-        function loadPayments() {
-            const shipments = getUserShipments(user.id);
+        async function loadPayments() {
+            const shipments = await getUserShipments(user.id);
             
             // Calculate totals
             let totalPending = 0;
@@ -255,11 +255,11 @@
             }).join('');
         }
         
-        function processPayment(awbNumber, amount) {
+        async function processPayment(awbNumber, amount) {
             if (confirm(`Process payment of $${amount.toFixed(2)} for AWB ${awbNumber}?`)) {
                 // In a real system, this would integrate with a payment gateway
                 // For now, just mark as paid
-                const result = updateShipment(awbNumber, {
+                const result = await updateShipment(awbNumber, {
                     status: 'completed',
                     paidBy: user.id,
                     paidAt: new Date().toISOString()
@@ -267,7 +267,7 @@
                 
                 if (result.success) {
                     alert(`Payment of $${amount.toFixed(2)} processed successfully!`);
-                    loadPayments(); // Reload to update totals
+                    await loadPayments(); // Reload to update totals
                 } else {
                     alert('Error processing payment: ' + result.message);
                 }
@@ -275,7 +275,9 @@
         }
         
         // Load payments on page load
-        loadPayments();
+        (async () => {
+            await loadPayments();
+        })();
     </script>
 </body>
 </html>
