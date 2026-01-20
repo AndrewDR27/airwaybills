@@ -263,23 +263,30 @@
         }
 
         // Handle form submission
-        document.getElementById('createSpaceForm').addEventListener('submit', function(e) {
+        document.getElementById('createSpaceForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const result = createShipmentSpace(invitedParticipants);
-            
-            if (result.success) {
-                alert('Shipment space created successfully! Space ID: ' + result.shipment.spaceId);
-                // Redirect to the space detail page
-                if (window.parent && window.parent !== window) {
-                    // In iframe - path is relative to dashboard.html (root directory)
-                    window.parent.document.getElementById('contentFrame').src = `shipments/space.html?spaceId=${result.shipment.spaceId}`;
+            try {
+                const result = await createShipmentSpace(invitedParticipants);
+                
+                if (result && result.success) {
+                    alert('Shipment space created successfully! Space ID: ' + result.shipment.spaceId);
+                    // Redirect to the space detail page
+                    if (window.parent && window.parent !== window) {
+                        // In iframe - path is relative to dashboard.html (root directory)
+                        window.parent.document.getElementById('contentFrame').src = `shipments/space.html?spaceId=${result.shipment.spaceId}`;
+                    } else {
+                        // Not in iframe - path is relative to current file (shipments/ directory)
+                        window.location.href = `space.html?spaceId=${result.shipment.spaceId}`;
+                    }
                 } else {
-                    // Not in iframe - path is relative to current file (shipments/ directory)
-                    window.location.href = `space.html?spaceId=${result.shipment.spaceId}`;
+                    const errorMessage = result?.message || 'Unknown error occurred';
+                    alert('Error creating shipment space: ' + errorMessage);
                 }
-            } else {
-                alert('Error creating shipment space: ' + result.message);
+            } catch (error) {
+                console.error('Error creating shipment space:', error);
+                const errorMessage = error?.message || 'An unexpected error occurred';
+                alert('Error creating shipment space: ' + errorMessage);
             }
         });
 
