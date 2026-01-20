@@ -261,19 +261,36 @@ app.delete('/api/users', async (req, res) => {
 });
 
 // Airlines API
+const AIRLINES_KEY = 'awb_airlines';
+
 app.get('/api/airlines', async (req, res) => {
+    console.log('=== Airlines API GET called ===');
     try {
-        const airlines = readDataFile('airlines');
-        res.json(airlines);
+        if (!redis) {
+            console.error('Airlines API: Redis not configured');
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        console.log('Airlines API: Redis is configured, fetching from key:', AIRLINES_KEY);
+        const airlines = await redis.get(AIRLINES_KEY);
+        console.log('Airlines API: Raw result from Redis:', typeof airlines, airlines === null ? 'null' : airlines === undefined ? 'undefined' : Array.isArray(airlines) ? `array with ${airlines.length} items` : 'not an array');
+        const result = Array.isArray(airlines) ? airlines : (airlines || []);
+        console.log('Airlines API: Returning', result.length, 'airlines');
+        res.json(result);
     } catch (error) {
-        console.error('Airlines API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Airlines API ERROR:', error.message);
+        console.error('Airlines API ERROR stack:', error.stack);
+        res.status(500).json({ error: 'Internal server error', message: error.message, stack: process.env.NODE_ENV === 'development' ? error.stack : undefined });
     }
 });
 
 app.post('/api/airlines', async (req, res) => {
     try {
-        const airlines = readDataFile('airlines');
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        const airlines = (await redis.get(AIRLINES_KEY)) || [];
         const newAirline = {
             id: req.body.id || `airline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             ...req.body,
@@ -281,40 +298,48 @@ app.post('/api/airlines', async (req, res) => {
             created_at: new Date().toISOString()
         };
         airlines.push(newAirline);
-        writeDataFile('airlines', airlines);
+        await redis.set(AIRLINES_KEY, airlines);
         res.status(201).json(newAirline);
     } catch (error) {
         console.error('Airlines API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
 app.put('/api/airlines', async (req, res) => {
     try {
-        const airlines = readDataFile('airlines');
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        const airlines = (await redis.get(AIRLINES_KEY)) || [];
         const index = airlines.findIndex(a => a.id === req.body.id);
         if (index >= 0) {
             airlines[index] = { ...airlines[index], ...req.body };
-            writeDataFile('airlines', airlines);
+            await redis.set(AIRLINES_KEY, airlines);
             res.json(airlines[index]);
         } else {
             res.status(404).json({ error: 'Airline not found' });
         }
     } catch (error) {
         console.error('Airlines API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
 app.delete('/api/airlines', async (req, res) => {
     try {
-        const airlines = readDataFile('airlines');
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        const airlines = (await redis.get(AIRLINES_KEY)) || [];
         const filtered = airlines.filter(a => a.id !== req.query.id);
-        writeDataFile('airlines', filtered);
+        await redis.set(AIRLINES_KEY, filtered);
         res.json({ success: true });
     } catch (error) {
         console.error('Airlines API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
