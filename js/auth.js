@@ -32,7 +32,30 @@ const CACHE_DURATION = 60000; // 1 minute
 
 // Get current user (synchronous - uses cache, localStorage fallback on localhost)
 function getCurrentUser() {
-    // CRITICAL: Always check if awb_auth exists first - if not, user is logged out
+    // Check cache first (if valid and recent)
+    if (currentUserCache && Date.now() - cacheTimestamp < CACHE_DURATION) {
+        // Verify cache is still valid by checking awb_auth
+        const authData = localStorage.getItem('awb_auth');
+        if (authData) {
+            try {
+                const auth = JSON.parse(authData);
+                if (auth.isAuthenticated && auth.userId === currentUserCache.id) {
+                    return currentUserCache;
+                }
+            } catch (e) {
+                // Invalid auth - clear cache
+                currentUserCache = null;
+                cacheTimestamp = 0;
+            }
+        } else {
+            // No auth data - clear cache
+            currentUserCache = null;
+            cacheTimestamp = 0;
+            return null;
+        }
+    }
+    
+    // Check if awb_auth exists - if not, user is logged out
     const authData = localStorage.getItem('awb_auth');
     if (!authData) {
         // No auth data means user is logged out - clear cache and return null
@@ -42,8 +65,9 @@ function getCurrentUser() {
     }
     
     // Parse auth data to verify it's valid
+    let auth;
     try {
-        const auth = JSON.parse(authData);
+        auth = JSON.parse(authData);
         if (!auth.isAuthenticated || !auth.userId) {
             // Invalid auth data - clear cache and return null
             currentUserCache = null;
@@ -57,16 +81,10 @@ function getCurrentUser() {
         return null;
     }
     
-    // Check cache first (only if auth is valid)
-    if (currentUserCache && Date.now() - cacheTimestamp < CACHE_DURATION) {
-        return currentUserCache;
-    }
-    
     // Try localStorage as fallback (always try on localhost, or if no API available)
     const shouldUseLocalStorage = isLocalhost() || !usersAPI;
     if (shouldUseLocalStorage) {
         try {
-            const auth = JSON.parse(authData);
             if (auth.isAuthenticated && auth.userId) {
                 const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
                 const user = users.find(u => u.id === auth.userId);
@@ -82,6 +100,12 @@ function getCurrentUser() {
         } catch (e) {
             console.error('Error getting current user from cache:', e);
         }
+    }
+    
+    // If API is available but user not in localStorage, return cached user if available
+    // This handles the case where user was authenticated via API but cache exists
+    if (usersAPI && currentUserCache && currentUserCache.id === auth.userId) {
+        return currentUserCache;
     }
     
     return null;
