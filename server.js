@@ -344,116 +344,166 @@ app.delete('/api/airlines', async (req, res) => {
 });
 
 // Destinations API
+const DESTINATIONS_KEY = 'awb_destinations';
+
 app.get('/api/destinations', async (req, res) => {
+    console.log('=== Destinations API GET called ===');
     try {
-        const destinations = readDataFile('destinations');
-        res.json(destinations);
+        if (!redis) {
+            console.error('Destinations API: Redis not configured');
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        console.log('Destinations API: Redis is configured, fetching from key:', DESTINATIONS_KEY);
+        const destinations = await redis.get(DESTINATIONS_KEY);
+        console.log('Destinations API: Raw result from Redis:', typeof destinations, destinations === null ? 'null' : destinations === undefined ? 'undefined' : Array.isArray(destinations) ? `array with ${destinations.length} items` : 'not an array');
+        const result = Array.isArray(destinations) ? destinations : (destinations || []);
+        console.log('Destinations API: Returning', result.length, 'destinations');
+        res.json(result);
     } catch (error) {
-        console.error('Destinations API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Destinations API ERROR:', error.message);
+        console.error('Destinations API ERROR stack:', error.stack);
+        res.status(500).json({ error: 'Internal server error', message: error.message, stack: process.env.NODE_ENV === 'development' ? error.stack : undefined });
     }
 });
 
 app.post('/api/destinations', async (req, res) => {
     try {
-        const destinations = readDataFile('destinations');
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        const destinations = (await redis.get(DESTINATIONS_KEY)) || [];
         const newDestination = {
             id: req.body.id || `dest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             ...req.body,
             created_at: new Date().toISOString()
         };
         destinations.push(newDestination);
-        writeDataFile('destinations', destinations);
+        await redis.set(DESTINATIONS_KEY, destinations);
         res.status(201).json(newDestination);
     } catch (error) {
         console.error('Destinations API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
 app.put('/api/destinations', async (req, res) => {
     try {
-        const destinations = readDataFile('destinations');
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        const destinations = (await redis.get(DESTINATIONS_KEY)) || [];
         const index = destinations.findIndex(d => d.id === req.body.id);
         if (index >= 0) {
             destinations[index] = { ...destinations[index], ...req.body };
-            writeDataFile('destinations', destinations);
+            await redis.set(DESTINATIONS_KEY, destinations);
             res.json(destinations[index]);
         } else {
             res.status(404).json({ error: 'Destination not found' });
         }
     } catch (error) {
         console.error('Destinations API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
 app.delete('/api/destinations', async (req, res) => {
     try {
-        const destinations = readDataFile('destinations');
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        const destinations = (await redis.get(DESTINATIONS_KEY)) || [];
         const filtered = destinations.filter(d => d.id !== req.query.id);
-        writeDataFile('destinations', filtered);
+        await redis.set(DESTINATIONS_KEY, filtered);
         res.json({ success: true });
     } catch (error) {
         console.error('Destinations API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
 // Terminals API
+const TERMINALS_KEY = 'awb_terminals';
+
 app.get('/api/terminals', async (req, res) => {
+    console.log('=== Terminals API GET called ===');
     try {
-        const terminals = readDataFile('terminals');
-        res.json(terminals);
+        if (!redis) {
+            console.error('Terminals API: Redis not configured');
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        console.log('Terminals API: Redis is configured, fetching from key:', TERMINALS_KEY);
+        const terminals = await redis.get(TERMINALS_KEY);
+        console.log('Terminals API: Raw result from Redis:', typeof terminals, terminals === null ? 'null' : terminals === undefined ? 'undefined' : Array.isArray(terminals) ? `array with ${terminals.length} items` : 'not an array');
+        const result = Array.isArray(terminals) ? terminals : (terminals || []);
+        console.log('Terminals API: Returning', result.length, 'terminals');
+        res.json(result);
     } catch (error) {
-        console.error('Terminals API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Terminals API ERROR:', error.message);
+        console.error('Terminals API ERROR stack:', error.stack);
+        res.status(500).json({ error: 'Internal server error', message: error.message, stack: process.env.NODE_ENV === 'development' ? error.stack : undefined });
     }
 });
 
 app.post('/api/terminals', async (req, res) => {
     try {
-        const terminals = readDataFile('terminals');
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        const terminals = (await redis.get(TERMINALS_KEY)) || [];
         const newTerminal = {
             id: req.body.id || `terminal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             ...req.body,
             created_at: new Date().toISOString()
         };
         terminals.push(newTerminal);
-        writeDataFile('terminals', terminals);
+        await redis.set(TERMINALS_KEY, terminals);
         res.status(201).json(newTerminal);
     } catch (error) {
         console.error('Terminals API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
 app.put('/api/terminals', async (req, res) => {
     try {
-        const terminals = readDataFile('terminals');
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        const terminals = (await redis.get(TERMINALS_KEY)) || [];
         const index = terminals.findIndex(t => t.id === (req.query.id || req.body.id));
         if (index >= 0) {
             terminals[index] = { ...terminals[index], ...req.body };
-            writeDataFile('terminals', terminals);
+            await redis.set(TERMINALS_KEY, terminals);
             res.json(terminals[index]);
         } else {
             res.status(404).json({ error: 'Terminal not found' });
         }
     } catch (error) {
         console.error('Terminals API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
 app.delete('/api/terminals', async (req, res) => {
     try {
-        const terminals = readDataFile('terminals');
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        const terminals = (await redis.get(TERMINALS_KEY)) || [];
         const filtered = terminals.filter(t => t.id !== req.query.id);
-        writeDataFile('terminals', filtered);
+        await redis.set(TERMINALS_KEY, filtered);
         res.json({ success: true });
     } catch (error) {
         console.error('Terminals API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 

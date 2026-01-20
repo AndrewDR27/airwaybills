@@ -5,69 +5,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AWB AutoFills - Airway Bills</title>
     <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/themes.js"></script>
     <style>
         body {
             margin: 0;
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2px;
+            font-family: 'MS Sans Serif', 'Arial', sans-serif;
+            background: #008080;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
             min-height: 100vh;
         }
         .contacts-container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            background: #C0C0C0;
+            border: 2px outset #C0C0C0;
             overflow: hidden;
         }
         .contacts-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(to bottom, #000080 0%, #000080 100%);
             color: white;
-            padding: 40px;
+            padding: 4px 8px;
             text-align: center;
+            border-bottom: 2px solid #000000;
         }
         .contacts-header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 2px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .contacts-content {
-            padding: 40px;
+            padding: 8px;
         }
         .contacts-tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #eee;
+            gap: 2px;
+            margin-bottom: 8px;
+            border-bottom: 2px inset #C0C0C0;
         }
         .tab-button {
-            padding: 12px 24px;
-            background: none;
-            border: none;
-            border-bottom: 3px solid transparent;
+            padding: 4px 12px;
+            background: #C0C0C0;
+            border: 1px outset #C0C0C0;
+            border-bottom: none;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            color: #666;
-            transition: all 0.3s;
+            font-size: 11px;
+            font-weight: normal;
+            color: #000000;
             position: relative;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            margin-right: 2px;
         }
         .tab-count {
-            font-size: 0.85em;
-            font-weight: 500;
-            color: #999;
-            margin-left: 4px;
+            font-size: 10px;
+            font-weight: normal;
+            color: #000000;
+            margin-left: 2px;
         }
         .tab-button.active .tab-count {
-            color: #667eea;
+            color: #000000;
         }
         .tab-button:hover {
-            color: #667eea;
+            background: #E8E8E8;
         }
         .tab-button.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
+            background: #C0C0C0;
+            border: 2px inset #C0C0C0;
+            border-bottom: 2px solid #C0C0C0;
+            margin-bottom: -2px;
+            z-index: 1;
         }
         .tab-content {
             display: none;
@@ -79,183 +87,194 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 8px;
         }
         .btn-add {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 4px 16px;
+            background: #C0C0C0;
+            color: #000000;
+            border: 2px outset #C0C0C0;
+            font-size: 11px;
+            font-weight: normal;
             cursor: pointer;
-            transition: all 0.3s;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .btn-add:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            background: #E8E8E8;
+        }
+        .btn-add:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .contacts-list {
             background: white;
-            border-radius: 8px;
             overflow: hidden;
-            border: 1px solid #e0e0e0;
+            border: 2px inset #C0C0C0;
         }
         .contacts-table {
             width: 100%;
             border-collapse: collapse;
         }
         .contacts-table thead {
-            background: #f8f9fa;
-            border-bottom: 2px solid #e0e0e0;
+            background: #C0C0C0;
+            border-bottom: 2px inset #C0C0C0;
         }
         .contacts-table th {
-            padding: 15px;
+            padding: 4px 8px;
             text-align: left;
-            font-weight: 600;
-            color: #333;
-            font-size: 14px;
+            font-weight: bold;
+            color: #000000;
+            font-size: 11px;
             text-transform: uppercase;
         }
         .contacts-table td {
-            padding: 15px;
-            border-bottom: 1px solid #f0f0f0;
-            color: #666;
-            font-size: 14px;
+            padding: 4px 8px;
+            border-bottom: 1px solid #C0C0C0;
+            color: #000000;
+            font-size: 11px;
         }
         .contacts-table tbody tr {
-            transition: background 0.2s;
+            background: white;
         }
         .contacts-table tbody tr:hover {
-            background: #f8f9fa;
+            background: #316AC5;
+            color: white;
         }
         .contacts-table tbody tr:last-child td {
             border-bottom: none;
         }
         .contact-type-badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: bold;
             text-transform: uppercase;
             display: inline-block;
+            border: 1px inset #C0C0C0;
         }
         .badge-shipper {
-            background: #e3f2fd;
-            color: #1976d2;
+            background: #E0E0FF;
+            color: #000080;
         }
         .badge-consignee {
-            background: #f3e5f5;
-            color: #7b1fa2;
+            background: #FFE0FF;
+            color: #800080;
         }
         .badge-airline {
-            background: #fff3e0;
-            color: #e65100;
+            background: #FFFFE0;
+            color: #808000;
         }
         .badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: bold;
             text-transform: uppercase;
             display: inline-block;
-            margin-left: 8px;
+            margin-left: 4px;
+            border: 1px inset #C0C0C0;
         }
         .badge-active {
-            background: #d4edda;
-            color: #155724;
+            background: #E0FFE0;
+            color: #008000;
         }
         .badge-inactive {
-            background: #f8d7da;
-            color: #721c24;
+            background: #FFE0E0;
+            color: #800000;
         }
         .badge-current {
-            background: #667eea;
+            background: #000080;
             color: white;
         }
         .current-user-row {
-            background: #f0f4ff !important;
-            border-left: 4px solid #667eea;
+            background: #316AC5 !important;
+            color: white !important;
         }
         .current-user-row:hover {
-            background: #e8edff !important;
+            background: #000080 !important;
         }
         .contact-actions {
             display: flex;
-            gap: 8px;
+            gap: 4px;
         }
         .btn-edit, .btn-delete {
             flex: 1;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
+            padding: 2px 12px;
+            border: 2px outset #C0C0C0;
+            font-size: 11px;
+            font-weight: normal;
             cursor: pointer;
-            transition: all 0.3s;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .btn-edit {
-            background: #667eea;
-            color: white;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-edit:hover {
-            background: #5568d3;
+            background: #E8E8E8;
+        }
+        .btn-edit:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .btn-delete {
-            background: #dc3545;
-            color: white;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-delete:hover {
-            background: #c82333;
+            background: #E8E8E8;
+        }
+        .btn-delete:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
-            color: #999;
+            padding: 20px;
+            color: #000000;
         }
         .empty-state h3 {
-            margin-bottom: 10px;
-            color: #666;
+            margin-bottom: 4px;
+            color: #000000;
+            font-size: 12px;
         }
         .user-profile-section {
-            background: #f8f9fa;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
+            background: #C0C0C0;
+            border: 2px inset #C0C0C0;
+            padding: 8px;
+            margin-bottom: 8px;
         }
         .user-profile-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 8px;
         }
         .user-profile-header h2 {
             margin: 0;
-            color: #333;
+            color: #000000;
+            font-size: 12px;
+            font-weight: bold;
         }
         .user-profile-info {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 4px;
         }
         .user-info-item {
             background: white;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
+            padding: 4px 8px;
+            border: 2px inset #C0C0C0;
         }
         .user-info-item strong {
             display: block;
-            color: #667eea;
-            margin-bottom: 5px;
-            font-size: 12px;
+            color: #000000;
+            margin-bottom: 2px;
+            font-size: 11px;
             text-transform: uppercase;
+            font-weight: bold;
         }
         .user-info-item span {
-            color: #333;
-            font-size: 14px;
+            color: #000000;
+            font-size: 11px;
         }
     </style>
 </head>

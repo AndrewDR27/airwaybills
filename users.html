@@ -5,60 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Users - Airway Bills</title>
     <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/themes.js"></script>
     <style>
         body {
             margin: 0;
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2px;
+            font-family: 'MS Sans Serif', 'Arial', sans-serif;
+            background: #008080;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
             min-height: 100vh;
         }
         .users-container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            background: #C0C0C0;
+            border: 2px outset #C0C0C0;
             overflow: hidden;
         }
         .users-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(to bottom, #000080 0%, #000080 100%);
             color: white;
-            padding: 40px;
+            padding: 4px 8px;
             text-align: center;
+            border-bottom: 2px solid #000000;
         }
         .users-header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 2px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .users-content {
-            padding: 40px;
+            padding: 8px;
         }
         .users-tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #eee;
+            gap: 2px;
+            margin-bottom: 8px;
+            border-bottom: 2px inset #C0C0C0;
         }
         .tab-button {
-            padding: 12px 24px;
-            background: none;
-            border: none;
-            border-bottom: 3px solid transparent;
+            padding: 4px 12px;
+            background: #C0C0C0;
+            border: 1px outset #C0C0C0;
+            border-bottom: none;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            color: #666;
-            transition: all 0.3s;
+            font-size: 11px;
+            font-weight: normal;
+            color: #000000;
             position: relative;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            margin-right: 2px;
         }
         .tab-button:hover {
-            color: #667eea;
+            background: #E8E8E8;
         }
         .tab-button.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
+            background: #C0C0C0;
+            border: 2px inset #C0C0C0;
+            border-bottom: 2px solid #C0C0C0;
+            margin-bottom: -2px;
+            z-index: 1;
         }
         .tab-content {
             display: none;
@@ -70,163 +78,174 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 8px;
         }
         .btn-add {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 4px 16px;
+            background: #C0C0C0;
+            color: #000000;
+            border: 2px outset #C0C0C0;
+            font-size: 11px;
+            font-weight: normal;
             cursor: pointer;
-            transition: all 0.3s;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .btn-add:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            background: #E8E8E8;
+        }
+        .btn-add:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .contacts-list {
             background: white;
-            border-radius: 8px;
             overflow: hidden;
-            border: 1px solid #e0e0e0;
+            border: 2px inset #C0C0C0;
         }
         .contacts-table {
             width: 100%;
             border-collapse: collapse;
         }
         .contacts-table thead {
-            background: #f8f9fa;
-            border-bottom: 2px solid #e0e0e0;
+            background: #C0C0C0;
+            border-bottom: 2px inset #C0C0C0;
         }
         .contacts-table th {
-            padding: 15px;
+            padding: 4px 8px;
             text-align: left;
-            font-weight: 600;
-            color: #333;
-            font-size: 14px;
+            font-weight: bold;
+            color: #000000;
+            font-size: 11px;
             text-transform: uppercase;
         }
         .contacts-table td {
-            padding: 15px;
-            border-bottom: 1px solid #f0f0f0;
-            color: #666;
-            font-size: 14px;
+            padding: 4px 8px;
+            border-bottom: 1px solid #C0C0C0;
+            color: #000000;
+            font-size: 11px;
         }
         .contacts-table tbody tr {
-            transition: background 0.2s;
+            background: white;
         }
         .contacts-table tbody tr:hover {
-            background: #f8f9fa;
+            background: #316AC5;
+            color: white;
         }
         .contacts-table tbody tr:last-child td {
             border-bottom: none;
         }
         .badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: bold;
             text-transform: uppercase;
             display: inline-block;
-            margin-left: 8px;
+            margin-left: 4px;
+            border: 1px inset #C0C0C0;
         }
         .badge-active {
-            background: #d4edda;
-            color: #155724;
+            background: #E0FFE0;
+            color: #008000;
         }
         .badge-inactive {
-            background: #f8d7da;
-            color: #721c24;
+            background: #FFE0E0;
+            color: #800000;
         }
         .badge-current {
-            background: #667eea;
+            background: #000080;
             color: white;
         }
         .current-user-row {
-            background: #f0f4ff !important;
-            border-left: 4px solid #667eea;
+            background: #316AC5 !important;
+            color: white !important;
         }
         .current-user-row:hover {
-            background: #e8edff !important;
+            background: #000080 !important;
         }
         .contact-actions {
             display: flex;
-            gap: 8px;
+            gap: 4px;
         }
         .btn-edit, .btn-delete {
             flex: 1;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
+            padding: 2px 12px;
+            border: 2px outset #C0C0C0;
+            font-size: 11px;
+            font-weight: normal;
             cursor: pointer;
-            transition: all 0.3s;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .btn-edit {
-            background: #667eea;
-            color: white;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-edit:hover {
-            background: #5568d3;
+            background: #E8E8E8;
+        }
+        .btn-edit:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .btn-delete {
-            background: #dc3545;
-            color: white;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-delete:hover {
-            background: #c82333;
+            background: #E8E8E8;
+        }
+        .btn-delete:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
-            color: #999;
+            padding: 20px;
+            color: #000000;
         }
         .empty-state h3 {
-            margin-bottom: 10px;
-            color: #666;
+            margin-bottom: 4px;
+            color: #000000;
+            font-size: 12px;
         }
         .user-profile-section {
-            background: #f8f9fa;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
+            background: #C0C0C0;
+            border: 2px inset #C0C0C0;
+            padding: 8px;
+            margin-bottom: 8px;
         }
         .user-profile-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 8px;
         }
         .user-profile-header h2 {
             margin: 0;
-            color: #333;
+            color: #000000;
+            font-size: 12px;
+            font-weight: bold;
         }
         .user-profile-info {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 4px;
         }
         .user-info-item {
             background: white;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
+            padding: 4px 8px;
+            border: 2px inset #C0C0C0;
         }
         .user-info-item strong {
             display: block;
-            color: #667eea;
-            margin-bottom: 5px;
-            font-size: 12px;
+            color: #000000;
+            margin-bottom: 2px;
+            font-size: 11px;
             text-transform: uppercase;
+            font-weight: bold;
         }
         .user-info-item span {
-            color: #333;
-            font-size: 14px;
+            color: #000000;
+            font-size: 11px;
         }
         .modal {
             display: none;
@@ -241,95 +260,120 @@
             align-items: center;
         }
         .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
+            background: #C0C0C0;
+            padding: 8px;
+            border: 2px outset #C0C0C0;
             max-width: 600px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
         }
         .modal-header {
-            margin-bottom: 20px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: linear-gradient(to bottom, #000080 0%, #000080 100%);
+            color: white;
+            padding: 4px 8px;
+            border-bottom: 2px solid #000000;
+            margin: -8px -8px 8px -8px;
         }
         .modal-header h2 {
             margin: 0;
-            color: #333;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .modal-close {
-            background: none;
-            border: none;
-            font-size: 28px;
-            color: #999;
+            background: #C0C0C0;
+            border: 2px outset #C0C0C0;
+            font-size: 12px;
+            color: #000000;
             cursor: pointer;
-            padding: 0;
-            width: 30px;
-            height: 30px;
-            line-height: 30px;
+            padding: 2px 6px;
+            width: 20px;
+            height: 20px;
+            line-height: 16px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .modal-close:hover {
-            color: #333;
+            background: #E8E8E8;
+        }
+        .modal-close:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 8px;
+            padding: 4px;
         }
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
+            margin-bottom: 2px;
+            font-weight: bold;
+            color: #000000;
+            font-size: 11px;
         }
         .form-group input, .form-group textarea, .form-group select {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-size: 16px;
-            transition: border-color 0.3s;
+            padding: 2px 4px;
+            border: 2px inset #C0C0C0;
+            font-size: 11px;
             box-sizing: border-box;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            background: white;
         }
         .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
+            outline: 1px dotted #000000;
+            outline-offset: -3px;
         }
         .form-group small {
             display: block;
-            margin-top: 5px;
-            color: #666;
-            font-size: 12px;
+            margin-top: 2px;
+            color: #000000;
+            font-size: 10px;
         }
         .modal-actions {
             display: flex;
-            gap: 10px;
+            gap: 4px;
             justify-content: flex-end;
-            margin-top: 30px;
+            margin-top: 8px;
+            padding: 8px;
+            border-top: 2px inset #C0C0C0;
         }
         .btn-save, .btn-cancel {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
+            padding: 4px 16px;
+            border: 2px outset #C0C0C0;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s;
+            font-size: 11px;
+            font-weight: normal;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .btn-save {
-            background: #667eea;
-            color: white;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-save:hover {
-            background: #5568d3;
+            background: #E8E8E8;
+        }
+        .btn-save:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .btn-cancel {
-            background: #e0e0e0;
-            color: #333;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-cancel:hover {
-            background: #d0d0d0;
+            background: #E8E8E8;
+        }
+        .btn-cancel:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
     </style>
 </head>

@@ -5,77 +5,99 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Airway Bills</title>
     <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/themes.js"></script>
     <style>
+        body {
+            font-family: 'MS Sans Serif', 'Arial', sans-serif;
+            background: #008080;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
+        }
         .login-container {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #008080;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
         }
         .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            background: #C0C0C0;
+            padding: 8px;
+            border: 2px outset #C0C0C0;
             width: 100%;
             max-width: 400px;
         }
         .login-box h1 {
-            margin: 0 0 10px 0;
-            color: #333;
+            margin: 0 0 8px 0;
+            color: #000000;
             text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            background: linear-gradient(to bottom, #000080 0%, #000080 100%);
+            color: white;
+            padding: 4px 8px;
+            border-bottom: 2px solid #000000;
         }
         .login-box p {
             text-align: center;
-            color: #666;
-            margin-bottom: 30px;
+            color: #000000;
+            margin-bottom: 8px;
+            font-size: 11px;
+            padding: 4px;
         }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 8px;
+            padding: 4px;
         }
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
+            margin-bottom: 2px;
+            color: #000000;
+            font-weight: bold;
+            font-size: 11px;
         }
         .form-group input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
+            padding: 2px 4px;
+            border: 2px inset #C0C0C0;
+            font-size: 11px;
             box-sizing: border-box;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            background: white;
         }
         .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
+            outline: 1px dotted #000000;
+            outline-offset: -3px;
         }
         .btn-login {
             width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 4px 16px;
+            background: #C0C0C0;
+            color: #000000;
+            border: 2px outset #C0C0C0;
+            font-size: 11px;
+            font-weight: normal;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            background: #E8E8E8;
+        }
+        .btn-login:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .error-message {
-            background: #fee;
-            color: #c33;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            background: #FFE0E0;
+            color: #800000;
+            padding: 8px;
+            border: 2px inset #C0C0C0;
+            margin-bottom: 8px;
             display: none;
+            font-size: 11px;
         }
     </style>
 </head>

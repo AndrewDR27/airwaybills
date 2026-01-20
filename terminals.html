@@ -5,119 +5,136 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terminals List - Airway Bills</title>
     <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/themes.js"></script>
     <style>
         body {
             margin: 0;
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2px;
+            font-family: 'MS Sans Serif', 'Arial', sans-serif;
+            background: #008080;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
             min-height: 100vh;
         }
         .terminals-container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            background: #C0C0C0;
+            border: 2px outset #C0C0C0;
             overflow: hidden;
         }
         .terminals-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(to bottom, #000080 0%, #000080 100%);
             color: white;
-            padding: 40px;
+            padding: 4px 8px;
             text-align: center;
+            border-bottom: 2px solid #000000;
         }
         .terminals-header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 2px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .terminals-content {
-            padding: 40px;
+            padding: 8px;
         }
         .terminals-list {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 4px;
         }
         .terminal-item {
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
+            padding: 4px 8px;
+            background: white;
+            border: 2px inset #C0C0C0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: all 0.3s ease;
         }
         .terminal-item:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
+            background: #316AC5;
+            color: white;
         }
         .terminal-info {
             flex: 1;
         }
         .terminal-code {
-            font-size: 1.5em;
-            font-weight: 700;
-            color: #667eea;
-            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 2px;
+        }
+        .terminal-item:hover .terminal-code {
+            color: white;
         }
         .terminal-name {
-            font-size: 1.1em;
-            color: #666;
+            font-size: 11px;
+            color: #000000;
+        }
+        .terminal-item:hover .terminal-name {
+            color: white;
         }
         .terminal-actions {
             display: flex;
-            gap: 10px;
+            gap: 4px;
         }
         .btn-edit, .btn-delete {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
+            padding: 2px 12px;
+            border: 2px outset #C0C0C0;
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
+            font-size: 11px;
+            font-weight: normal;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .btn-edit {
-            background: #667eea;
-            color: white;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-edit:hover {
-            background: #5568d3;
+            background: #E8E8E8;
+        }
+        .btn-edit:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .btn-delete {
-            background: #e74c3c;
-            color: white;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-delete:hover {
-            background: #c0392b;
+            background: #E8E8E8;
+        }
+        .btn-delete:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .btn-add {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            background: #C0C0C0;
+            color: #000000;
+            border: 2px outset #C0C0C0;
+            padding: 4px 16px;
+            font-size: 11px;
+            font-weight: normal;
             cursor: pointer;
-            margin-bottom: 30px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            margin-bottom: 8px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .btn-add:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            background: #E8E8E8;
+        }
+        .btn-add:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
-            color: #999;
+            padding: 20px;
+            color: #000000;
         }
         .empty-state h3 {
-            font-size: 1.5em;
-            margin-bottom: 10px;
+            font-size: 12px;
+            margin-bottom: 4px;
         }
         .modal {
             display: none;
@@ -132,69 +149,90 @@
             align-items: center;
         }
         .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
+            background: #C0C0C0;
+            padding: 8px;
+            border: 2px outset #C0C0C0;
             max-width: 500px;
             width: 90%;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
         }
         .modal-header {
-            margin-bottom: 20px;
+            margin-bottom: 8px;
+            background: linear-gradient(to bottom, #000080 0%, #000080 100%);
+            color: white;
+            padding: 4px 8px;
+            border-bottom: 2px solid #000000;
+            margin: -8px -8px 8px -8px;
         }
         .modal-header h2 {
             margin: 0;
-            color: #333;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 8px;
+            padding: 4px;
         }
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
+            margin-bottom: 2px;
+            font-weight: bold;
+            color: #000000;
+            font-size: 11px;
         }
         .form-group input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-size: 16px;
-            transition: border-color 0.3s;
+            padding: 2px 4px;
+            border: 2px inset #C0C0C0;
+            font-size: 11px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            background: white;
+            box-sizing: border-box;
         }
         .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
+            outline: 1px dotted #000000;
+            outline-offset: -3px;
         }
         .modal-actions {
             display: flex;
-            gap: 10px;
+            gap: 4px;
             justify-content: flex-end;
-            margin-top: 30px;
+            margin-top: 8px;
+            padding: 8px;
+            border-top: 2px inset #C0C0C0;
         }
         .btn-save, .btn-cancel {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
+            padding: 4px 16px;
+            border: 2px outset #C0C0C0;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s;
+            font-size: 11px;
+            font-weight: normal;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .btn-save {
-            background: #667eea;
-            color: white;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-save:hover {
-            background: #5568d3;
+            background: #E8E8E8;
+        }
+        .btn-save:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .btn-cancel {
-            background: #e0e0e0;
-            color: #333;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-cancel:hover {
-            background: #d0d0d0;
+            background: #E8E8E8;
+        }
+        .btn-cancel:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
     </style>
 </head>
@@ -205,7 +243,7 @@
             <p>Manage terminal codes and information</p>
         </div>
         <div class="terminals-content">
-            <button class="btn-add" onclick="openTerminalModal()">+ Add Terminal</button>
+            <button class="btn-add" id="addTerminalBtn">+ Add Terminal</button>
             <div id="terminals-list" class="terminals-list">
                 <!-- Terminals will be loaded here -->
             </div>
@@ -213,7 +251,7 @@
     </div>
 
     <!-- Modal for Add/Edit Terminal -->
-    <div id="terminalModal" class="modal">
+    <div id="terminalModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modalTitle">Add Terminal</h2>
@@ -403,16 +441,69 @@
         window.deleteTerminal = deleteTerminal;
         window.openTerminalModal = openTerminalModal;
         window.closeTerminalModal = closeTerminalModal;
+        
+        // Add event listener for add button
+        document.addEventListener('DOMContentLoaded', () => {
+            const addBtn = document.getElementById('addTerminalBtn');
+            if (addBtn) {
+                addBtn.addEventListener('click', () => {
+                    openTerminalModal();
+                });
+            }
+        });
 
         // Initialize on page load
         async function initializeTerminals() {
+            // Ensure modal is hidden on page load
+            const modal = document.getElementById('terminalModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            
+            // Wait for auth to be ready - try multiple times
+            let attempts = 0;
+            while (typeof getCurrentUser === 'undefined' && attempts < 100) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
             await renderTerminals();
             
-            // Hide add button for non-admins
-            if (!isAdmin()) {
-                const addBtn = document.querySelector('.btn-add');
-                if (addBtn) {
+            // Show/hide add button based on admin status - try multiple times
+            const addBtn = document.getElementById('addTerminalBtn');
+            if (addBtn) {
+                // Try checking user multiple times in case session loads asynchronously
+                let user = null;
+                for (let i = 0; i < 5; i++) {
+                    try {
+                        if (typeof getCurrentUser === 'function') {
+                            user = getCurrentUser();
+                            if (user) {
+                                console.log(`✓ User found on attempt ${i + 1}:`, user.email, user.role);
+                                break;
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`Attempt ${i + 1} to get user failed:`, error);
+                    }
+                    if (i < 4) {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                }
+                
+                if (!user) {
+                    console.warn('⚠ No user logged in. Please log in to see the Add Terminal button.');
                     addBtn.style.display = 'none';
+                    return;
+                }
+                
+                const isUserAdmin = user && user.role === 'admin';
+                if (isUserAdmin) {
+                    addBtn.style.display = 'block';
+                    console.log('✓ Admin user detected - showing Add Terminal button');
+                } else {
+                    addBtn.style.display = 'none';
+                    console.log('✗ Non-admin user - hiding Add Terminal button. User:', user.email, 'Role:', user.role);
                 }
             }
         }

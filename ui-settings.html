@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Settings - Airway Bills</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/themes.js"></script>
+    <style>
+        body {
+            font-family: 'MS Sans Serif', 'Arial', sans-serif;
+            background: #008080;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
+            padding: 2px;
+        }
+        .settings-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #C0C0C0;
+            border: 2px outset #C0C0C0;
+            padding: 8px;
+        }
+        .settings-header {
+            background: linear-gradient(to bottom, #000080 0%, #000080 100%);
+            color: white;
+            padding: 4px 8px;
+            border-bottom: 2px solid #000000;
+            margin: -8px -8px 8px -8px;
+        }
+        .settings-header h1 {
+            font-size: 14px;
+            font-weight: bold;
+            margin: 0;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .settings-section {
+            margin-bottom: 16px;
+            border: 2px inset #C0C0C0;
+            padding: 8px;
+            background: white;
+        }
+        .settings-section h2 {
+            font-size: 12px;
+            font-weight: bold;
+            margin: 0 0 8px 0;
+            color: #000000;
+            border-bottom: 1px solid #C0C0C0;
+            padding-bottom: 4px;
+        }
+        .theme-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .theme-card {
+            border: 2px outset #C0C0C0;
+            padding: 8px;
+            background: #C0C0C0;
+            cursor: pointer;
+        }
+        .theme-card:hover {
+            background: #E8E8E8;
+        }
+        .theme-card.active {
+            border: 2px inset #C0C0C0;
+            background: #316AC5;
+            color: white;
+        }
+        .theme-card h3 {
+            font-size: 11px;
+            font-weight: bold;
+            margin: 0 0 4px 0;
+        }
+        .theme-card p {
+            font-size: 10px;
+            margin: 0;
+        }
+        .btn {
+            padding: 4px 12px;
+            border: 2px outset #C0C0C0;
+            background: #C0C0C0;
+            color: #000000;
+            font-size: 11px;
+            font-weight: normal;
+            cursor: pointer;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            margin-right: 4px;
+        }
+        .btn:hover {
+            background: #E8E8E8;
+        }
+        .btn:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
+        }
+        .btn-primary {
+            background: #000080;
+            color: white;
+            border: 2px outset #000080;
+        }
+        .btn-primary:hover {
+            background: #316AC5;
+        }
+        .btn-danger {
+            background: #C0C0C0;
+            color: #000000;
+        }
+        .form-group {
+            margin-bottom: 8px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 2px;
+            color: #000000;
+        }
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 2px 4px;
+            border: 2px inset #C0C0C0;
+            font-size: 11px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            background: white;
+            box-sizing: border-box;
+        }
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        .saved-themes-list {
+            margin-top: 8px;
+        }
+        .saved-theme-item {
+            border: 2px inset #C0C0C0;
+            padding: 4px 8px;
+            margin-bottom: 4px;
+            background: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .saved-theme-item h4 {
+            font-size: 11px;
+            font-weight: bold;
+            margin: 0;
+        }
+        .saved-theme-item p {
+            font-size: 10px;
+            margin: 2px 0 0 0;
+            color: #000000;
+        }
+        .message {
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 2px inset #C0C0C0;
+            font-size: 11px;
+        }
+        .message.success {
+            background: #E0FFE0;
+            color: #008000;
+        }
+        .message.error {
+            background: #FFE0E0;
+            color: #800000;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <div class="settings-header">
+            <h1>🎨 UI Theme Settings</h1>
+        </div>
+
+        <div id="messageContainer"></div>
+
+        <!-- Current Theme Section -->
+        <div class="settings-section">
+            <h2>Current Theme</h2>
+            <div id="currentThemeDisplay">
+                <p>Loading...</p>
+            </div>
+        </div>
+
+        <!-- Available Themes Section -->
+        <div class="settings-section">
+            <h2>Available Themes</h2>
+            <div class="theme-list" id="availableThemes">
+                <!-- Themes will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Save Current Theme Section -->
+        <div class="settings-section">
+            <h2>Save Current Theme</h2>
+            <p style="font-size: 10px; margin-bottom: 8px;">Export and save the current UI styles as a custom theme.</p>
+            <form id="saveThemeForm">
+                <div class="form-group">
+                    <label for="themeName">Theme Name:</label>
+                    <input type="text" id="themeName" required placeholder="My Custom Theme">
+                </div>
+                <div class="form-group">
+                    <label for="themeDescription">Description (optional):</label>
+                    <input type="text" id="themeDescription" placeholder="A description of this theme">
+                </div>
+                <button type="submit" class="btn btn-primary">Save Theme</button>
+            </form>
+        </div>
+
+        <!-- Custom CSS Editor Section -->
+        <div class="settings-section">
+            <h2>Custom CSS Editor</h2>
+            <p style="font-size: 10px; margin-bottom: 8px;">Edit CSS directly to customize the UI. Changes apply immediately.</p>
+            <form id="customCSSForm">
+                <div class="form-group">
+                    <label for="customCSS">CSS Code:</label>
+                    <textarea id="customCSS" placeholder="/* Enter your custom CSS here */"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Apply CSS</button>
+                <button type="button" class="btn" onclick="exportCurrentCSS()">Export Current CSS</button>
+            </form>
+        </div>
+
+        <!-- Saved Themes Section -->
+        <div class="settings-section">
+            <h2>Saved Custom Themes</h2>
+            <div class="saved-themes-list" id="savedThemesList">
+                <!-- Saved themes will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTheme = null;
+
+        // Load available themes
+        function loadAvailableThemes() {
+            const container = document.getElementById('availableThemes');
+            container.innerHTML = '';
+
+            if (!window.themeManager) {
+                container.innerHTML = '<p>Theme manager not loaded. Please refresh the page.</p>';
+                return;
+            }
+
+            const themes = window.themeManager.AVAILABLE_THEMES;
+            const current = window.themeManager.getCurrentTheme();
+
+            Object.keys(themes).forEach(key => {
+                const theme = themes[key];
+                const card = document.createElement('div');
+                card.className = 'theme-card';
+                if (current.name === key && !current.custom) {
+                    card.classList.add('active');
+                }
+                card.onclick = () => applyTheme(key);
+                card.innerHTML = `
+                    <h3>${theme.preview} ${theme.name}</h3>
+                    <p>${theme.description}</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Apply theme
+        function applyTheme(themeName) {
+            if (!window.themeManager) {
+                showMessage('Theme manager not loaded', 'error');
+                return;
+            }
+
+            const success = window.themeManager.applyTheme(themeName);
+            if (success) {
+                showMessage(`Theme "${themeName}" applied successfully!`, 'success');
+                loadCurrentTheme();
+                loadAvailableThemes();
+                // Reload page to apply theme fully
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
+            } else {
+                showMessage(`Failed to apply theme "${themeName}"`, 'error');
+            }
+        }
+
+        // Load current theme
+        function loadCurrentTheme() {
+            const container = document.getElementById('currentThemeDisplay');
+            if (!window.themeManager) {
+                container.innerHTML = '<p>Theme manager not loaded.</p>';
+                return;
+            }
+
+            currentTheme = window.themeManager.getCurrentTheme();
+            const themeName = currentTheme.custom 
+                ? currentTheme.name 
+                : (window.themeManager.AVAILABLE_THEMES[currentTheme.name]?.name || currentTheme.name);
+
+            container.innerHTML = `
+                <p><strong>Current Theme:</strong> ${themeName}</p>
+                ${currentTheme.custom ? '<p style="font-size: 10px; color: #000000;">This is a custom theme</p>' : ''}
+            `;
+        }
+
+        // Save theme form handler
+        document.getElementById('saveThemeForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            if (!window.themeManager) {
+                showMessage('Theme manager not loaded', 'error');
+                return;
+            }
+
+            const name = document.getElementById('themeName').value.trim();
+            const description = document.getElementById('themeDescription').value.trim();
+
+            if (!name) {
+                showMessage('Please enter a theme name', 'error');
+                return;
+            }
+
+            // Export current CSS
+            const css = window.themeManager.exportCurrentStyles();
+            
+            // Save custom theme
+            const theme = window.themeManager.saveCustomTheme(name, description, css);
+            
+            if (theme) {
+                showMessage(`Theme "${name}" saved successfully!`, 'success');
+                document.getElementById('saveThemeForm').reset();
+                loadSavedThemes();
+            } else {
+                showMessage('Failed to save theme', 'error');
+            }
+        });
+
+        // Custom CSS form handler
+        document.getElementById('customCSSForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            if (!window.themeManager) {
+                showMessage('Theme manager not loaded', 'error');
+                return;
+            }
+
+            const css = document.getElementById('customCSS').value.trim();
+            
+            if (!css) {
+                showMessage('Please enter CSS code', 'error');
+                return;
+            }
+
+            // Apply custom CSS
+            window.themeManager.applyTheme('custom', css);
+            showMessage('Custom CSS applied!', 'success');
+            loadCurrentTheme();
+        });
+
+        // Export current CSS
+        function exportCurrentCSS() {
+            if (!window.themeManager) {
+                showMessage('Theme manager not loaded', 'error');
+                return;
+            }
+
+            const css = window.themeManager.exportCurrentStyles();
+            document.getElementById('customCSS').value = css;
+            showMessage('Current CSS exported to editor', 'success');
+        }
+
+        // Load saved themes
+        function loadSavedThemes() {
+            const container = document.getElementById('savedThemesList');
+            container.innerHTML = '';
+
+            if (!window.themeManager) {
+                container.innerHTML = '<p>Theme manager not loaded.</p>';
+                return;
+            }
+
+            const savedThemes = window.themeManager.getSavedThemes();
+            
+            if (savedThemes.length === 0) {
+                container.innerHTML = '<p style="font-size: 10px;">No saved themes yet.</p>';
+                return;
+            }
+
+            savedThemes.forEach(theme => {
+                const item = document.createElement('div');
+                item.className = 'saved-theme-item';
+                item.innerHTML = `
+                    <div>
+                        <h4>${theme.name}</h4>
+                        ${theme.description ? `<p>${theme.description}</p>` : ''}
+                        <p style="font-size: 9px; color: #808080;">Saved: ${new Date(theme.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="loadSavedTheme('${theme.id}')">Load</button>
+                        <button class="btn btn-danger" onclick="deleteSavedTheme('${theme.id}')">Delete</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Load saved theme
+        function loadSavedTheme(themeId) {
+            if (!window.themeManager) {
+                showMessage('Theme manager not loaded', 'error');
+                return;
+            }
+
+            const savedThemes = window.themeManager.getSavedThemes();
+            const theme = savedThemes.find(t => t.id === themeId);
+
+            if (!theme) {
+                showMessage('Theme not found', 'error');
+                return;
+            }
+
+            window.themeManager.applyTheme('custom', theme.css);
+            window.themeManager.saveCurrentTheme(theme.name, theme.css);
+            showMessage(`Theme "${theme.name}" loaded!`, 'success');
+            loadCurrentTheme();
+            
+            // Reload page to apply theme fully
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        }
+
+        // Delete saved theme
+        function deleteSavedTheme(themeId) {
+            if (!confirm('Are you sure you want to delete this theme?')) {
+                return;
+            }
+
+            if (!window.themeManager) {
+                showMessage('Theme manager not loaded', 'error');
+                return;
+            }
+
+            const success = window.themeManager.deleteCustomTheme(themeId);
+            
+            if (success) {
+                showMessage('Theme deleted successfully', 'success');
+                loadSavedThemes();
+            } else {
+                showMessage('Failed to delete theme', 'error');
+            }
+        }
+
+        // Show message
+        function showMessage(text, type = 'success') {
+            const container = document.getElementById('messageContainer');
+            const message = document.createElement('div');
+            message.className = `message ${type}`;
+            message.textContent = text;
+            container.innerHTML = '';
+            container.appendChild(message);
+            
+            setTimeout(() => {
+                message.remove();
+            }, 3000);
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            // Wait for theme manager to load
+            setTimeout(() => {
+                loadCurrentTheme();
+                loadAvailableThemes();
+                loadSavedThemes();
+            }, 100);
+        });
+    </script>
+</body>
+</html>

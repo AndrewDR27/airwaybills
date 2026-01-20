@@ -1,3 +1,21 @@
+/* Windows 98 Theme */
+/* Classic Windows 98 Color Palette - More refined than Windows 95 */
+:root {
+    --win98-bg: #C0C0C0;
+    --win98-window-bg: #C0C0C0;
+    --win98-button-face: #C0C0C0;
+    --win98-button-highlight: #FFFFFF;
+    --win98-button-light: #E8E8E8;
+    --win98-button-shadow: #808080;
+    --win98-button-darkshadow: #000000;
+    --win98-text: #000000;
+    --win98-active-title: #000080;
+    --win98-inactive-title: #808080;
+    --win98-desktop: #008080;
+    --win98-selected: #316AC5;
+    --win98-hover: #000080;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -5,108 +23,118 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-family: 'MS Sans Serif', 'Arial', sans-serif;
+    background: var(--win98-desktop);
+    background-image: 
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
     min-height: 100vh;
-    padding: 20px;
-    color: #333;
+    padding: 2px;
+    color: var(--win98-text);
+    font-size: 11px;
+}
+
+/* Windows 98 3D Border Helpers - More refined than Windows 95 */
+.win98-raised {
+    border-top: 2px solid var(--win98-button-highlight);
+    border-left: 2px solid var(--win98-button-highlight);
+    border-bottom: 2px solid var(--win98-button-darkshadow);
+    border-right: 2px solid var(--win98-button-darkshadow);
+}
+
+.win98-lowered {
+    border-top: 2px solid var(--win98-button-darkshadow);
+    border-left: 2px solid var(--win98-button-darkshadow);
+    border-bottom: 2px solid var(--win98-button-highlight);
+    border-right: 2px solid var(--win98-button-highlight);
+}
+
+.win98-inset {
+    border-top: 2px solid var(--win98-button-shadow);
+    border-left: 2px solid var(--win98-button-shadow);
+    border-bottom: 2px solid var(--win98-button-highlight);
+    border-right: 2px solid var(--win98-button-highlight);
 }
 
 .container {
     max-width: 900px;
     margin: 0 auto;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    background: var(--win98-window-bg);
+    border: 2px outset var(--win98-button-face);
     overflow: hidden;
 }
 
 header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--win98-active-title);
+    background: linear-gradient(to bottom, #000080 0%, #000080 100%);
     color: white;
-    padding: 40px;
+    padding: 4px 8px;
     text-align: center;
+    border-bottom: 2px solid var(--win98-button-darkshadow);
 }
 
 header h1 {
-    font-size: 2.5em;
-    margin-bottom: 10px;
-    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 2px;
+    font-weight: bold;
+    font-family: 'MS Sans Serif', Arial, sans-serif;
 }
 
 header p {
-    font-size: 1.1em;
-    opacity: 0.9;
+    font-size: 11px;
+    opacity: 0.95;
 }
 
 .upload-section {
-    padding: 40px;
+    padding: 8px;
 }
 
 .upload-area {
-    border: 3px dashed #667eea;
-    border-radius: 12px;
-    padding: 60px 20px;
+    border: 2px inset var(--win98-button-face);
+    padding: 20px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.3s ease;
-    background: #f8f9ff;
+    background: white;
     display: block;
     position: relative;
 }
 
-.upload-area input[type="file"] {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    opacity: 0;
-    cursor: pointer;
-    z-index: 1;
-}
-
 .upload-area:hover {
-    border-color: #764ba2;
-    background: #f0f2ff;
-    transform: translateY(-2px);
+    background: #F8F8F8;
 }
 
 .upload-area.dragover {
-    border-color: #764ba2;
-    background: #e8ebff;
-    transform: scale(1.02);
+    background: #F0F0F0;
 }
 
 .upload-content svg {
-    color: #667eea;
-    margin-bottom: 20px;
+    color: var(--win98-active-title);
+    margin-bottom: 10px;
 }
 
 .upload-content h3 {
-    color: #333;
-    margin-bottom: 10px;
-    font-size: 1.3em;
+    color: var(--win98-text);
+    margin-bottom: 5px;
+    font-size: 12px;
+    font-weight: bold;
 }
 
 .upload-content p {
-    color: #666;
-    font-size: 0.95em;
+    color: var(--win98-text);
+    font-size: 11px;
 }
 
 .loading {
     text-align: center;
-    padding: 40px;
+    padding: 20px;
 }
 
 .spinner {
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #667eea;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
+    border: 2px solid var(--win98-button-shadow);
+    border-top: 2px solid var(--win98-active-title);
+    width: 30px;
+    height: 30px;
     animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
+    margin: 0 auto 10px;
 }
 
 @keyframes spin {
@@ -115,16 +143,15 @@ header p {
 }
 
 .error {
-    background: #fee;
-    color: #c33;
-    padding: 20px;
-    margin: 20px 40px;
-    border-radius: 8px;
-    border-left: 4px solid #c33;
+    background: #FFE0E0;
+    color: #800000;
+    padding: 8px;
+    margin: 8px;
+    border: 2px inset var(--win98-button-face);
 }
 
 .content-wrapper {
-    padding: 40px;
+    padding: 8px;
 }
 
 .form-section {
@@ -132,17 +159,16 @@ header p {
 }
 
 .template-section {
-    margin-bottom: 30px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: var(--win98-window-bg);
+    border: 2px inset var(--win98-button-face);
 }
 
 .template-controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 8px;
     align-items: flex-end;
 }
 
@@ -150,24 +176,24 @@ header p {
 .template-name-group {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 2px;
     min-width: 200px;
 }
 
 .template-select-group label,
 .template-name-group label {
-    font-size: 0.9em;
-    font-weight: 600;
-    color: #555;
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--win98-text);
 }
 
 .template-select,
 .template-name-input {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: 2px 4px;
+    border: 2px inset var(--win98-button-face);
+    font-size: 11px;
     background: white;
+    font-family: 'MS Sans Serif', Arial, sans-serif;
 }
 
 .template-name-input {
@@ -176,78 +202,78 @@ header p {
 
 .template-buttons {
     display: flex;
-    gap: 10px;
+    gap: 4px;
     flex-wrap: wrap;
 }
 
 .btn-template {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: 4px 12px;
+    border: 2px outset var(--win98-button-face);
+    font-size: 11px;
     cursor: pointer;
-    transition: all 0.2s;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    font-weight: 500;
+    background: var(--win98-button-face);
+    color: var(--win98-text);
+    font-weight: normal;
+    font-family: 'MS Sans Serif', Arial, sans-serif;
+    min-width: 75px;
 }
 
 .btn-template:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    background: var(--win98-button-light);
 }
 
 .btn-template:active {
-    transform: translateY(0);
+    border: 2px inset var(--win98-button-face);
+    background: var(--win98-button-shadow);
 }
 
 .btn-clear {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    background: var(--win98-button-face);
 }
 
 .btn-clear:hover {
-    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+    background: var(--win98-button-light);
 }
 
 .page-label {
-    font-weight: 600;
-    color: #666;
-    margin-bottom: 10px;
-    font-size: 0.9em;
+    font-weight: bold;
+    color: var(--win98-text);
+    margin-bottom: 4px;
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 1px;
 }
 
 .form-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #eee;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 2px inset var(--win98-button-face);
 }
 
 .form-header h2 {
-    color: #333;
-    font-size: 1.8em;
+    color: var(--win98-text);
+    font-size: 14px;
+    font-weight: bold;
 }
 
 #generatedForm {
     display: flex;
     flex-direction: column;
-    gap: 25px;
+    gap: 8px;
 }
 
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 2px;
 }
 
 .form-row {
     display: flex;
     flex-direction: row;
-    gap: 15px;
+    gap: 8px;
     align-items: flex-end;
 }
 
@@ -257,40 +283,39 @@ header p {
 }
 
 .form-group label {
-    font-weight: 600;
-    color: #555;
-    font-size: 0.95em;
+    font-weight: bold;
+    color: var(--win98-text);
+    font-size: 11px;
 }
 
 .form-group input,
 .form-group textarea,
 .form-group select {
-    padding: 12px 16px;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 12px;
-    font-family: inherit;
-    transition: all 0.3s ease;
+    padding: 2px 4px;
+    border: 2px inset var(--win98-button-face);
+    font-size: 11px;
+    font-family: 'MS Sans Serif', Arial, sans-serif;
+    background: white;
 }
 
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: 1px dotted var(--win98-text);
+    outline-offset: -3px;
 }
 
 .form-group textarea {
     resize: vertical;
-    min-height: 100px;
+    min-height: 60px;
 }
 
 .form-group input[type="checkbox"],
 .form-group input[type="radio"] {
     width: auto;
-    margin-right: 8px;
+    margin-right: 4px;
     cursor: pointer;
+    border: 2px inset var(--win98-button-face);
 }
 
 .checkbox-group,
@@ -298,7 +323,7 @@ header p {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 15px;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
@@ -312,66 +337,60 @@ header p {
 
 .form-actions {
     display: flex;
-    gap: 15px;
-    margin-top: 30px;
-    padding-top: 30px;
-    border-top: 2px solid #eee;
+    gap: 4px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 2px inset var(--win98-button-face);
     flex-wrap: wrap;
 }
 
 .btn-primary,
 .btn-secondary {
-    padding: 14px 28px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1em;
-    font-weight: 600;
+    padding: 4px 16px;
+    border: 2px outset var(--win98-button-face);
+    font-size: 11px;
+    font-weight: normal;
     cursor: pointer;
-    transition: all 0.3s ease;
+    background: var(--win98-button-face);
+    color: var(--win98-text);
+    font-family: 'MS Sans Serif', Arial, sans-serif;
     flex: 1;
-    min-width: 150px;
+    min-width: 75px;
 }
 
-.btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-}
-
-.btn-secondary {
-    background: #f0f0f0;
-    color: #333;
-}
-
+.btn-primary:hover,
 .btn-secondary:hover {
-    background: #e0e0e0;
-    transform: translateY(-2px);
+    background: var(--win98-button-light);
+}
+
+.btn-primary:active,
+.btn-secondary:active {
+    border: 2px inset var(--win98-button-face);
+    background: var(--win98-button-shadow);
 }
 
 .results {
-    padding: 40px;
-    background: #f8f9ff;
-    margin: 20px 40px;
-    border-radius: 8px;
+    padding: 8px;
+    background: white;
+    margin: 8px;
+    border: 2px inset var(--win98-button-face);
 }
 
 .results h3 {
-    margin-bottom: 15px;
-    color: #333;
+    margin-bottom: 8px;
+    color: var(--win98-text);
+    font-size: 12px;
+    font-weight: bold;
 }
 
 .results pre {
     background: white;
-    padding: 20px;
-    border-radius: 8px;
+    padding: 8px;
     overflow-x: auto;
-    border: 1px solid #e0e0e0;
-    font-size: 0.9em;
-    line-height: 1.6;
+    border: 2px inset var(--win98-button-face);
+    font-size: 10px;
+    line-height: 1.4;
+    font-family: 'Courier New', monospace;
 }
 
 /* AWB Tabs Styles */
@@ -379,69 +398,70 @@ header p {
     display: flex;
     gap: 0;
     margin-bottom: 0;
-    border-bottom: 2px solid #eee;
-    background: #f8f9fa;
+    border-bottom: 2px inset var(--win98-button-face);
+    background: var(--win98-window-bg);
     padding: 0;
 }
 
 .awb-tab-button {
-    padding: 15px 30px;
-    background: none;
-    border: none;
-    border-bottom: 3px solid transparent;
+    padding: 4px 12px;
+    background: var(--win98-button-face);
+    border: 1px outset var(--win98-button-face);
+    border-bottom: none;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    color: #666;
-    transition: all 0.3s;
+    font-size: 11px;
+    font-weight: normal;
+    color: var(--win98-text);
     position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 4px;
+    font-family: 'MS Sans Serif', Arial, sans-serif;
+    margin-right: 2px;
 }
 
 .tab-validation-indicator {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 24px;
-    height: 24px;
-    padding: 0 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 700;
-    transition: all 0.3s;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 10px;
+    font-weight: bold;
+    border: 1px inset var(--win98-button-face);
 }
 
 .tab-validation-indicator.missing {
-    background: #ffebee;
-    color: #c62828;
+    background: #FFE0E0;
+    color: #800000;
 }
 
 .tab-validation-indicator.complete {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: #E0FFE0;
+    color: #008000;
 }
 
 .tab-validation-indicator.complete::before {
     content: '✓';
-    font-size: 14px;
+    font-size: 10px;
 }
 
 .awb-tab-button:hover {
-    color: #667eea;
-    background: rgba(102, 126, 234, 0.05);
+    background: var(--win98-button-light);
 }
 
 .awb-tab-button.active {
-    color: #667eea;
-    border-bottom-color: #667eea;
-    background: white;
+    background: var(--win98-window-bg);
+    border: 2px inset var(--win98-button-face);
+    border-bottom: 2px solid var(--win98-window-bg);
+    margin-bottom: -2px;
+    z-index: 1;
 }
 
 .awb-tab-content {
     display: none;
-    padding: 30px 0;
+    padding: 8px;
 }
 
 .awb-tab-content.active {
@@ -450,92 +470,78 @@ header p {
 
 /* Contact Management Styles */
 .contact-section {
-    margin-bottom: 30px;
-    padding: 20px;
-    background: #f0f7ff;
-    border-radius: 8px;
-    border: 1px solid #cce5ff;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: var(--win98-window-bg);
+    border: 2px inset var(--win98-button-face);
 }
 
 .routing-controls-section {
-    margin-bottom: 30px;
-    padding: 20px;
-    background: #fff8e1;
-    border-radius: 8px;
-    border: 1px solid #ffcc80;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: var(--win98-window-bg);
+    border: 2px inset var(--win98-button-face);
 }
 
 .billing-controls-section {
-    margin-bottom: 30px;
-    padding: 20px;
-    background: #e8f5e9;
-    border-radius: 8px;
-    border: 1px solid #81c784;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: var(--win98-window-bg);
+    border: 2px inset var(--win98-button-face);
 }
 
 .routing-controls {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 8px;
 }
 
 .contact-controls {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 8px;
 }
 
 /* Prompt indicator badge styling */
 .prompt-indicator {
-    margin-left: 8px;
-    padding: 2px 8px;
-    background: #dc3545;
+    margin-left: 4px;
+    padding: 1px 4px;
+    background: #FF0000;
     color: white;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: bold;
     display: inline-block;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.7;
-    }
+    border: 1px inset var(--win98-button-face);
 }
 
 .contact-select-group[style*="border-left"] {
-    background-color: #fff5f5;
-    border-radius: 4px;
-    transition: all 0.3s ease;
+    background-color: #FFE0E0;
+    border: 2px inset var(--win98-button-face);
 }
 
 .contact-select-group,
 .user-profile-group {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 2px;
 }
 
 .contact-select-group label,
 .user-profile-group label {
-    font-size: 0.9em;
-    font-weight: 600;
-    color: #555;
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--win98-text);
 }
 
 .contact-select-group {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 10px;
+    gap: 4px;
 }
 
 .contact-select-group > label {
-    min-width: 150px;
+    min-width: 120px;
     padding-top: 0;
 }
 
@@ -543,7 +549,7 @@ header p {
 .prepaid-dimensions-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 8px;
 }
 
 /* Dimensions Group Styles */
@@ -553,14 +559,14 @@ header p {
 }
 
 .dimensions-group > label {
-    min-width: 150px;
+    min-width: 120px;
     padding-top: 0;
 }
 
 .dimensions-container {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 4px;
     flex: 1;
     position: relative;
 }
@@ -569,82 +575,75 @@ header p {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr auto;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
 }
 
 .dim-input {
-    padding: 8px 10px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 12px;
+    padding: 2px 4px;
+    border: 2px inset var(--win98-button-face);
+    font-size: 11px;
     width: 100%;
     box-sizing: border-box;
+    font-family: 'MS Sans Serif', Arial, sans-serif;
 }
 
 .dim-input:focus {
-    outline: none;
-    border-color: #667eea;
+    outline: 1px dotted var(--win98-text);
+    outline-offset: -3px;
 }
 
 .dim-remove-btn,
 .dim-add-box-btn {
-    padding: 8px 12px;
-    border: none;
-    border-radius: 6px;
+    padding: 2px 8px;
+    border: 2px outset var(--win98-button-face);
     cursor: pointer;
-    font-size: 0.85em;
-    transition: background 0.3s ease;
+    font-size: 11px;
+    background: var(--win98-button-face);
+    color: var(--win98-text);
     white-space: nowrap;
-    min-width: 90px;
+    min-width: 60px;
+    font-family: 'MS Sans Serif', Arial, sans-serif;
 }
 
-.dim-remove-btn {
-    background: #dc3545;
-    color: white;
-}
-
-.dim-remove-btn:hover {
-    background: #c82333;
-}
-
-.dim-add-box-btn {
-    background: #28a745;
-    color: white;
-}
-
+.dim-remove-btn:hover,
 .dim-add-box-btn:hover {
-    background: #218838;
+    background: var(--win98-button-light);
+}
+
+.dim-remove-btn:active,
+.dim-add-box-btn:active {
+    border: 2px inset var(--win98-button-face);
+    background: var(--win98-button-shadow);
 }
 
 .dim-add-box-btn:disabled {
-    background: #ccc;
+    background: var(--win98-button-shadow);
+    color: var(--win98-button-shadow);
     cursor: not-allowed;
+    border: 2px inset var(--win98-button-face);
 }
 
 .dim-minimize-btn {
     position: absolute;
-    left: -45px;
+    left: -35px;
     top: 50%;
     transform: translateY(-50%);
-    padding: 8px 10px;
-    background: transparent;
-    color: #6c757d;
-    border: 1px solid #ddd;
-    border-radius: 6px;
+    padding: 2px 6px;
+    background: var(--win98-button-face);
+    color: var(--win98-text);
+    border: 2px outset var(--win98-button-face);
     cursor: pointer;
-    font-size: 1em;
-    transition: all 0.3s ease;
-    min-width: 35px;
+    font-size: 11px;
+    min-width: 24px;
     display: none;
     align-items: center;
     justify-content: center;
     z-index: 10;
+    font-family: 'MS Sans Serif', Arial, sans-serif;
 }
 
 .dim-minimize-btn:hover {
-    background: #f0f0f0;
-    border-color: #6c757d;
-    color: #5a6268;
+    background: var(--win98-button-light);
 }
 
 .dim-minimize-btn.expanded {
@@ -656,47 +655,50 @@ header p {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px 12px;
-    font-size: 12px;
-    color: #555;
-    font-weight: 600;
+    padding: 4px 8px;
+    font-size: 11px;
+    color: var(--win98-text);
+    font-weight: bold;
     text-align: center;
 }
 
 .contact-select {
     flex: 1;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: 2px 4px;
+    border: 2px inset var(--win98-button-face);
+    font-size: 11px;
     background: white;
+    font-family: 'MS Sans Serif', Arial, sans-serif;
 }
 
 .btn-contact-small {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: 2px 12px;
+    border: 2px outset var(--win98-button-face);
+    font-size: 11px;
     cursor: pointer;
-    transition: all 0.2s;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    font-weight: 500;
+    background: var(--win98-button-face);
+    color: var(--win98-text);
+    font-weight: normal;
     white-space: nowrap;
+    font-family: 'MS Sans Serif', Arial, sans-serif;
 }
 
 .btn-contact-small:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    background: var(--win98-button-light);
+}
+
+.btn-contact-small:active {
+    border: 2px inset var(--win98-button-face);
+    background: var(--win98-button-shadow);
 }
 
 .user-profile-group {
-    padding-top: 10px;
-    border-top: 1px solid #cce5ff;
+    padding-top: 4px;
+    border-top: 2px inset var(--win98-button-face);
 }
 
 .user-profile-group label {
-    margin-bottom: 5px;
+    margin-bottom: 2px;
 }
 
 /* Modal Styles */
@@ -714,126 +716,136 @@ header p {
 }
 
 .modal-content {
-    background-color: white;
-    border-radius: 12px;
+    background-color: var(--win98-window-bg);
+    border: 2px outset var(--win98-button-face);
     width: 90%;
     max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 30px;
-    border-bottom: 2px solid #eee;
+    padding: 4px 8px;
+    background: var(--win98-active-title);
+    background: linear-gradient(to bottom, #000080 0%, #000080 100%);
+    color: white;
+    border-bottom: 2px solid var(--win98-button-darkshadow);
 }
 
 .modal-header h2 {
     margin: 0;
-    color: #333;
-    font-size: 1.5em;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    font-family: 'MS Sans Serif', Arial, sans-serif;
 }
 
 .modal-close {
-    background: none;
-    border: none;
-    font-size: 28px;
-    color: #999;
+    background: var(--win98-button-face);
+    border: 2px outset var(--win98-button-face);
+    font-size: 12px;
+    color: var(--win98-text);
     cursor: pointer;
-    padding: 0;
-    width: 30px;
-    height: 30px;
+    padding: 2px 6px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
-    transition: all 0.2s;
+    font-family: 'MS Sans Serif', Arial, sans-serif;
 }
 
 .modal-close:hover {
-    background: #f0f0f0;
-    color: #333;
+    background: var(--win98-button-light);
+}
+
+.modal-close:active {
+    border: 2px inset var(--win98-button-face);
+    background: var(--win98-button-shadow);
 }
 
 .modal-body {
-    padding: 30px;
+    padding: 8px;
+    background: var(--win98-window-bg);
 }
 
 .modal-body .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 8px;
 }
 
 .modal-body .form-group label {
     display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #555;
+    margin-bottom: 2px;
+    font-weight: bold;
+    color: var(--win98-text);
+    font-size: 11px;
 }
 
 .modal-body .form-group input,
 .modal-body .form-group textarea {
     width: 100%;
-    padding: 10px 12px;
-    border: 2px solid #e0e0e0;
-    border-radius: 6px;
-    font-size: 14px;
-    font-family: inherit;
-    transition: all 0.3s ease;
+    padding: 2px 4px;
+    border: 2px inset var(--win98-button-face);
+    font-size: 11px;
+    font-family: 'MS Sans Serif', Arial, sans-serif;
+    background: white;
 }
 
 .modal-body .form-group input:focus,
 .modal-body .form-group textarea:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: 1px dotted var(--win98-text);
+    outline-offset: -3px;
 }
 
 .modal-body .form-group textarea {
     resize: vertical;
-    min-height: 100px;
+    min-height: 60px;
 }
 
 .modal-body .form-group small {
     display: block;
-    margin-top: 5px;
-    color: #666;
-    font-size: 0.85em;
+    margin-top: 2px;
+    color: var(--win98-text);
+    font-size: 10px;
 }
 
 .modal-actions {
     display: flex;
-    gap: 10px;
+    gap: 4px;
     justify-content: flex-end;
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 2px solid #eee;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 2px inset var(--win98-button-face);
+    padding: 8px;
 }
 
 .modal-actions .btn-primary,
 .modal-actions .btn-secondary {
-    padding: 12px 24px;
-    min-width: 100px;
+    padding: 2px 16px;
+    min-width: 75px;
 }
 
 /* Contact field selector wrapper */
 .contact-field-wrapper {
-    margin-bottom: 25px;
+    margin-bottom: 8px;
 }
 
 .contact-field-wrapper .contact-selector {
-    margin-bottom: 10px;
+    margin-bottom: 4px;
 }
 
 @media (max-width: 768px) {
     header h1 {
-        font-size: 2em;
+        font-size: 14px;
     }
 
     .content-wrapper {
-        padding: 20px;
+        padding: 4px;
     }
 
     .template-controls {
@@ -852,13 +864,13 @@ header p {
     
     .btn-template {
         flex: 1;
-        min-width: 120px;
+        min-width: 75px;
     }
 
     .form-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 15px;
+        gap: 4px;
     }
 
     .form-actions {
@@ -881,6 +893,6 @@ header p {
 
     .modal-header,
     .modal-body {
-        padding: 20px;
+        padding: 4px;
     }
 }

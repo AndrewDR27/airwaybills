@@ -5,117 +5,258 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Destination List - Airway Bills</title>
     <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/themes.js"></script>
     <style>
         body {
             margin: 0;
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2px;
+            font-family: 'MS Sans Serif', 'Arial', sans-serif;
+            background: #008080;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
             min-height: 100vh;
         }
         .destinations-container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            background: #C0C0C0;
+            border: 2px outset #C0C0C0;
             overflow: hidden;
         }
         .destinations-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(to bottom, #000080 0%, #000080 100%);
             color: white;
-            padding: 40px;
+            padding: 4px 8px;
             text-align: center;
+            border-bottom: 2px solid #000000;
         }
         .destinations-header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 2px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .destinations-content {
-            padding: 40px;
+            padding: 8px;
         }
         .destinations-list {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 4px;
         }
         .destination-item {
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
+            padding: 4px 8px;
+            background: white;
+            border: 2px inset #C0C0C0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: box-shadow 0.3s;
         }
         .destination-item:hover {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            background: #316AC5;
+            color: white;
         }
         .destination-info {
             flex: 1;
         }
         .destination-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 2px;
         }
         .destination-code {
-            font-size: 14px;
-            color: #666;
+            font-size: 11px;
+            color: #000000;
+        }
+        .destination-item:hover .destination-name,
+        .destination-item:hover .destination-code {
+            color: white;
         }
         .destination-actions {
             display: flex;
-            gap: 10px;
+            gap: 4px;
         }
         .btn-edit, .btn-delete {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
+            padding: 2px 12px;
+            border: 2px outset #C0C0C0;
             cursor: pointer;
-            font-size: 14px;
-            transition: background 0.3s;
+            font-size: 11px;
+            font-weight: normal;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .btn-edit {
-            background: #667eea;
-            color: white;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-edit:hover {
-            background: #5568d3;
+            background: #E8E8E8;
+        }
+        .btn-edit:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .btn-delete {
-            background: #e74c3c;
-            color: white;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-delete:hover {
-            background: #c0392b;
+            background: #E8E8E8;
+        }
+        .btn-delete:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .add-destination-btn {
-            margin-bottom: 20px;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
+            margin-bottom: 8px;
+            padding: 4px 16px;
+            background: #C0C0C0;
+            color: #000000;
+            border: 2px outset #C0C0C0;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: transform 0.2s;
+            font-size: 11px;
+            font-weight: normal;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .add-destination-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            background: #E8E8E8;
+        }
+        .add-destination-btn:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
-            color: #999;
+            padding: 20px;
+            color: #000000;
         }
         .empty-state p {
-            font-size: 18px;
-            margin-bottom: 20px;
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #C0C0C0;
+            padding: 8px;
+            border: 2px outset #C0C0C0;
+            max-width: 500px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            margin-bottom: 8px;
+            background: linear-gradient(to bottom, #000080 0%, #000080 100%);
+            color: white;
+            padding: 4px 8px;
+            border-bottom: 2px solid #000000;
+            margin: -8px -8px 8px -8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h2 {
+            margin: 0;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .modal-close {
+            background: #C0C0C0;
+            border: 2px outset #C0C0C0;
+            font-size: 12px;
+            color: #000000;
+            cursor: pointer;
+            padding: 2px 6px;
+            width: 20px;
+            height: 20px;
+            line-height: 16px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .modal-close:hover {
+            background: #E8E8E8;
+        }
+        .modal-close:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
+        }
+        .modal-body {
+            padding: 8px;
+            background: #C0C0C0;
+        }
+        .form-group {
+            margin-bottom: 8px;
+            padding: 4px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 2px;
+            font-weight: bold;
+            color: #000000;
+            font-size: 11px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 2px 4px;
+            border: 2px inset #C0C0C0;
+            font-size: 11px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            background: white;
+            box-sizing: border-box;
+        }
+        .form-group input:focus {
+            outline: 1px dotted #000000;
+            outline-offset: -3px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 4px;
+            justify-content: flex-end;
+            margin-top: 8px;
+            padding: 8px;
+            border-top: 2px inset #C0C0C0;
+        }
+        .btn-save, .btn-cancel, .btn-secondary {
+            padding: 4px 16px;
+            border: 2px outset #C0C0C0;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: normal;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .btn-save {
+            background: #C0C0C0;
+            color: #000000;
+        }
+        .btn-save:hover {
+            background: #E8E8E8;
+        }
+        .btn-save:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
+        }
+        .btn-cancel, .btn-secondary {
+            background: #C0C0C0;
+            color: #000000;
+        }
+        .btn-cancel:hover, .btn-secondary:hover {
+            background: #E8E8E8;
+        }
+        .btn-cancel:active, .btn-secondary:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
     </style>
 </head>
@@ -126,7 +267,7 @@
             <p>Manage your destination codes and information</p>
         </div>
         <div class="destinations-content">
-            <button class="add-destination-btn" id="addDestinationBtn" style="display: none;">+ Add Destination</button>
+            <button class="add-destination-btn" id="addDestinationBtn">+ Add Destination</button>
             <div class="destinations-list" id="destinationsList">
                 <!-- Destinations will be dynamically loaded here -->
             </div>
@@ -174,40 +315,98 @@
     </div>
 
     <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/api.js"></script>
     <script>
+        let destinationsAPI = null;
+        
+        // Wait for API to be available
+        async function waitForAPI() {
+            if (window.destinationsAPI) {
+                destinationsAPI = window.destinationsAPI;
+                return;
+            }
+            
+            // Wait for apiReady event
+            await new Promise((resolve) => {
+                if (window.destinationsAPI) {
+                    destinationsAPI = window.destinationsAPI;
+                    resolve();
+                } else {
+                    window.addEventListener('apiReady', () => {
+                        destinationsAPI = window.destinationsAPI;
+                        resolve();
+                    }, { once: true });
+                    // Timeout after 2 seconds
+                    setTimeout(() => {
+                        if (window.destinationsAPI) {
+                            destinationsAPI = window.destinationsAPI;
+                        }
+                        resolve();
+                    }, 2000);
+                }
+            });
+        }
+
         // Check if user is admin
         function isAdmin() {
-            const user = getCurrentUser();
-            return user && user.role === 'admin';
-        }
-
-        // Get destinations from localStorage
-        function getDestinations() {
             try {
-                const destinationsJson = localStorage.getItem('awbDestinations');
-                return destinationsJson ? JSON.parse(destinationsJson) : [];
+                const user = getCurrentUser();
+                return user && user.role === 'admin';
             } catch (error) {
-                console.warn('Could not read destinations from localStorage:', error);
-                return [];
-            }
-        }
-
-        // Save destinations to localStorage
-        function saveDestinations(destinations) {
-            try {
-                localStorage.setItem('awbDestinations', JSON.stringify(destinations));
-                return true;
-            } catch (error) {
-                console.warn('Could not save destinations to localStorage:', error);
-                alert('Error saving destination. Storage may be full.');
+                console.warn('Error checking admin status:', error);
                 return false;
             }
         }
 
         // Render destinations list
-        function renderDestinations() {
-            const destinations = getDestinations();
+        async function renderDestinations() {
             const destinationsList = document.getElementById('destinationsList');
+            
+            // Wait for API
+            await waitForAPI();
+            
+            let destinations = [];
+            let dataSource = 'unknown';
+            
+            try {
+                if (destinationsAPI) {
+                    destinations = await destinationsAPI.getAll();
+                    dataSource = 'database';
+                    console.log('💾 Loaded destinations from database:', destinations.length);
+                } else {
+                    throw new Error('API not available');
+                }
+            } catch (error) {
+                console.warn('Error loading destinations from API, trying localStorage:', error);
+                // Fallback to localStorage
+                try {
+                    const destinationsJson = localStorage.getItem('awbDestinations');
+                    destinations = destinationsJson ? JSON.parse(destinationsJson) : [];
+                    dataSource = 'localstorage';
+                    console.log('📦 Loaded destinations from localStorage:', destinations.length);
+                } catch (e) {
+                    console.error('Error loading destinations:', e);
+                    destinations = [];
+                }
+            }
+            
+            // Show data source indicator
+            const header = document.querySelector('.destinations-header p');
+            if (header) {
+                const sourceText = dataSource === 'database' ? '💾 Database' : (dataSource === 'localstorage' ? '📦 Localhost' : '');
+                if (sourceText) {
+                    const existingIndicator = document.getElementById('dataSourceIndicator');
+                    if (existingIndicator) {
+                        existingIndicator.textContent = sourceText;
+                    } else {
+                        const indicator = document.createElement('span');
+                        indicator.id = 'dataSourceIndicator';
+                        indicator.style.cssText = 'font-size: 10px; margin-left: 8px; opacity: 0.8;';
+                        indicator.textContent = sourceText;
+                        header.appendChild(indicator);
+                    }
+                }
+            }
             
             if (destinations.length === 0) {
                 destinationsList.innerHTML = `
@@ -220,18 +419,27 @@
             }
             
             const isUserAdmin = isAdmin();
-            destinationsList.innerHTML = destinations.map(dest => `
+            destinationsList.innerHTML = destinations.map(dest => {
+                const escapedId = (dest.id || '').replace(/'/g, "\\'");
+                return `
                 <div class="destination-item">
                     <div class="destination-info">
-                        <div class="destination-name">${dest.airportCode || ''}</div>
-                        <div class="destination-code">${dest.cityName || ''}${dest.stateName ? ', ' + dest.stateName : ''} - ${dest.airportName || ''}</div>
+                        <div class="destination-name">${escapeHtml(dest.airportCode || '')}</div>
+                        <div class="destination-code">${escapeHtml(dest.cityName || '')}${dest.stateName ? ', ' + escapeHtml(dest.stateName) : ''} - ${escapeHtml(dest.airportName || '')}</div>
                     </div>
                     <div class="destination-actions" style="display: ${isUserAdmin ? 'flex' : 'none'};">
-                        <button class="btn-edit" onclick="editDestination('${dest.id}')">Edit</button>
-                        <button class="btn-delete" onclick="deleteDestination('${dest.id}')">Delete</button>
+                        <button class="btn-edit" onclick="editDestination('${escapedId}')">Edit</button>
+                        <button class="btn-delete" onclick="deleteDestination('${escapedId}')">Delete</button>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // Open destination modal
@@ -247,17 +455,23 @@
             const title = document.getElementById('destinationModalTitle');
             const destinationIdInput = document.getElementById('destinationId');
             
+            await waitForAPI();
+            
             if (destinationId) {
                 try {
-                    const destinations = await destinationsAPI.getAll();
-                    const destination = destinations.find(d => d.id === destinationId);
-                    if (destination) {
-                        title.textContent = 'Edit Destination';
-                        destinationIdInput.value = destination.id;
-                        document.getElementById('airportCode').value = destination.airportCode || '';
-                        document.getElementById('cityName').value = destination.cityName || '';
-                        document.getElementById('stateName').value = destination.stateName || '';
-                        document.getElementById('airportName').value = destination.airportName || '';
+                    if (destinationsAPI) {
+                        const destinations = await destinationsAPI.getAll();
+                        const destination = destinations.find(d => d.id === destinationId);
+                        if (destination) {
+                            title.textContent = 'Edit Destination';
+                            destinationIdInput.value = destination.id;
+                            document.getElementById('airportCode').value = destination.airportCode || '';
+                            document.getElementById('cityName').value = destination.cityName || '';
+                            document.getElementById('stateName').value = destination.stateName || '';
+                            document.getElementById('airportName').value = destination.airportName || '';
+                        }
+                    } else {
+                        throw new Error('API not available');
                     }
                 } catch (error) {
                     console.error('Error loading destination:', error);
@@ -297,10 +511,16 @@
                 return;
             }
             
+            await waitForAPI();
+            
             try {
-                await destinationsAPI.delete(id);
-                alert('Destination deleted successfully!');
-                await renderDestinations();
+                if (destinationsAPI) {
+                    await destinationsAPI.delete(id);
+                    alert('Destination deleted successfully!');
+                    await renderDestinations();
+                } else {
+                    throw new Error('API not available');
+                }
             } catch (error) {
                 console.error('Error deleting destination:', error);
                 alert('Error deleting destination. Please try again.');
@@ -330,19 +550,25 @@
                 airportName
             };
             
+            await waitForAPI();
+            
             try {
-                const destinations = await destinationsAPI.getAll();
-                const exists = destinations.find(d => d.id === id);
-                
-                if (exists) {
-                    await destinationsAPI.update(destination);
+                if (destinationsAPI) {
+                    const destinations = await destinationsAPI.getAll();
+                    const exists = destinations.find(d => d.id === id);
+                    
+                    if (exists) {
+                        await destinationsAPI.update(destination);
+                    } else {
+                        await destinationsAPI.create(destination);
+                    }
+                    
+                    closeDestinationModal();
+                    alert('✓ Destination saved successfully!');
+                    await renderDestinations();
                 } else {
-                    await destinationsAPI.create(destination);
+                    throw new Error('API not available');
                 }
-                
-                closeDestinationModal();
-                alert('✓ Destination saved successfully!');
-                await renderDestinations();
             } catch (error) {
                 console.error('Error saving destination:', error);
                 alert('Error saving destination. Please try again.');
@@ -356,20 +582,74 @@
         window.closeDestinationModal = closeDestinationModal;
         window.handleSaveDestination = handleSaveDestination;
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', async () => {
-            await renderDestinations();
-            
-            // Show/hide add button based on admin status
-            const isUserAdmin = isAdmin();
+        // Function to check and show button
+        async function checkAndShowAddButton() {
             const addBtn = document.getElementById('addDestinationBtn');
-            if (addBtn) {
-                addBtn.style.display = isUserAdmin ? 'block' : 'none';
+            if (!addBtn) {
+                console.error('Add button not found');
+                return;
             }
             
-            document.getElementById('addDestinationBtn').addEventListener('click', () => {
-                openDestinationModal(null);
-            });
+            // Wait for auth to be ready - try multiple times
+            let attempts = 0;
+            while (typeof getCurrentUser === 'undefined' && attempts < 100) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            // Try checking user multiple times in case session loads asynchronously
+            let user = null;
+            for (let i = 0; i < 5; i++) {
+                try {
+                    if (typeof getCurrentUser === 'function') {
+                        user = getCurrentUser();
+                        if (user) {
+                            console.log(`✓ User found on attempt ${i + 1}:`, user.email, user.role);
+                            break;
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`Attempt ${i + 1} to get user failed:`, error);
+                }
+                if (i < 4) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+            }
+            
+            if (!user) {
+                console.warn('⚠ No user logged in. Please log in to see the Add Destination button.');
+                addBtn.style.display = 'none';
+                return;
+            }
+            
+            const isUserAdmin = user && user.role === 'admin';
+            if (isUserAdmin) {
+                addBtn.style.display = 'block';
+                console.log('✓ Admin user detected - showing Add Destination button');
+            } else {
+                addBtn.style.display = 'none';
+                console.log('✗ Non-admin user - hiding Add Destination button. User:', user.email, 'Role:', user.role);
+            }
+        }
+
+        // Initialize
+        async function initializeDestinations() {
+            // Wait for auth to be ready
+            let attempts = 0;
+            while (typeof getCurrentUser === 'undefined' && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            await renderDestinations();
+            await checkAndShowAddButton();
+            
+            const addBtn = document.getElementById('addDestinationBtn');
+            if (addBtn) {
+                addBtn.addEventListener('click', () => {
+                    openDestinationModal(null);
+                });
+            }
             
             document.getElementById('closeDestinationModal').addEventListener('click', closeDestinationModal);
             document.getElementById('cancelDestinationBtn').addEventListener('click', closeDestinationModal);
@@ -381,7 +661,13 @@
                     closeDestinationModal();
                 }
             });
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeDestinations);
+        } else {
+            initializeDestinations();
+        }
     </script>
 </body>
 </html>
