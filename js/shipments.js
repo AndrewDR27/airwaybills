@@ -263,7 +263,7 @@ async function createShipment(formDataOrOptions = {}) {
 }
 
 // Create shipment space (without AWB initially)
-function createShipmentSpace(participants = []) {
+async function createShipmentSpace(participants = []) {
     const user = getCurrentUser();
     if (!user) {
         return { success: false, message: 'Not authenticated' };

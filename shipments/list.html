@@ -378,9 +378,24 @@
                     return;
                 }
                 
+                // Wait for getUserShipments to be available
+                if (typeof window.getUserShipments !== 'function') {
+                    console.warn('getUserShipments not available yet, waiting...');
+                    // Wait up to 2 seconds for the function to load
+                    let attempts = 0;
+                    while (typeof window.getUserShipments !== 'function' && attempts < 20) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        attempts++;
+                    }
+                    if (typeof window.getUserShipments !== 'function') {
+                        console.error('getUserShipments still not available after waiting');
+                        return;
+                    }
+                }
+                
                 let shipments = [];
                 try {
-                    shipments = await getUserShipments(user.id);
+                    shipments = await window.getUserShipments(user.id);
                 } catch (error) {
                     console.error('Error getting user shipments:', error);
                     shipments = [];
