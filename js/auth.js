@@ -398,7 +398,7 @@ async function logout() {
         }
     }
     
-    // Clear cache
+    // Clear cache FIRST to prevent getCurrentUser() from returning cached user
     currentUserCache = null;
     cacheTimestamp = 0;
     
@@ -407,21 +407,14 @@ async function logout() {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('username');
     
-    // Also remove current user from awb_users array to prevent getCurrentUser() from finding them
-    try {
-        const authData = JSON.parse(localStorage.getItem('awb_auth') || '{}');
-        const userId = authData.userId;
-        if (userId) {
-            const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
-            // Don't remove the user from the array (for caching), but ensure auth is cleared
-            // The getCurrentUser() function checks auth.isAuthenticated, so this should be enough
-        }
-    } catch (e) {
-        // Ignore errors
+    // Clear any session-related data
+    if (sessionToken) {
+        localStorage.removeItem(`session_${sessionToken}`);
     }
     
-    // Ensure awb_auth is definitely removed (in case of any race conditions)
-    localStorage.removeItem('awb_auth');
+    // Force clear cache again (in case anything was set during API call)
+    currentUserCache = null;
+    cacheTimestamp = 0;
     
     // Redirect to login
     window.location.href = 'login.html';
