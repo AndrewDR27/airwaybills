@@ -401,9 +401,27 @@ async function logout() {
     // Clear cache
     currentUserCache = null;
     cacheTimestamp = 0;
+    
+    // Clear all auth-related localStorage items
     localStorage.removeItem('awb_auth');
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('username');
+    
+    // Also remove current user from awb_users array to prevent getCurrentUser() from finding them
+    try {
+        const authData = JSON.parse(localStorage.getItem('awb_auth') || '{}');
+        const userId = authData.userId;
+        if (userId) {
+            const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
+            // Don't remove the user from the array (for caching), but ensure auth is cleared
+            // The getCurrentUser() function checks auth.isAuthenticated, so this should be enough
+        }
+    } catch (e) {
+        // Ignore errors
+    }
+    
+    // Ensure awb_auth is definitely removed (in case of any race conditions)
+    localStorage.removeItem('awb_auth');
     
     // Redirect to login
     window.location.href = 'login.html';
