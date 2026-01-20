@@ -153,6 +153,13 @@
         
         // Wait for auth.js module to load before using its functions
         async function waitForAuth() {
+            // Ensure error message is hidden on page load
+            const errorMessage = document.getElementById('errorMessage');
+            if (errorMessage) {
+                errorMessage.style.display = 'none';
+                errorMessage.textContent = '';
+            }
+            
             // Wait for isAuthenticated and login functions to be available
             let attempts = 0;
             while ((typeof isAuthenticated === 'undefined' || typeof login === 'undefined') && attempts < 50) {
@@ -165,10 +172,15 @@
                 return;
             }
             
-            // Check if already logged in
-            if (isAuthenticated()) {
-                window.location.href = 'dashboard.html';
-                return;
+            // Check if already logged in (but don't show errors if API isn't ready yet)
+            try {
+                if (isAuthenticated()) {
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+            } catch (error) {
+                // API might not be ready yet, that's okay - user can still log in
+                console.log('Auth check skipped - API not ready yet:', error);
             }
             
             // Set up login form handler
@@ -193,6 +205,59 @@
             submitButton.textContent = 'Logging in...';
             
             try {
+                // First, ensure API is ready - wait for apiReady event or window.usersAPI
+                if (!window.usersAPI) {
+                    console.log('Waiting for API to load...');
+                    // Wait for apiReady event (max 5 seconds)
+                    let apiReady = false;
+                    await new Promise((resolve) => {
+                        // Check if already available
+                        if (window.usersAPI) {
+                            console.log('API already available');
+                            apiReady = true;
+                            resolve();
+                            return;
+                        }
+                        
+                        // Listen for apiReady event
+                        const handler = () => {
+                            console.log('apiReady event received');
+                            if (window.usersAPI) {
+                                apiReady = true;
+                            }
+                            resolve();
+                        };
+                        window.addEventListener('apiReady', handler, { once: true });
+                        
+                        // Also check periodically in case event already fired
+                        let checks = 0;
+                        const checkInterval = setInterval(() => {
+                            checks++;
+                            if (window.usersAPI) {
+                                console.log('API found on check', checks);
+                                window.removeEventListener('apiReady', handler);
+                                clearInterval(checkInterval);
+                                apiReady = true;
+                                resolve();
+                            } else if (checks >= 50) { // 5 seconds (50 * 100ms)
+                                console.log('API timeout after', checks, 'checks');
+                                clearInterval(checkInterval);
+                                resolve();
+                            }
+                        }, 100);
+                    });
+                    
+                    if (!window.usersAPI) {
+                        console.error('API not available after waiting');
+                        errorMessage.textContent = 'Database API failed to load. Please check the browser console for errors and refresh the page.';
+                        errorMessage.style.display = 'block';
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Login';
+                        return;
+                    }
+                    console.log('API is ready:', window.usersAPI);
+                }
+                
                 // Use new auth system - await the async login function
                 const result = await login(email, password);
                 

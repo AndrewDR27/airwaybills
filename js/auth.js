@@ -199,6 +199,24 @@ function isAuthenticated() {
 async function login(email, password) {
     console.log('Login called with email:', email);
     
+    // Wait for API to be ready if it's not available yet (but only wait a short time)
+    if (!usersAPI) {
+        // Wait for apiReady event (max 2 seconds)
+        await new Promise((resolve) => {
+            if (window.usersAPI) {
+                usersAPI = window.usersAPI;
+                resolve();
+            } else {
+                window.addEventListener('apiReady', () => {
+                    usersAPI = window.usersAPI;
+                    resolve();
+                }, { once: true });
+                // Timeout after 2 seconds
+                setTimeout(resolve, 2000);
+            }
+        });
+    }
+    
     if (!usersAPI) {
         return { 
             success: false, 

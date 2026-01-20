@@ -73,7 +73,6 @@ export const destinationsAPI = {
             console.error('Error fetching destinations:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -90,7 +89,6 @@ export const destinationsAPI = {
             console.error('Error creating destination:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -107,7 +105,6 @@ export const destinationsAPI = {
             console.error('Error updating destination:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -122,7 +119,6 @@ export const destinationsAPI = {
             console.error('Error deleting destination:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     }
 };
@@ -138,7 +134,6 @@ export const terminalsAPI = {
             console.error('Error fetching terminals:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -155,7 +150,6 @@ export const terminalsAPI = {
             console.error('Error creating terminal:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -172,7 +166,6 @@ export const terminalsAPI = {
             console.error('Error updating terminal:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -187,7 +180,6 @@ export const terminalsAPI = {
             console.error('Error deleting terminal:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     }
 };
@@ -203,7 +195,6 @@ export const usersAPI = {
             console.error('Error fetching users:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -225,7 +216,6 @@ export const usersAPI = {
             console.error('Error fetching current user:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -238,7 +228,6 @@ export const usersAPI = {
             console.error('Error fetching user:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -251,7 +240,6 @@ export const usersAPI = {
             console.error('Error fetching user:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -328,7 +316,6 @@ export const usersAPI = {
             console.error('Error updating user:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -343,7 +330,6 @@ export const usersAPI = {
             console.error('Error deleting user:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     }
 };
@@ -358,8 +344,7 @@ export const shipmentsAPI = {
         } catch (error) {
             console.error('Error fetching shipments:', error);
             // Database required - no localStorage fallback
-            throw error; getShipmentsFromLocalStorage();
-            }
+            throw error;
         }
     },
 
@@ -371,10 +356,7 @@ export const shipmentsAPI = {
         } catch (error) {
             console.error('Error fetching user shipments:', error);
             // Database required - no localStorage fallback
-            throw error; getShipmentsFromLocalStorage().filter(s => 
-                    s.createdBy === userId || s.participants?.some(p => p.userId === userId)
-                );
-            }
+            throw error;
         }
     },
 
@@ -386,8 +368,7 @@ export const shipmentsAPI = {
         } catch (error) {
             console.error('Error fetching shipment:', error);
             // Database required - no localStorage fallback
-            throw error; getShipmentsFromLocalStorage().find(s => s.spaceId === spaceId);
-            }
+            throw error;
         }
     },
 
@@ -399,8 +380,7 @@ export const shipmentsAPI = {
         } catch (error) {
             console.error('Error fetching shipment:', error);
             // Database required - no localStorage fallback
-            throw error; getShipmentsFromLocalStorage().find(s => s.awbNumber === awbNumber);
-            }
+            throw error;
         }
     },
 
@@ -417,7 +397,6 @@ export const shipmentsAPI = {
             console.error('Error creating shipment:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -434,7 +413,6 @@ export const shipmentsAPI = {
             console.error('Error updating shipment:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -449,7 +427,6 @@ export const shipmentsAPI = {
             console.error('Error deleting shipment:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     }
 };
@@ -467,8 +444,7 @@ export const contactsAPI = {
         } catch (error) {
             console.error('Error fetching contacts:', error);
             // Database required - no localStorage fallback
-            throw error; getContactsFromLocalStorage(type);
-            }
+            throw error;
         }
     },
 
@@ -485,7 +461,6 @@ export const contactsAPI = {
             console.error('Error creating contact:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -502,7 +477,6 @@ export const contactsAPI = {
             console.error('Error updating contact:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     },
 
@@ -517,7 +491,6 @@ export const contactsAPI = {
             console.error('Error deleting contact:', error);
             // Database required - no localStorage fallback
             throw error;
-            }
         }
     }
 };
@@ -527,6 +500,7 @@ export const contactsAPI = {
 
 // Expose APIs globally for non-module scripts (after all APIs are defined)
 if (typeof window !== 'undefined') {
+    console.log('🔧 api.js: Exposing APIs to window object');
     window.usersAPI = usersAPI;
     window.shipmentsAPI = shipmentsAPI;
     window.contactsAPI = contactsAPI;
@@ -534,12 +508,19 @@ if (typeof window !== 'undefined') {
     window.destinationsAPI = destinationsAPI;
     window.terminalsAPI = terminalsAPI;
     
+    console.log('🔧 api.js: APIs exposed. usersAPI available:', !!window.usersAPI);
+    
     // Dispatch event when APIs are ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            window.dispatchEvent(new Event('apiReady'));
-        });
-    } else {
+    const dispatchReady = () => {
+        console.log('🔧 api.js: Dispatching apiReady event');
         window.dispatchEvent(new Event('apiReady'));
+    };
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', dispatchReady);
+    } else {
+        dispatchReady();
     }
+} else {
+    console.error('❌ api.js: window is undefined - cannot expose APIs');
 }
