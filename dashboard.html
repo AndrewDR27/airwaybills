@@ -112,7 +112,7 @@
             border-left: 2px solid transparent;
             white-space: nowrap;
             overflow: hidden;
-            font-size: 11px;
+            font-size: 15px;
             font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .sidebar.collapsed .nav-menu a span {
@@ -163,7 +163,7 @@
         }
         .nav-menu .submenu a {
             padding-left: 24px;
-            font-size: 10px;
+            font-size: 13px;
         }
         .nav-menu .has-submenu > a::after {
             content: '▼';
@@ -429,13 +429,13 @@
                 roles: ['all'],
                 submenu: [
                     { href: 'contacts.html', icon: '📋', text: 'AWB AutoFills' },
-                    { href: 'users.html', icon: '👤', text: 'Users', roles: ['admin'] }
+                    { href: 'users.html', icon: '👤', text: 'Users', roles: ['all'] }
                 ]
             },
             { 
                 text: 'Settings', 
                 icon: '⚙️', 
-                roles: ['all'],
+                roles: ['admin'],
                 submenu: [
                     { href: 'ui-settings.html', icon: '🎨', text: 'UI Theme Settings' }
                 ]
@@ -475,18 +475,36 @@
         
         // Add common menu items (all roles)
         commonItems.forEach(item => {
+            // Check if item should be shown based on role
+            const itemRoles = item.roles || ['all'];
+            const shouldShow = itemRoles.includes('all') || itemRoles.includes(user.role);
+            
+            if (!shouldShow) {
+                return; // Skip this item
+            }
+            
             const li = document.createElement('li');
             
             // Check if item has submenu
             if (item.submenu) {
                 li.className = 'has-submenu';
                 const isActive = '';
+                // Filter submenu items by role
+                const visibleSubItems = item.submenu.filter(subItem => {
+                    const subItemRoles = subItem.roles || ['all'];
+                    return subItemRoles.includes('all') || subItemRoles.includes(user.role);
+                });
+                
+                if (visibleSubItems.length === 0) {
+                    return; // Don't show menu item if no subitems are visible
+                }
+                
                 li.innerHTML = `
                     <a href="#" class="${isActive}" onclick="event.preventDefault(); toggleSubmenu(this.parentElement); return false;">
                         <span>${item.icon}</span> <span class="menu-text">${item.text}</span>
                     </a>
                     <ul class="submenu">
-                        ${item.submenu.map(subItem => `
+                        ${visibleSubItems.map(subItem => `
                             <li>
                                 <a href="${subItem.href}" target="contentFrame">
                                     <span>${subItem.icon}</span> <span class="menu-text">${subItem.text}</span>
@@ -512,6 +530,25 @@
             if (submenu) {
                 submenu.classList.toggle('expanded');
             }
+            
+            // Save submenu state to localStorage
+            const menuText = liElement.querySelector('a .menu-text')?.textContent || 
+                           liElement.querySelector('a')?.textContent?.trim() || '';
+            if (menuText) {
+                const isExpanded = liElement.classList.contains('expanded');
+                const expandedMenus = JSON.parse(localStorage.getItem('expandedMenus') || '[]');
+                if (isExpanded) {
+                    if (!expandedMenus.includes(menuText)) {
+                        expandedMenus.push(menuText);
+                    }
+                } else {
+                    const index = expandedMenus.indexOf(menuText);
+                    if (index > -1) {
+                        expandedMenus.splice(index, 1);
+                    }
+                }
+                localStorage.setItem('expandedMenus', JSON.stringify(expandedMenus));
+            }
         };
         
         // Add role-specific menu items
@@ -530,9 +567,28 @@
             navMenu.appendChild(li);
         });
         
-        // Set default iframe source based on role
+        // Restore expanded submenu states from localStorage
+        const expandedMenus = JSON.parse(localStorage.getItem('expandedMenus') || '[]');
+        expandedMenus.forEach(menuText => {
+            const menuItems = navMenu.querySelectorAll('li.has-submenu');
+            menuItems.forEach(li => {
+                const textElement = li.querySelector('a .menu-text');
+                if (textElement && textElement.textContent.trim() === menuText) {
+                    li.classList.add('expanded');
+                    const submenu = li.querySelector('.submenu');
+                    if (submenu) {
+                        submenu.classList.add('expanded');
+                    }
+                }
+            });
+        });
+        
+        // Set default iframe source - always use My Shipments as default
+        // Note: We still save the current page when navigating, but default is always shipments/list.html
         const savedPage = localStorage.getItem('dashboardCurrentPage');
-        const initialPage = savedPage || defaultPage;
+        // Only use saved page if it exists and user hasn't explicitly set a preference
+        // For now, always default to shipments/list.html
+        const initialPage = defaultPage; // Always use default (shipments/list.html)
         document.getElementById('contentFrame').src = initialPage;
 
         // Handle navigation

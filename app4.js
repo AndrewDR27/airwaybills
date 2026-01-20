@@ -232,14 +232,16 @@ function initializeApp() {
     }
     
     
-    // Airline 1 handlers
+    // Airline 1 handlers - redirect to airlines.html instead of opening contact modal
     if (addAirlineBtn1) {
         addAirlineBtn1.addEventListener('click', () => {
-            const selectedId = airlineSelect1 ? airlineSelect1.value : null;
-            if (selectedId && selectedId !== '' && selectedId !== 'edit') {
-                openContactModal('Airline', selectedId);
+            // Redirect to airlines management page instead of opening contact modal
+            if (window.parent && window.parent !== window) {
+                // In iframe - tell parent to navigate
+                window.parent.location.href = 'airlines.html';
             } else {
-                openContactModal('Airline', null);
+                // Not in iframe - direct navigation
+                window.location.href = 'airlines.html';
             }
         });
     }
@@ -311,17 +313,17 @@ function initializeApp() {
     
     // Interline Carrier handlers (no add buttons, just change listeners)
     if (interlineCarrierSelect1) {
-        interlineCarrierSelect1.addEventListener('change', (e) => {
+        interlineCarrierSelect1.addEventListener('change', async (e) => {
             const value = e.target.value;
             if (value) {
-                fillInterlineCarrier1Field(value);
+                await fillInterlineCarrier1Field(value);
             }
         });
     }
     
     // Add Interline Carrier 2 button handler
     if (addInterlineCarrier2Btn) {
-        addInterlineCarrier2Btn.addEventListener('click', () => {
+        addInterlineCarrier2Btn.addEventListener('click', async () => {
             const addBtnGroup = document.getElementById('addInterlineCarrier2BtnGroup');
             const interlineCarrierGroup2 = document.getElementById('interlineCarrierGroup2');
             
@@ -332,21 +334,29 @@ function initializeApp() {
                 interlineCarrierGroup2.style.display = 'flex';
             }
             
-            // Always populate the dropdown when it's shown
+            // Always populate the dropdown when it's shown - use airlinesAPI only
             if (interlineCarrierSelect2) {
                 const currentValue = interlineCarrierSelect2.value;
-                const contacts = getContacts();
                 interlineCarrierSelect2.innerHTML = '<option value="">-- Select Airline --</option>';
-                contacts.filter(c => c.type === 'Airline').forEach(contact => {
-                    const option = document.createElement('option');
-                    option.value = contact.id;
-                    // Format: "ABBREVIATION - Company Name" or just "Company Name" if no abbreviation
-                    const displayText = contact.airlineAbbreviation 
-                        ? `${contact.airlineAbbreviation} - ${contact.companyName}`
-                        : contact.companyName;
-                    option.textContent = displayText;
-                    interlineCarrierSelect2.appendChild(option);
-                });
+                
+                // Only load from airlinesAPI (Locations > Airlines) - no contacts fallback
+                if (window.airlinesAPI) {
+                    try {
+                        const airlines = await window.airlinesAPI.getAll();
+                        airlines.forEach(airline => {
+                            const option = document.createElement('option');
+                            option.value = airline.id;
+                            // Format: "ABBREVIATION - Company Name" or just "Company Name" if no abbreviation
+                            const displayText = airline.airlineAbbreviation 
+                                ? `${airline.airlineAbbreviation} - ${airline.companyName}`
+                                : airline.companyName;
+                            option.textContent = displayText;
+                            interlineCarrierSelect2.appendChild(option);
+                        });
+                    } catch (error) {
+                        console.error('Could not load airlines from API:', error);
+                    }
+                }
                 
                 // Restore selection if it still exists
                 if (currentValue && currentValue !== 'edit') {
@@ -358,14 +368,14 @@ function initializeApp() {
     
     // Interline Carrier 2 handler
     if (interlineCarrierSelect2) {
-        interlineCarrierSelect2.addEventListener('change', (e) => {
+        interlineCarrierSelect2.addEventListener('change', async (e) => {
             const value = e.target.value;
             if (value) {
                 // Unlock fields 13 and 14 and fill field 14 with airline abbreviation
-                handleInterlineCarrier2Change(value);
+                await handleInterlineCarrier2Change(value);
             } else {
                 // If cleared, lock fields 13 and 14 again
-                handleInterlineCarrier2Change(null);
+                await handleInterlineCarrier2Change(null);
             }
         });
     }
@@ -1498,7 +1508,7 @@ function loadTemplateData(templateName) {
     return templates[templateName] || null;
 }
 
-function populateFormFromTemplate(templateData) {
+async function populateFormFromTemplate(templateData) {
     if (!generatedForm || !templateData) return;
     
     const formElements = generatedForm.elements;
@@ -1617,7 +1627,7 @@ function populateFormFromTemplate(templateData) {
     if (interlineCarrierSelect1 && templateData['_interlineCarrierContactId1']) {
         interlineCarrierSelect1.value = templateData['_interlineCarrierContactId1'];
         if (interlineCarrierSelect1.value) {
-            fillInterlineCarrier1Field(interlineCarrierSelect1.value);
+            await fillInterlineCarrier1Field(interlineCarrierSelect1.value);
         }
     }
     
@@ -1635,20 +1645,28 @@ function populateFormFromTemplate(templateData) {
         
         // Make sure the dropdown is populated before setting the value
         if (interlineCarrierSelect2) {
-            // Populate the dropdown if it hasn't been populated yet
+            // Populate the dropdown if it hasn't been populated yet - use airlinesAPI only
             if (interlineCarrierSelect2.options.length <= 1) {
-                const contacts = getContacts();
                 interlineCarrierSelect2.innerHTML = '<option value="">-- Select Airline --</option>';
-                contacts.filter(c => c.type === 'Airline').forEach(contact => {
-                    const option = document.createElement('option');
-                    option.value = contact.id;
-                    // Format: "ABBREVIATION - Company Name" or just "Company Name" if no abbreviation
-                    const displayText = contact.airlineAbbreviation 
-                        ? `${contact.airlineAbbreviation} - ${contact.companyName}`
-                        : contact.companyName;
-                    option.textContent = displayText;
-                    interlineCarrierSelect2.appendChild(option);
-                });
+                
+                // Only load from airlinesAPI (Locations > Airlines) - no contacts fallback
+                if (window.airlinesAPI) {
+                    try {
+                        const airlines = await window.airlinesAPI.getAll();
+                        airlines.forEach(airline => {
+                            const option = document.createElement('option');
+                            option.value = airline.id;
+                            // Format: "ABBREVIATION - Company Name" or just "Company Name" if no abbreviation
+                            const displayText = airline.airlineAbbreviation 
+                                ? `${airline.airlineAbbreviation} - ${airline.companyName}`
+                                : airline.companyName;
+                            option.textContent = displayText;
+                            interlineCarrierSelect2.appendChild(option);
+                        });
+                    } catch (error) {
+                        console.error('Could not load airlines from API:', error);
+                    }
+                }
             }
             
             // Set the value if it exists in the template
@@ -1656,7 +1674,7 @@ function populateFormFromTemplate(templateData) {
                 interlineCarrierSelect2.value = templateData['_interlineCarrierContactId2'];
                 // Unlock fields 13 and 14 and fill field 14 with abbreviation
                 if (interlineCarrierSelect2.value) {
-                    handleInterlineCarrier2Change(interlineCarrierSelect2.value);
+                    await handleInterlineCarrier2Change(interlineCarrierSelect2.value);
                 }
             }
         }
@@ -1752,7 +1770,7 @@ function populateFormFromTemplate(templateData) {
 }
 
 // Template event handlers
-function handleTemplateSelect() {
+async function handleTemplateSelect() {
     const selectedTemplate = templateSelect.value;
     
     if (!selectedTemplate) {
@@ -1780,7 +1798,7 @@ function handleTemplateSelect() {
     // Load the selected template
     const templateData = loadTemplateData(selectedTemplate);
     if (templateData) {
-        populateFormFromTemplate(templateData);
+        await populateFormFromTemplate(templateData);
         showError('✓ Template loaded: ' + selectedTemplate);
         setTimeout(() => hideError(), 2000);
     }
@@ -3693,25 +3711,45 @@ async function updateContactDropdowns() {
         if (!select) return;
         select.innerHTML = '<option value="">-- Select Airline --</option>';
         
-        // Try to use airlinesAPI first (database), fallback to contacts (localStorage)
+        // Only load from airlinesAPI (Locations > Airlines) - no contacts fallback
         let airlines = [];
         if (window.airlinesAPI) {
             try {
                 airlines = await window.airlinesAPI.getAll();
                 console.log('Loaded airlines from API:', airlines.length);
             } catch (error) {
-                console.warn('Could not load airlines from API, using contacts:', error);
-                // Fallback to contacts
-                const contacts = getContacts();
-                airlines = contacts.filter(c => c.type === 'Airline');
+                console.error('Could not load airlines from API:', error);
+                // Don't fallback to contacts - airlines should only be in Locations
+                airlines = [];
             }
         } else {
-            // Fallback to contacts if airlinesAPI not available
-            const contacts = getContacts();
-            airlines = contacts.filter(c => c.type === 'Airline');
+            console.warn('airlinesAPI not available - airlines can only be managed in Locations > Airlines');
+            airlines = [];
         }
         
-        airlines.forEach(airline => {
+        // Deduplicate airlines by ID and company name to prevent duplicates
+        const seenIds = new Set();
+        const seenNames = new Set();
+        const uniqueAirlines = airlines.filter(airline => {
+            // Check for duplicate ID
+            if (seenIds.has(airline.id)) {
+                console.warn('Duplicate airline ID found:', airline.id, airline.companyName);
+                return false;
+            }
+            // Check for duplicate company name (case-insensitive)
+            const nameKey = (airline.companyName || '').toLowerCase().trim();
+            if (nameKey && seenNames.has(nameKey)) {
+                console.warn('Duplicate airline name found:', airline.companyName, 'ID:', airline.id);
+                return false;
+            }
+            seenIds.add(airline.id);
+            if (nameKey) seenNames.add(nameKey);
+            return true;
+        });
+        
+        console.log(`Displaying ${uniqueAirlines.length} unique airlines (${airlines.length} total loaded)`);
+        
+        uniqueAirlines.forEach(airline => {
             const option = document.createElement('option');
             option.value = airline.id;
             // Format: "ABBREVIATION - Company Name" or just "Company Name" if no abbreviation
@@ -3793,6 +3831,17 @@ function updateContactButtonText(type, button, select) {
 function openContactModal(type, contactIdToEdit) {
     if (!contactModal || !contactForm) return;
     
+    // Prevent airlines from being managed through contact modal - redirect to airlines.html
+    if (type === 'Airline') {
+        if (window.parent && window.parent !== window) {
+            // In iframe - tell parent to navigate
+            window.parent.location.href = 'airlines.html';
+        } else {
+            // Not in iframe - direct navigation
+            window.location.href = 'airlines.html';
+        }
+        return;
+    }
     
     contactType.value = type;
     contactId.value = contactIdToEdit || '';
@@ -4189,7 +4238,7 @@ async function fillAirlineField(airlineId) {
         return;
     }
     
-    // Try to get airline from airlinesAPI first (database), fallback to contacts (localStorage)
+    // Only get airline from airlinesAPI (Locations > Airlines) - no contacts fallback
     let airline = null;
     if (window.airlinesAPI) {
         try {
@@ -4199,18 +4248,11 @@ async function fillAirlineField(airlineId) {
                 console.log('Found airline from API:', airline.companyName);
             }
         } catch (error) {
-            console.warn('Could not load airlines from API, trying contacts:', error);
+            console.error('Could not load airlines from API:', error);
         }
     }
     
-    // Fallback to contacts if not found in API
-    if (!airline) {
-        const contacts = getContacts();
-        airline = contacts.find(c => c.id === airlineId && c.type === 'Airline');
-        if (airline) {
-            console.log('Found airline from contacts:', airline.companyName);
-        }
-    }
+    // Don't fallback to contacts - airlines should only be in Locations > Airlines
     
     if (!airline) {
         console.warn(`Airline not found for ${airlineId}`);
@@ -4740,14 +4782,22 @@ function setupFormDataAutoSave() {
 }
 
 // Fill field 12 with airline abbreviation when Interline Carrier 1 is selected
-function fillInterlineCarrier1Field(airlineId) {
+async function fillInterlineCarrier1Field(airlineId) {
     if (!generatedForm) return;
     
-    const contacts = getContacts();
-    const airline = contacts.find(c => c.id === airlineId && c.type === 'Airline');
+    // Only get airline from airlinesAPI (Locations > Airlines) - no contacts fallback
+    let airline = null;
+    if (window.airlinesAPI) {
+        try {
+            const airlines = await window.airlinesAPI.getAll();
+            airline = airlines.find(a => a.id === airlineId);
+        } catch (error) {
+            console.error('Could not load airlines from API:', error);
+        }
+    }
     
     if (!airline) {
-        console.warn(`Airline not found for ${airlineId}`);
+        console.warn(`Airline not found for ${airlineId} - airlines should be managed in Locations > Airlines`);
         return;
     }
     
@@ -5237,7 +5287,7 @@ function handleInterlineShipmentChange(isInterlineYes) {
 }
 
 // Handle Interline Carrier 2 change - unlock fields 13 and 14, fill field 14 with abbreviation
-function handleInterlineCarrier2Change(airlineId) {
+async function handleInterlineCarrier2Change(airlineId) {
     if (!generatedForm) return;
     
     const contactFieldsForm = document.getElementById('contactFieldsForm');
@@ -5253,9 +5303,21 @@ function handleInterlineCarrier2Change(airlineId) {
     const fieldPrefixes = ['13', '14'];
     
     if (airlineId) {
-        // Get airline data
-        const contacts = getContacts();
-        const airline = contacts.find(c => c.id === airlineId && c.type === 'Airline');
+        // Get airline data from airlinesAPI (Locations > Airlines) - no contacts fallback
+        let airline = null;
+        if (window.airlinesAPI) {
+            try {
+                const airlines = await window.airlinesAPI.getAll();
+                airline = airlines.find(a => a.id === airlineId);
+            } catch (error) {
+                console.error('Could not load airlines from API:', error);
+            }
+        }
+        
+        if (!airline) {
+            console.warn(`Airline not found for ${airlineId} - airlines should be managed in Locations > Airlines`);
+            return;
+        }
         
         fieldPrefixes.forEach(prefix => {
             for (const form of formsToCheck) {

@@ -4,84 +4,96 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Shipments - Airway Bills</title>
-    <link rel="stylesheet" href="../styles.css">
+    <base href="/">
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/js/themes.js"></script>
     <style>
         body {
             margin: 0;
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f5;
+            padding: 2px;
+            font-family: 'MS Sans Serif', 'Arial', sans-serif;
+            background: #008080;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
+            min-height: 100vh;
         }
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: #C0C0C0;
+            padding: 8px;
+            border: 2px outset #C0C0C0;
         }
         h1 {
             margin-top: 0;
-            color: #333;
+            color: #000000;
+            font-size: 16px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .status-tabs {
             display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            border-bottom: 2px solid #eee;
+            gap: 4px;
+            margin-top: 8px;
+            border-bottom: 2px inset #C0C0C0;
             padding-bottom: 0;
         }
         .status-tab {
-            padding: 12px 24px;
-            background: none;
-            border: none;
-            border-bottom: 3px solid transparent;
+            padding: 4px 16px;
+            background: #C0C0C0;
+            border: 2px outset #C0C0C0;
             cursor: pointer;
-            font-size: 15px;
-            font-weight: 500;
-            color: #666;
-            transition: all 0.3s;
+            font-size: 11px;
+            font-weight: normal;
+            color: #000000;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
             position: relative;
             top: 2px;
         }
         .status-tab:hover {
-            color: #667eea;
+            background: #E8E8E8;
+        }
+        .status-tab:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .status-tab.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-            font-weight: 600;
+            background: #C0C0C0;
+            border-bottom: 2px solid #C0C0C0;
+            border-top: 2px outset #C0C0C0;
+            border-left: 2px outset #C0C0C0;
+            border-right: 2px outset #C0C0C0;
+            font-weight: normal;
         }
         .status-tab .count {
-            background: #e0e0e0;
-            color: #666;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            margin-left: 8px;
+            background: #808080;
+            color: #FFFFFF;
+            padding: 2px 6px;
+            border: 1px inset #C0C0C0;
+            font-size: 10px;
+            margin-left: 4px;
             font-weight: normal;
         }
         .status-tab.active .count {
-            background: #667eea;
+            background: #000080;
             color: white;
         }
         .shipments-list {
             margin-top: 20px;
         }
         .shipment-item {
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            padding: 8px 12px;
+            border: 2px inset #C0C0C0;
+            padding: 4px 8px;
             margin-bottom: 4px;
-            transition: box-shadow 0.2s, background-color 0.2s;
+            background: white;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 15px;
         }
         .shipment-item:hover {
-            background: #f9f9f9;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            background: #316AC5;
+            color: white;
         }
         .shipment-content {
             flex: 1;
@@ -102,14 +114,20 @@
             flex-wrap: wrap;
         }
         .shipment-awb {
-            font-size: 14px;
-            font-weight: 600;
-            color: #667eea;
+            font-size: 12px;
+            font-weight: bold;
+            color: #000000;
+        }
+        .shipment-item:hover .shipment-awb {
+            color: white;
         }
         .shipment-space-id {
-            font-size: 11px;
-            color: #999;
+            font-size: 10px;
+            color: #000000;
             margin-top: 1px;
+        }
+        .shipment-item:hover .shipment-space-id {
+            color: white;
         }
         .shipment-meta {
             display: flex;
@@ -129,17 +147,19 @@
             font-weight: 500;
         }
         .shipment-status {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
+            padding: 2px 8px;
+            border: 1px inset #C0C0C0;
+            font-size: 10px;
+            font-weight: normal;
             text-transform: uppercase;
             white-space: nowrap;
+            background: #C0C0C0;
+            color: #000000;
         }
-        .status-pending { background: #fff3cd; color: #856404; }
-        .status-active { background: #d4edda; color: #155724; }
-        .status-in-transit { background: #cfe2ff; color: #084298; }
-        .status-cancelled { background: #f8d7da; color: #721c24; }
+        .status-pending { background: #FFFFE0; color: #000000; }
+        .status-active { background: #E0FFE0; color: #000000; }
+        .status-in-transit { background: #E0E0FF; color: #000000; }
+        .status-cancelled { background: #FFE0E0; color: #000000; }
         .substatus-badge {
             display: inline-block;
             padding: 3px 8px;
@@ -157,59 +177,80 @@
             flex-shrink: 0;
         }
         .btn-view, .btn-success, .btn-warning, .btn-danger {
-            border: none;
-            padding: 6px 14px;
-            border-radius: 4px;
+            border: 2px outset #C0C0C0;
+            padding: 4px 12px;
             cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
+            font-size: 11px;
+            font-weight: normal;
             white-space: nowrap;
-            transition: all 0.2s;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .btn-view {
-            background: #667eea;
-            color: white;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-view:hover {
-            background: #5568d3;
+            background: #E8E8E8;
+        }
+        .btn-view:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .btn-success {
-            background: #28a745;
-            color: white;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-success:hover {
-            background: #218838;
+            background: #E8E8E8;
+        }
+        .btn-success:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .btn-warning {
-            background: #ffc107;
-            color: #333;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-warning:hover {
-            background: #e0a800;
+            background: #E8E8E8;
+        }
+        .btn-warning:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .btn-danger {
-            background: #dc3545;
-            color: white;
+            background: #C0C0C0;
+            color: #000000;
         }
         .btn-danger:hover {
-            background: #c82333;
+            background: #E8E8E8;
+        }
+        .btn-danger:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
-            color: #999;
+            padding: 40px 20px;
+            color: #000000;
         }
         .empty-state h2 {
-            color: #666;
-            margin-bottom: 10px;
+            color: #000000;
+            margin-bottom: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .empty-state p {
+            color: #000000;
+            font-size: 11px;
         }
         .factory-invoice-section {
             margin-top: 4px;
-            padding: 6px 10px;
-            background: #f9f9f9;
-            border-radius: 4px;
-            border: 1px solid #e0e0e0;
-            font-size: 11px;
+            padding: 4px 8px;
+            background: #E8E8E8;
+            border: 1px inset #C0C0C0;
+            font-size: 10px;
         }
         .factory-invoice-section h4 {
             margin: 0 0 6px 0;
@@ -231,15 +272,20 @@
         .file-input-label {
             display: inline-block;
             padding: 4px 10px;
-            background: #667eea;
-            color: white;
-            border-radius: 4px;
+            background: #C0C0C0;
+            color: #000000;
+            border: 2px outset #C0C0C0;
             cursor: pointer;
             font-size: 11px;
-            font-weight: 500;
+            font-weight: normal;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .file-input-label:hover {
-            background: #5568d3;
+            background: #E8E8E8;
+        }
+        .file-input-label:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .invoice-download {
             display: inline-block;
@@ -247,23 +293,25 @@
         .status-actions {
             margin-top: 4px;
             padding-top: 4px;
-            border-top: 1px solid #eee;
+            border-top: 1px inset #C0C0C0;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             flex-wrap: wrap;
         }
         .status-actions label {
             font-size: 10px;
-            color: #666;
-            font-weight: 500;
+            color: #000000;
+            font-weight: normal;
             margin-right: 4px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .status-select {
-            padding: 4px 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 12px;
+            padding: 2px 4px;
+            border: 2px inset #C0C0C0;
+            font-size: 11px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            background: white;
         }
         .compact-info {
             display: none;
@@ -274,19 +322,19 @@
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h1 style="margin: 0;">My Shipments</h1>
-            <button id="createSpaceBtn" class="btn-view" style="display: none; background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">+ Create Shipment Space</button>
+            <button id="createSpaceBtn" class="btn-view" style="display: none;">+ Create Shipment Space</button>
         </div>
         
         <div class="status-tabs">
-            <button class="status-tab active" data-status="pending" onclick="switchTab('pending')">
+            <button class="status-tab active" data-status="pending" onclick="if(window.switchTab) window.switchTab('pending'); else console.error('switchTab not available yet');">
                 Pending
                 <span class="count" id="pending-count">0</span>
             </button>
-            <button class="status-tab" data-status="active" onclick="switchTab('active')">
+            <button class="status-tab" data-status="active" onclick="if(window.switchTab) window.switchTab('active'); else console.error('switchTab not available yet');">
                 Active
                 <span class="count" id="active-count">0</span>
             </button>
-            <button class="status-tab" data-status="in-transit" onclick="switchTab('in-transit')">
+            <button class="status-tab" data-status="in-transit" onclick="if(window.switchTab) window.switchTab('in-transit'); else console.error('switchTab not available yet');">
                 In Transit
                 <span class="count" id="in-transit-count">0</span>
             </button>
@@ -300,36 +348,213 @@
     </div>
 
     <!-- Load required scripts -->
-    <script src="../models/user.js"></script>
-    <script src="../models/shipment.js"></script>
-    <script src="../js/roles.js"></script>
-    <script type="module" src="../js/auth.js"></script>
-    <script type="module" src="../js/shipments.js"></script>
+    <script src="/models/user.js"></script>
+    <script src="/models/shipment.js"></script>
+    <script src="/js/roles.js"></script>
+    <script type="module" src="/js/auth.js"></script>
+    <script type="module" src="/js/shipments.js"></script>
     
     <script>
+        // Define switchTab early to prevent errors when clicking tabs before page loads
+        window.switchTab = function(status) {
+            // Silently wait if page isn't ready - don't show warnings
+            if (typeof currentTab === 'undefined' || typeof loadShipments !== 'function') {
+                // Page not ready yet - just return silently
+                // The function will be properly set up once DOMContentLoaded fires
+                return;
+            }
+            currentTab = status;
+            document.querySelectorAll('.status-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            const activeTab = document.querySelector(`.status-tab[data-status="${status}"]`);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
+            loadShipments();
+        };
+        
         // Wait for DOM to be ready
         document.addEventListener('DOMContentLoaded', async function() {
             // Wait for auth functions to be available
             let attempts = 0;
-            while ((typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined') && attempts < 50) {
+            while ((typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined' || typeof getCurrentUserAsync === 'undefined') && attempts < 50) {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 attempts++;
             }
             
-            // Check authentication with error handling
+            // Wait for API to be ready before calling getCurrentUser
+            if (!window.usersAPI) {
+                // Wait for apiReady event (max 5 seconds)
+                await new Promise((resolve) => {
+                    // Check if already available
+                    if (window.usersAPI) {
+                        resolve();
+                        return;
+                    }
+                    
+                    // Listen for apiReady event
+                    const handler = () => {
+                        if (window.usersAPI) {
+                            resolve();
+                        }
+                    };
+                    window.addEventListener('apiReady', handler, { once: true });
+                    
+                    // Also check periodically in case event already fired
+                    let checks = 0;
+                    const checkInterval = setInterval(() => {
+                        checks++;
+                        if (window.usersAPI) {
+                            window.removeEventListener('apiReady', handler);
+                            clearInterval(checkInterval);
+                            resolve();
+                        } else if (checks >= 50) { // 5 seconds (50 * 100ms)
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 100);
+                });
+            }
             
+            // Give auth.js module more time to set its internal usersAPI variable
+            // Wait for the apiReady event to complete and auth.js to initialize
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Check authentication with error handling
             let user = null;
             try {
-                if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
-                    window.location.href = '../login.html';
-                    return;
+                // Skip isAuthenticated() check initially - it might fail if API isn't ready
+                // Instead, try to get user directly from API
+                
+                // Try to get user - use window.usersAPI directly if module isn't ready
+                if (window.usersAPI) {
+                    try {
+                        // Try direct API call first (most reliable)
+                        if (window.usersAPI.getCurrent) {
+                            try {
+                                user = await window.usersAPI.getCurrent();
+                            } catch (apiError) {
+                                // Check if it's an authentication error (401) or network error
+                                console.warn('API call failed:', apiError.message);
+                                
+                                // If it's not a 401 (unauthorized), try using cached data
+                                // 401 means session expired, other errors might be temporary
+                                if (!apiError.message.includes('401') && !apiError.message.includes('Unauthorized')) {
+                                    // Try to use cached user if available
+                                    const cachedUser = getCurrentUser();
+                                    if (cachedUser) {
+                                        console.log('Using cached user due to API error');
+                                        user = cachedUser;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // If direct call didn't work, try async function
+                        if (!user && typeof getCurrentUserAsync !== 'undefined') {
+                            try {
+                                user = await getCurrentUserAsync();
+                            } catch (asyncError) {
+                                console.warn('getCurrentUserAsync failed:', asyncError.message);
+                                // Try cached user
+                                const cachedUser = getCurrentUser();
+                                if (cachedUser) {
+                                    console.log('Using cached user after async function failed');
+                                    user = cachedUser;
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Error getting user from API, trying sync version:', error);
+                        // Fallback to sync version (uses cache)
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        user = getCurrentUser();
+                    }
+                } else {
+                    // No API available yet, wait a bit more and try sync version
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    user = getCurrentUser();
                 }
-
-                user = getCurrentUser();
+                
+                // If still no user, check localStorage for auth data and try one more time
                 if (!user) {
-                    console.error('No user found');
-                    window.location.href = '../login.html';
-                    return;
+                    const authData = localStorage.getItem('awb_auth');
+                    if (authData) {
+                        try {
+                            const auth = JSON.parse(authData);
+                            if (auth.isAuthenticated && auth.userId) {
+                                // User is authenticated but API call failed - try cached user first
+                                const cachedUser = getCurrentUser();
+                                if (cachedUser && cachedUser.id === auth.userId) {
+                                    console.log('Using cached user from localStorage auth data');
+                                    user = cachedUser;
+                                } else {
+                                    // If no cache, wait and retry API call
+                                    console.warn('User authenticated but API call failed, retrying...');
+                                    await new Promise(resolve => setTimeout(resolve, 1000));
+                                    
+                                    if (window.usersAPI && window.usersAPI.getCurrent) {
+                                        try {
+                                            user = await window.usersAPI.getCurrent();
+                                        } catch (retryError) {
+                                            console.warn('Retry also failed:', retryError.message);
+                                            // Last resort: use cached user if available
+                                            const lastCached = getCurrentUser();
+                                            if (lastCached) {
+                                                user = lastCached;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            // Invalid auth data
+                        }
+                    }
+                }
+                
+                // Final check - if no user found, check localStorage directly
+                if (!user) {
+                    // Last attempt: check localStorage directly for user data
+                    const authData = localStorage.getItem('awb_auth');
+                    if (authData) {
+                        try {
+                            const auth = JSON.parse(authData);
+                            if (auth.isAuthenticated && auth.userId) {
+                                // Try getCurrentUser() first
+                                const cachedUser = getCurrentUser();
+                                if (cachedUser && cachedUser.id === auth.userId) {
+                                    console.log('Using cached user as final fallback');
+                                    user = cachedUser;
+                                } else {
+                                    // If getCurrentUser() doesn't work, check awb_users directly
+                                    const usersJson = localStorage.getItem('awb_users');
+                                    if (usersJson) {
+                                        try {
+                                            const users = JSON.parse(usersJson);
+                                            const foundUser = users.find(u => u && u.id === auth.userId);
+                                            if (foundUser) {
+                                                console.log('Using user from localStorage awb_users as final fallback');
+                                                user = foundUser;
+                                            }
+                                        } catch (e) {
+                                            // Invalid users data
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            // Invalid auth data
+                        }
+                    }
+                    
+                    // Only redirect if we truly have no user
+                    if (!user) {
+                        console.error('No user found after authentication check');
+                        window.location.href = '../login.html';
+                        return;
+                    }
                 }
             } catch (error) {
                 console.error('Authentication error:', error);
@@ -367,13 +592,16 @@
                 document.querySelectorAll('.status-tab').forEach(tab => {
                     tab.classList.remove('active');
                 });
-                document.querySelector(`.status-tab[data-status="${status}"]`).classList.add('active');
+                const activeTab = document.querySelector(`.status-tab[data-status="${status}"]`);
+                if (activeTab) {
+                    activeTab.classList.add('active');
+                }
                 
                 // Reload shipments
                 loadShipments();
             }
             
-            // Expose functions to global scope for onclick handlers
+            // Expose functions to global scope for onclick handlers IMMEDIATELY
             window.switchTab = switchTab;
             window.viewShipmentSpace = viewShipmentSpace;
             window.confirmShipmentAWB = confirmShipmentAWB;

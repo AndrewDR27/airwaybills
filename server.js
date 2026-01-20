@@ -514,94 +514,123 @@ app.delete('/api/terminals', async (req, res) => {
 });
 
 // Shipments API
+const SHIPMENTS_KEY = 'awb_shipments';
+
 app.get('/api/shipments', async (req, res) => {
     try {
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        
         const { action, spaceId, awbNumber, userId } = req.query;
-        const shipments = readDataFile('shipments');
+        const shipments = (await redis.get(SHIPMENTS_KEY)) || [];
+        const shipmentsArray = Array.isArray(shipments) ? shipments : [];
 
         if (action === 'all') {
-            res.json(shipments);
+            res.json(shipmentsArray);
         } else if (action === 'user') {
-            const userShipments = shipments.filter(s => 
-                s.createdBy === userId || 
-                s.participants?.some(p => p.userId === userId)
+            const userShipments = shipmentsArray.filter(s => 
+                s && (s.createdBy === userId || 
+                s.participants?.some(p => p.userId === userId))
             );
             res.json(userShipments);
         } else if (spaceId) {
-            const shipment = shipments.find(s => s.spaceId === spaceId);
+            const shipment = shipmentsArray.find(s => s && s.spaceId === spaceId);
             if (shipment) {
                 res.json(shipment);
             } else {
                 res.status(404).json({ error: 'Shipment not found' });
             }
         } else if (awbNumber) {
-            const shipment = shipments.find(s => s.awbNumber === awbNumber);
+            const shipment = shipmentsArray.find(s => s && s.awbNumber === awbNumber);
             if (shipment) {
                 res.json(shipment);
             } else {
                 res.status(404).json({ error: 'Shipment not found' });
             }
         } else {
-            res.json(shipments);
+            res.json(shipmentsArray);
         }
     } catch (error) {
         console.error('Shipments API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
 app.post('/api/shipments', async (req, res) => {
     try {
-        const shipments = readDataFile('shipments');
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        
+        const shipments = (await redis.get(SHIPMENTS_KEY)) || [];
+        const shipmentsArray = Array.isArray(shipments) ? shipments : [];
+        
         const newShipment = {
             ...req.body,
             createdAt: req.body.createdAt || new Date().toISOString()
         };
-        shipments.push(newShipment);
-        writeDataFile('shipments', shipments);
+        shipmentsArray.push(newShipment);
+        await redis.set(SHIPMENTS_KEY, shipmentsArray);
         res.status(201).json(newShipment);
     } catch (error) {
         console.error('Shipments API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
 app.put('/api/shipments', async (req, res) => {
     try {
-        const shipments = readDataFile('shipments');
-        const index = shipments.findIndex(s => s.spaceId === req.body.spaceId);
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        
+        const shipments = (await redis.get(SHIPMENTS_KEY)) || [];
+        const shipmentsArray = Array.isArray(shipments) ? shipments : [];
+        const index = shipmentsArray.findIndex(s => s && s.spaceId === req.body.spaceId);
+        
         if (index >= 0) {
-            shipments[index] = { ...shipments[index], ...req.body };
-            writeDataFile('shipments', shipments);
-            res.json(shipments[index]);
+            shipmentsArray[index] = { ...shipmentsArray[index], ...req.body };
+            await redis.set(SHIPMENTS_KEY, shipmentsArray);
+            res.json(shipmentsArray[index]);
         } else {
             res.status(404).json({ error: 'Shipment not found' });
         }
     } catch (error) {
         console.error('Shipments API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
 app.delete('/api/shipments', async (req, res) => {
     try {
-        const shipments = readDataFile('shipments');
-        const index = shipments.findIndex(s => s.spaceId === req.query.spaceId);
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        
+        const shipments = (await redis.get(SHIPMENTS_KEY)) || [];
+        const shipmentsArray = Array.isArray(shipments) ? shipments : [];
+        const index = shipmentsArray.findIndex(s => s && s.spaceId === req.query.spaceId);
+        
         if (index >= 0) {
-            shipments[index] = {
-                ...shipments[index],
+            shipmentsArray[index] = {
+                ...shipmentsArray[index],
                 status: 'deleted',
                 deletedAt: new Date().toISOString(),
                 deletedBy: req.query.userId
             };
-            writeDataFile('shipments', shipments);
+            await redis.set(SHIPMENTS_KEY, shipmentsArray);
             res.json({ success: true });
         } else {
             res.status(404).json({ error: 'Shipment not found' });
         }
     } catch (error) {
         console.error('Shipments API error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 

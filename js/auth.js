@@ -76,14 +76,19 @@ function getCurrentUser() {
     }
     
     // If API is available and we have a cached user, return it
-    if (usersAPI && currentUserCache && currentUserCache.id === auth.userId) {
+    // Check both module-level usersAPI and window.usersAPI
+    const apiAvailable = usersAPI || (typeof window !== 'undefined' && window.usersAPI);
+    if (apiAvailable && currentUserCache && currentUserCache.id === auth.userId) {
         console.log('getCurrentUser: Returning cached user', currentUserCache.email);
         return currentUserCache;
     }
     
-    // Database required - no localStorage fallback
-    if (!usersAPI) {
-        console.error('❌ Database API not available. Cannot proceed without database.');
+    // If API is not available yet, don't error - just return null silently
+    // The caller should use getCurrentUserAsync() instead
+    // Only log error if we've waited a reasonable time (check if apiReady event was dispatched)
+    if (!apiAvailable) {
+        // Don't log error immediately - API might still be loading
+        // Only return null silently
         return null;
     }
     
@@ -435,11 +440,27 @@ function requireRole(requiredRole) {
 
 // Initialize API when available
 if (typeof window !== 'undefined') {
-    // Check if api.js has loaded
-    const checkAPI = setInterval(() => {
+    // Set usersAPI immediately if window.usersAPI is already available
+    if (window.usersAPI) {
+        usersAPI = window.usersAPI;
+    }
+    
+    // Listen for apiReady event
+    window.addEventListener('apiReady', () => {
         if (window.usersAPI) {
             usersAPI = window.usersAPI;
-            clearInterval(checkAPI);
+            // Refresh current user from API (but don't clear cache if it fails)
+            getCurrentUserAsync().catch(error => {
+                // Silently fail - don't clear existing cache
+                console.log('Background user refresh failed, keeping existing cache:', error.message);
+            });
+        }
+    });
+    
+    // Also check periodically in case event already fired or window.usersAPI becomes available
+    const checkAPI = setInterval(() => {
+        if (window.usersAPI && !usersAPI) {
+            usersAPI = window.usersAPI;
             // Refresh current user from API (but don't clear cache if it fails)
             getCurrentUserAsync().catch(error => {
                 // Silently fail - don't clear existing cache

@@ -150,28 +150,6 @@
         })();
     </script>
     <script>
-        // Show debug logs if available
-        function showDebugLogs() {
-            try {
-                const logs = JSON.parse(localStorage.getItem('dashboard_debug_logs') || '[]');
-                if (logs.length > 0) {
-                    const logDiv = document.createElement('div');
-                    logDiv.style.cssText = 'position: fixed; top: 10px; right: 10px; background: #000; color: #0f0; padding: 10px; max-width: 500px; max-height: 400px; overflow: auto; font-family: monospace; font-size: 11px; z-index: 10000; border: 2px solid #0f0;';
-                    logDiv.innerHTML = '<strong>Debug Logs:</strong><br>' + logs.slice(-20).join('<br>');
-                    document.body.appendChild(logDiv);
-                    
-                    // Clear logs after showing
-                    setTimeout(() => {
-                        localStorage.removeItem('dashboard_debug_logs');
-                    }, 30000);
-                }
-            } catch (e) {
-                console.error('Could not show debug logs:', e);
-            }
-        }
-        
-        // Show logs on login page
-        showDebugLogs();
         
         // Wait for auth.js module to load before using its functions
         async function waitForAuth() {
@@ -190,7 +168,6 @@
             }
             
             if (typeof isAuthenticated === 'undefined') {
-                console.error('isAuthenticated function not available after waiting');
                 return;
             }
             
@@ -202,12 +179,10 @@
                 }
             } catch (error) {
                 // API might not be ready yet, that's okay - user can still log in
-                console.log('Auth check skipped - API not ready yet:', error);
             }
             
             // Set up login form handler
             if (typeof login === 'undefined') {
-                console.error('login function not available');
                 return;
             }
             
@@ -229,13 +204,11 @@
             try {
                 // First, ensure API is ready - wait for apiReady event or window.usersAPI
                 if (!window.usersAPI) {
-                    console.log('Waiting for API to load...');
                     // Wait for apiReady event (max 5 seconds)
                     let apiReady = false;
                     await new Promise((resolve) => {
                         // Check if already available
                         if (window.usersAPI) {
-                            console.log('API already available');
                             apiReady = true;
                             resolve();
                             return;
@@ -243,7 +216,6 @@
                         
                         // Listen for apiReady event
                         const handler = () => {
-                            console.log('apiReady event received');
                             if (window.usersAPI) {
                                 apiReady = true;
                             }
@@ -256,13 +228,11 @@
                         const checkInterval = setInterval(() => {
                             checks++;
                             if (window.usersAPI) {
-                                console.log('API found on check', checks);
                                 window.removeEventListener('apiReady', handler);
                                 clearInterval(checkInterval);
                                 apiReady = true;
                                 resolve();
                             } else if (checks >= 50) { // 5 seconds (50 * 100ms)
-                                console.log('API timeout after', checks, 'checks');
                                 clearInterval(checkInterval);
                                 resolve();
                             }
@@ -270,14 +240,12 @@
                     });
                     
                     if (!window.usersAPI) {
-                        console.error('API not available after waiting');
                         errorMessage.textContent = 'Database API failed to load. Please check the browser console for errors and refresh the page.';
                         errorMessage.style.display = 'block';
                         submitButton.disabled = false;
                         submitButton.textContent = 'Login';
                         return;
                     }
-                    console.log('API is ready:', window.usersAPI);
                 }
                 
                 // Use new auth system - await the async login function
@@ -293,7 +261,6 @@
                     submitButton.textContent = 'Login';
                 }
             } catch (error) {
-                console.error('Login error:', error);
                 errorMessage.textContent = error.message || 'Login failed. Please try again.';
                 errorMessage.style.display = 'block';
                 submitButton.disabled = false;

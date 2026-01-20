@@ -384,6 +384,10 @@
             <p>Manage user accounts and profiles</p>
         </div>
         <div class="users-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 4px;">
+                <div></div>
+                <button class="btn-add" id="globalCreateUserBtn" style="display: none;" onclick="openUserAccountModal(null)">+ Create User Account</button>
+            </div>
             <div class="users-tabs">
                 <button class="tab-button active" data-tab="my-users" id="myUsersTabBtn">My Users <span class="tab-count" id="my-users-count">(0)</span></button>
                 <button class="tab-button" data-tab="added-me" id="addedMeTabBtn">Added Me <span class="tab-count" id="added-me-count">(0)</span></button>
@@ -1563,83 +1567,138 @@
                 });
             }
             
-            // Additional wait to ensure API is fully initialized
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Try loading with retries
-            let retries = 3;
-            while (retries > 0) {
-                try {
-                    const users = await getAllUsers();
-                    if (users && users.length > 0) {
-                        console.log('getAllUsers() successful, loading My Users');
-                        await loadMyUsers();
-                        await loadUsersWhoAddedMe();
-                        break;
-                    } else if (users && users.length === 0) {
-                        console.log('getAllUsers() returned empty array, but continuing');
-                        await loadMyUsers();
-                        await loadUsersWhoAddedMe();
-                        break;
-                    }
-                } catch (error) {
-                    console.error(`Error loading (${retries} retries left):`, error);
-                    retries--;
-                    if (retries > 0) {
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                    } else {
-                        // Final attempt - load anyway
-                        try {
-                            await loadMyUsers();
-                            await loadUsersWhoAddedMe();
-                        } catch (finalError) {
-                            console.error('Final attempt failed:', finalError);
-                        }
-                    }
-                }
+            // Wait for getCurrentUser to be available
+            let attempts = 0;
+            while (typeof getCurrentUser === 'undefined' && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
             }
+            
+            // Additional wait to ensure API is fully initialized
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Load My Users and Added Me directly - they handle their own retries
+            // Don't wait for getAllUsers() first, as these functions call it internally
+            console.log('Initializing user counts...');
+            try {
+                await loadMyUsers();
+            } catch (error) {
+                console.error('Error loading My Users on init:', error);
+            }
+            
+            try {
+                await loadUsersWhoAddedMe();
+            } catch (error) {
+                console.error('Error loading Users Who Added Me on init:', error);
+            }
+            
+            console.log('User counts initialized');
         })();
         
         // Check if user is admin and show/hide role tabs
-        const isUserAdmin = isAdmin();
-        if (isUserAdmin) {
-            // Show all role tabs for admins
-            document.getElementById('allUsersTabBtn').style.display = 'block';
-            document.getElementById('shipperTabBtn').style.display = 'block';
-            document.getElementById('agentTabBtn').style.display = 'block';
-            document.getElementById('consigneeTabBtn').style.display = 'block';
-            document.getElementById('brokerTabBtn').style.display = 'block';
-            document.getElementById('courierTabBtn').style.display = 'block';
-            document.getElementById('adminTabBtn').style.display = 'block';
+        // Wait for user to be available before checking admin status
+        (async function() {
+            // Wait for getCurrentUser to be available
+            let attempts = 0;
+            while (typeof getCurrentUser === 'undefined' && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
             
-            // Load admin user lists (this will also populate getAllUsers cache)
-            // Use retry logic to handle cases where API isn't ready yet
-            async function loadAdminUsersWithRetry() {
-                let attempts = 0;
-                const maxAttempts = 3;
-                
-                while (attempts < maxAttempts) {
-                    try {
-                        await loadUsers();
-                        // After admin users load, refresh My Users counts
-                        await loadMyUsers();
-                        await loadUsersWhoAddedMe();
-                        return; // Success, exit
-                    } catch (error) {
-                        attempts++;
-                        console.error(`Error loading admin users (attempt ${attempts}/${maxAttempts}):`, error);
-                        if (attempts < maxAttempts) {
-                            // Wait before retry
-                            await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
-                        } else {
-                            console.error('Failed to load admin users after', maxAttempts, 'attempts');
+            // Wait for user to be available and return a user
+            let user = null;
+            attempts = 0;
+            while (!user && attempts < 50) {
+                try {
+                    user = getCurrentUser();
+                    if (!user) {
+                        // Try async version if sync doesn't work
+                        if (typeof getCurrentUserAsync !== 'undefined') {
+                            try {
+                                user = await getCurrentUserAsync();
+                            } catch (e) {
+                                // Continue waiting
+                            }
                         }
                     }
+                } catch (e) {
+                    // Continue waiting
+                }
+                if (!user) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
                 }
             }
             
-            loadAdminUsersWithRetry();
-        }
+            console.log('Admin check - User:', user ? user.email : 'none', 'Role:', user ? user.role : 'none');
+            
+            // Check if user is admin
+            const isUserAdmin = user && user.role === 'admin';
+            console.log('Is user admin?', isUserAdmin);
+            
+            if (isUserAdmin) {
+                // Show global Create User button for admins
+                const globalCreateBtn = document.getElementById('globalCreateUserBtn');
+                if (globalCreateBtn) {
+                    globalCreateBtn.style.display = 'block';
+                    globalCreateBtn.style.visibility = 'visible';
+                    console.log('Global Create User button shown');
+                } else {
+                    console.error('Global Create User button not found!');
+                }
+                
+                // Show all role tabs for admins
+                const allUsersTabBtn = document.getElementById('allUsersTabBtn');
+                const shipperTabBtn = document.getElementById('shipperTabBtn');
+                const agentTabBtn = document.getElementById('agentTabBtn');
+                const consigneeTabBtn = document.getElementById('consigneeTabBtn');
+                const brokerTabBtn = document.getElementById('brokerTabBtn');
+                const courierTabBtn = document.getElementById('courierTabBtn');
+                const adminTabBtn = document.getElementById('adminTabBtn');
+                
+                if (allUsersTabBtn) {
+                    allUsersTabBtn.style.display = 'block';
+                    allUsersTabBtn.style.visibility = 'visible';
+                    console.log('All Users tab shown');
+                }
+                if (shipperTabBtn) shipperTabBtn.style.display = 'block';
+                if (agentTabBtn) agentTabBtn.style.display = 'block';
+                if (consigneeTabBtn) consigneeTabBtn.style.display = 'block';
+                if (brokerTabBtn) brokerTabBtn.style.display = 'block';
+                if (courierTabBtn) courierTabBtn.style.display = 'block';
+                if (adminTabBtn) adminTabBtn.style.display = 'block';
+                
+                // Load admin user lists (this will also populate getAllUsers cache)
+                // Use retry logic to handle cases where API isn't ready yet
+                async function loadAdminUsersWithRetry() {
+                    let attempts = 0;
+                    const maxAttempts = 3;
+                    
+                    while (attempts < maxAttempts) {
+                        try {
+                            await loadUsers();
+                            // After admin users load, refresh My Users counts
+                            await loadMyUsers();
+                            await loadUsersWhoAddedMe();
+                            return; // Success, exit
+                        } catch (error) {
+                            attempts++;
+                            console.error(`Error loading admin users (attempt ${attempts}/${maxAttempts}):`, error);
+                            if (attempts < maxAttempts) {
+                                // Wait before retry
+                                await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+                            } else {
+                                console.error('Failed to load admin users after', maxAttempts, 'attempts');
+                            }
+                        }
+                    }
+                }
+                
+                loadAdminUsersWithRetry();
+            } else {
+                console.log('User is not admin, hiding admin features');
+            }
+        })();
         
         // Handle hash navigation (e.g., users.html#all, users.html#shipper, etc.)
         if (window.location.hash) {

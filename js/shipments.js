@@ -8,10 +8,22 @@ const SHIPMENTS_STORAGE_KEY = 'awb_shipments';
 // Get shipmentsAPI (will be available when api.js loads)
 let shipmentsAPI = null;
 if (typeof window !== 'undefined') {
-    const checkAPI = setInterval(() => {
+    // Set immediately if already available
+    if (window.shipmentsAPI) {
+        shipmentsAPI = window.shipmentsAPI;
+    }
+    
+    // Listen for apiReady event
+    window.addEventListener('apiReady', () => {
         if (window.shipmentsAPI) {
             shipmentsAPI = window.shipmentsAPI;
-            clearInterval(checkAPI);
+        }
+    });
+    
+    // Also check periodically in case event already fired
+    const checkAPI = setInterval(() => {
+        if (window.shipmentsAPI && !shipmentsAPI) {
+            shipmentsAPI = window.shipmentsAPI;
         }
     }, 100);
     setTimeout(() => clearInterval(checkAPI), 5000);
@@ -94,17 +106,55 @@ async function getUserShipments(userId = null) {
         userId = user.id;
     }
     
-    if (!shipmentsAPI) {
-        throw new Error('Database API not available. Please ensure the database is configured.');
+    // Check both module-level and window-level API
+    let apiAvailable = shipmentsAPI || (typeof window !== 'undefined' && window.shipmentsAPI);
+    if (!apiAvailable) {
+        // Wait for apiReady event or poll for API
+        await new Promise((resolve) => {
+            if (window.shipmentsAPI) {
+                apiAvailable = window.shipmentsAPI;
+                resolve();
+                return;
+            }
+            window.addEventListener('apiReady', () => {
+                if (window.shipmentsAPI) {
+                    apiAvailable = window.shipmentsAPI;
+                    resolve();
+                }
+            }, { once: true });
+            let checks = 0;
+            const checkInterval = setInterval(() => {
+                checks++;
+                if (window.shipmentsAPI) {
+                    apiAvailable = window.shipmentsAPI;
+                    clearInterval(checkInterval);
+                    resolve();
+                } else if (checks >= 50) { // 5 seconds
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 100);
+        });
+        
+        if (!apiAvailable) {
+            throw new Error('Database API not available. Please ensure the database is configured.');
+        }
+        // Update shipmentsAPI if window.shipmentsAPI is available
+        if (window.shipmentsAPI && !shipmentsAPI) {
+            shipmentsAPI = window.shipmentsAPI;
+        }
     }
     
+    // Use window.shipmentsAPI directly if module-level isn't set
+    const apiToUse = shipmentsAPI || window.shipmentsAPI;
+    
     try {
-        const shipments = await shipmentsAPI.getByUser(userId);
+        const shipments = await apiToUse.getByUser(userId);
         const user = getCurrentUser();
         
         // Admin can see all shipments
         if (user && user.role === 'admin') {
-            const allShipments = await shipmentsAPI.getAll();
+            const allShipments = await apiToUse.getAll();
             return allShipments.filter(s => s.status !== 'deleted');
         }
         

@@ -4,99 +4,136 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Shipment Space - Airway Bills</title>
-    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/js/themes.js"></script>
     <style>
         body {
             margin: 0;
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f5;
+            padding: 2px;
+            font-family: 'MS Sans Serif', 'Arial', sans-serif;
+            background: #008080;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
+            min-height: 100vh;
+            color: #000000;
+            font-size: 11px;
         }
         .container {
             max-width: 800px;
             margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: #C0C0C0;
+            padding: 8px;
+            border: 2px outset #C0C0C0;
+            overflow: hidden;
         }
         h1 {
-            margin-top: 0;
-            color: #333;
+            margin: 0 0 8px 0;
+            color: #000000;
+            font-size: 16px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            background: linear-gradient(to bottom, #000080 0%, #000080 100%);
+            color: white;
+            padding: 4px 8px;
+            border-bottom: 2px solid #000000;
         }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 8px;
+            padding: 4px;
         }
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
+            margin-bottom: 2px;
+            color: #000000;
+            font-weight: bold;
+            font-size: 11px;
         }
         .form-group select {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
+            padding: 2px 4px;
+            border: 2px inset #C0C0C0;
+            font-size: 11px;
             box-sizing: border-box;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            background: white;
         }
         .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
+            outline: 1px dotted #000000;
+            outline-offset: -3px;
         }
         .invited-participants {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f9f9f9;
-            border-radius: 8px;
+            margin-top: 8px;
+            padding: 8px;
+            background: white;
+            border: 2px inset #C0C0C0;
         }
         .participant-tag {
             display: inline-block;
-            background: #667eea;
+            background: #000080;
             color: white;
-            padding: 5px 12px;
-            border-radius: 20px;
-            margin: 5px;
-            font-size: 14px;
+            padding: 2px 8px;
+            margin: 2px;
+            font-size: 11px;
+            border: 1px solid #000000;
         }
         .participant-tag .remove {
-            margin-left: 8px;
+            margin-left: 4px;
             cursor: pointer;
             font-weight: bold;
         }
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            background: #C0C0C0;
+            color: #000000;
+            border: 2px outset #C0C0C0;
+            padding: 4px 16px;
+            font-size: 11px;
+            font-weight: normal;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 8px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            background: #E8E8E8;
+        }
+        .btn-primary:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .btn-secondary {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-size: 16px;
+            background: #C0C0C0;
+            color: #000000;
+            border: 2px outset #C0C0C0;
+            padding: 4px 16px;
+            font-size: 11px;
             cursor: pointer;
-            margin-top: 20px;
-            margin-left: 10px;
+            margin-top: 8px;
+            margin-left: 4px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .btn-secondary:hover {
+            background: #E8E8E8;
+        }
+        .btn-secondary:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .info-box {
-            background: #e7f3ff;
-            border-left: 4px solid #667eea;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
+            background: #E0E0E0;
+            border: 2px inset #C0C0C0;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+        .info-box p {
+            margin: 0;
+            font-size: 11px;
+            color: #000000;
+        }
+        .info-box strong {
+            font-weight: bold;
+            color: #000000;
+        }
+        #participantsList {
+            margin-top: 4px;
         }
     </style>
 </head>
@@ -143,24 +180,120 @@
     <script>
         // Wait for auth functions to be available (modules load asynchronously)
         (async function() {
-            // Wait for isAuthenticated and getCurrentUser to be available
+            // Wait for auth functions to be available
             let attempts = 0;
-            while ((typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined') && attempts < 50) {
+            while ((typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined' || typeof getCurrentUserAsync === 'undefined') && attempts < 50) {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 attempts++;
             }
             
-            // Check authentication and role
-            if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
-                window.location.href = '../login.html';
-                return;
+            // Wait for API to be ready
+            if (!window.usersAPI) {
+                await new Promise((resolve) => {
+                    if (window.usersAPI) {
+                        resolve();
+                        return;
+                    }
+                    window.addEventListener('apiReady', () => {
+                        if (window.usersAPI) resolve();
+                    }, { once: true });
+                    let checks = 0;
+                    const checkInterval = setInterval(() => {
+                        checks++;
+                        if (window.usersAPI) {
+                            clearInterval(checkInterval);
+                            resolve();
+                        } else if (checks >= 50) {
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 100);
+                });
             }
-
-            const user = getCurrentUser();
-            if (!user || user.role !== 'issuing-carrier-agent') {
-                alert('Only Issuing Carrier Agents can create shipment spaces.');
-                goBack();
-                return;
+            
+            // Give auth.js time to initialize
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Check authentication and role
+            let user = null;
+            try {
+                // Skip isAuthenticated check initially - go straight to getting user
+                // Try to get user - use async version first
+                if (window.usersAPI && typeof getCurrentUserAsync !== 'undefined') {
+                    try {
+                        user = await getCurrentUserAsync();
+                    } catch (error) {
+                        // Fallback to sync version
+                        user = getCurrentUser();
+                    }
+                } else {
+                    user = getCurrentUser();
+                }
+                
+                // If still no user, try direct API call
+                if (!user && window.usersAPI && window.usersAPI.getCurrent) {
+                    try {
+                        user = await window.usersAPI.getCurrent();
+                    } catch (apiError) {
+                        // If not 401, try cached user
+                        if (!apiError.message.includes('401') && !apiError.message.includes('Unauthorized')) {
+                            const cachedUser = getCurrentUser();
+                            if (cachedUser) {
+                                user = cachedUser;
+                            }
+                        }
+                    }
+                }
+                
+                // Final fallback: check localStorage directly
+                if (!user) {
+                    const authData = localStorage.getItem('awb_auth');
+                    if (authData) {
+                        try {
+                            const auth = JSON.parse(authData);
+                            if (auth.isAuthenticated && auth.userId) {
+                                const cachedUser = getCurrentUser();
+                                if (cachedUser && cachedUser.id === auth.userId) {
+                                    user = cachedUser;
+                                } else {
+                                    // Check awb_users directly
+                                    const usersJson = localStorage.getItem('awb_users');
+                                    if (usersJson) {
+                                        const users = JSON.parse(usersJson);
+                                        const foundUser = users.find(u => u && u.id === auth.userId);
+                                        if (foundUser) {
+                                            user = foundUser;
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            // Invalid auth data
+                        }
+                    }
+                }
+                
+                // Only redirect if we truly have no user
+                if (!user) {
+                    console.error('No user found after authentication check');
+                    window.location.href = '../login.html';
+                    return;
+                }
+                
+                if (user.role !== 'issuing-carrier-agent') {
+                    alert('Only Issuing Carrier Agents can create shipment spaces.');
+                    goBack();
+                    return;
+                }
+            } catch (error) {
+                console.error('Authentication error:', error);
+                // Try one more time with cached data before redirecting
+                const lastAttempt = getCurrentUser();
+                if (!lastAttempt) {
+                    window.location.href = '../login.html';
+                    return;
+                }
+                user = lastAttempt;
             }
             
             // Continue with page setup after authentication check

@@ -210,8 +210,26 @@ export const usersAPI = {
                 : `${API_BASE_URL}/api/users?action=current`;
             
             const response = await fetch(url);
-            if (!response.ok) throw new Error('Failed to fetch current user');
-            return await response.json();
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorMessage = `Failed to fetch current user (${response.status})`;
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    if (errorJson.error || errorJson.message) {
+                        errorMessage = errorJson.error || errorJson.message;
+                    }
+                } catch (e) {
+                    // Not JSON, use text as is
+                    if (errorText) {
+                        errorMessage = errorText;
+                    }
+                }
+                const error = new Error(errorMessage);
+                error.status = response.status;
+                throw error;
+            }
+            const userData = await response.json();
+            return userData;
         } catch (error) {
             console.error('Error fetching current user:', error);
             // Database required - no localStorage fallback

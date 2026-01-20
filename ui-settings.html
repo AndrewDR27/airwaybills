@@ -6,6 +6,10 @@
     <title>UI Settings - Airway Bills</title>
     <link rel="stylesheet" href="styles.css">
     <script type="module" src="js/themes.js"></script>
+    <script type="module" src="js/api.js"></script>
+    <script src="models/user.js"></script>
+    <script src="js/roles.js"></script>
+    <script type="module" src="js/auth.js"></script>
     <style>
         body {
             font-family: 'MS Sans Serif', 'Arial', sans-serif;
@@ -234,9 +238,83 @@
     </div>
 
     <script>
-        let currentTheme = null;
+        // Check authentication and admin role
+        (async function() {
+            // Wait for auth functions to be available
+            let attempts = 0;
+            while ((typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined' || typeof requireRole === 'undefined') && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            // Wait for API to be ready
+            if (!window.usersAPI) {
+                await new Promise((resolve) => {
+                    if (window.usersAPI) {
+                        resolve();
+                        return;
+                    }
+                    window.addEventListener('apiReady', () => {
+                        if (window.usersAPI) resolve();
+                    }, { once: true });
+                    let checks = 0;
+                    const checkInterval = setInterval(() => {
+                        checks++;
+                        if (window.usersAPI) {
+                            clearInterval(checkInterval);
+                            resolve();
+                        } else if (checks >= 50) {
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 100);
+                });
+            }
+            
+            // Give auth.js time to initialize
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Check authentication
+            try {
+                if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
+                    alert('You must be logged in to access this page.');
+                    if (window.parent && window.parent !== window) {
+                        window.parent.location.href = 'login.html';
+                    } else {
+                        window.location.href = 'login.html';
+                    }
+                    return;
+                }
+                
+                // Check admin role
+                if (typeof requireRole === 'undefined' || !requireRole('admin')) {
+                    alert('Only administrators can access Settings.');
+                    if (window.parent && window.parent !== window) {
+                        window.parent.location.href = 'dashboard.html';
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
+                    return;
+                }
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                alert('Authentication check failed. Redirecting to login.');
+                if (window.parent && window.parent !== window) {
+                    window.parent.location.href = 'login.html';
+                } else {
+                    window.location.href = 'login.html';
+                }
+                return;
+            }
+            
+            // If we get here, user is authenticated and is admin - continue loading the page
+            initializePage();
+        })();
+        
+        function initializePage() {
+            let currentTheme = null;
 
-        // Load available themes
+            // Load available themes
         function loadAvailableThemes() {
             const container = document.getElementById('availableThemes');
             container.innerHTML = '';
@@ -467,15 +545,14 @@
             }, 3000);
         }
 
-        // Initialize on load
-        window.addEventListener('load', () => {
+            // Initialize page content
             // Wait for theme manager to load
             setTimeout(() => {
                 loadCurrentTheme();
                 loadAvailableThemes();
                 loadSavedThemes();
             }, 100);
-        });
+        }
     </script>
 </body>
 </html>
