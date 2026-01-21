@@ -74,11 +74,11 @@
         }
         .btn {
             padding: 4px 12px;
-            border: 2px outset #C0C0C0;
+            border: 2px solid #808080;
             font-size: 11px;
-            font-weight: normal;
+            font-weight: bold;
             cursor: pointer;
-            background: #C0C0C0;
+            background: #D4D4D4;
             color: #000000;
             font-family: 'MS Sans Serif', Arial, sans-serif;
             white-space: nowrap;
@@ -107,8 +107,8 @@
             background: #E8E8E8;
         }
         .btn:active {
-            border: 2px inset #C0C0C0;
-            background: #808080;
+            border: 2px solid #606060;
+            background: #B0B0B0;
         }
         .info-section {
             margin: 20px 0;
@@ -527,7 +527,7 @@
             }
         }
 
-        function loadParticipants() {
+        async function loadParticipants() {
             const participants = currentShipment.participants || [];
             const list = document.getElementById('participantsList');
             
@@ -540,20 +540,38 @@
             const isCreator = currentShipment.createdBy === user.id;
             const canRemove = isCreator; // Only the creator can remove participants
 
-            list.innerHTML = participants.map((p, index) => {
-                const participantUser = getUserById(p.userId);
-                const roleLabel = getRoleLabel ? getRoleLabel(p.role) : p.role;
-                const name = participantUser ? participantUser.name : 'Unknown User';
-                const isSelf = p.userId === user.id;
-                const canRemoveThis = canRemove && !isSelf; // Can't remove yourself
-                
-                let removeButton = '';
-                if (canRemoveThis) {
-                    removeButton = `<button class="participant-remove" onclick="removeParticipant('${p.userId}')" title="Remove participant">×</button>`;
+            // Fetch all participant users in parallel
+            const participantPromises = participants.map(async (p) => {
+                try {
+                    let participantUser = null;
+                    if (typeof window !== 'undefined' && typeof window.getUserById === 'function') {
+                        participantUser = await window.getUserById(p.userId);
+                    }
+                    
+                    const roleLabel = (typeof window !== 'undefined' && typeof window.getRoleLabel === 'function') 
+                        ? window.getRoleLabel(p.role) 
+                        : (p.role || 'Unknown Role');
+                    const name = participantUser ? participantUser.name : 'Unknown User';
+                    const isSelf = p.userId === user.id;
+                    const canRemoveThis = canRemove && !isSelf; // Can't remove yourself
+                    
+                    let removeButton = '';
+                    if (canRemoveThis) {
+                        removeButton = `<button class="participant-remove" onclick="removeParticipant('${p.userId}')" title="Remove participant">×</button>`;
+                    }
+                    
+                    return `<span class="participant-badge">${name} (${roleLabel})${removeButton}</span>`;
+                } catch (error) {
+                    console.error('Error loading participant:', p.userId, error);
+                    const roleLabel = (typeof window !== 'undefined' && typeof window.getRoleLabel === 'function') 
+                        ? window.getRoleLabel(p.role) 
+                        : (p.role || 'Unknown Role');
+                    return `<span class="participant-badge">Unknown User (${roleLabel})</span>`;
                 }
-                
-                return `<span class="participant-badge">${name} (${roleLabel})${removeButton}</span>`;
-            }).join('');
+            });
+            
+            const participantHTML = await Promise.all(participantPromises);
+            list.innerHTML = participantHTML.join('');
         }
 
         function removeParticipant(userId) {

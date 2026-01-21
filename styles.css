@@ -208,23 +208,23 @@ header p {
 
 .btn-template {
     padding: 4px 12px;
-    border: 2px outset var(--win98-button-face);
+    border: 2px solid #808080;
     font-size: 11px;
     cursor: pointer;
-    background: var(--win98-button-face);
-    color: var(--win98-text);
-    font-weight: normal;
+    background: #D4D4D4;
+    color: #000000;
+    font-weight: bold;
     font-family: 'MS Sans Serif', Arial, sans-serif;
     min-width: 75px;
 }
 
 .btn-template:hover {
-    background: var(--win98-button-light);
+    background: #E8E8E8;
 }
 
 .btn-template:active {
-    border: 2px inset var(--win98-button-face);
-    background: var(--win98-button-shadow);
+    border: 2px solid #606060;
+    background: #B0B0B0;
 }
 
 .btn-clear {
@@ -347,12 +347,12 @@ header p {
 .btn-primary,
 .btn-secondary {
     padding: 4px 16px;
-    border: 2px outset var(--win98-button-face);
+    border: 2px solid #808080;
     font-size: 11px;
-    font-weight: normal;
+    font-weight: bold;
     cursor: pointer;
-    background: var(--win98-button-face);
-    color: var(--win98-text);
+    background: #D4D4D4;
+    color: #000000;
     font-family: 'MS Sans Serif', Arial, sans-serif;
     flex: 1;
     min-width: 75px;
@@ -360,13 +360,13 @@ header p {
 
 .btn-primary:hover,
 .btn-secondary:hover {
-    background: var(--win98-button-light);
+    background: #E8E8E8;
 }
 
 .btn-primary:active,
 .btn-secondary:active {
-    border: 2px inset var(--win98-button-face);
-    background: var(--win98-button-shadow);
+    border: 2px solid #606060;
+    background: #B0B0B0;
 }
 
 .results {
@@ -405,13 +405,13 @@ header p {
 
 .awb-tab-button {
     padding: 4px 12px;
-    background: var(--win98-button-face);
-    border: 1px outset var(--win98-button-face);
+    background: #D4D4D4;
+    border: 2px solid #808080;
     border-bottom: none;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: normal;
-    color: var(--win98-text);
+    color: #000000;
     position: relative;
     display: flex;
     align-items: center;
@@ -448,13 +448,13 @@ header p {
 }
 
 .awb-tab-button:hover {
-    background: var(--win98-button-light);
+    background: #E8E8E8;
 }
 
 .awb-tab-button.active {
-    background: var(--win98-window-bg);
-    border: 2px inset var(--win98-button-face);
-    border-bottom: 2px solid var(--win98-window-bg);
+    background: #B0B0B0;
+    border: 2px solid #808080;
+    border-bottom: 2px solid #B0B0B0;
     margin-bottom: -2px;
     z-index: 1;
 }
@@ -703,12 +703,12 @@ header p {
 
 .btn-contact-small {
     padding: 2px 12px;
-    border: 2px outset var(--win98-button-face);
+    border: 2px solid #808080;
     font-size: 11px;
     cursor: pointer;
-    background: var(--win98-button-face);
-    color: var(--win98-text);
-    font-weight: normal;
+    background: #D4D4D4;
+    color: #000000;
+    font-weight: bold;
     white-space: nowrap;
     font-family: 'MS Sans Serif', Arial, sans-serif;
 }

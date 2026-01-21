@@ -4039,12 +4039,28 @@ async function updateContactDropdowns() {
     
     // Clear and rebuild shipper dropdown
     shipperSelect.innerHTML = '<option value="">-- Select Shipper --</option>';
-    contacts.filter(c => c.type === 'Shipper').forEach(contact => {
+    const shipperPromises = contacts.filter(c => c.type === 'Shipper').map(async (contact) => {
         const option = document.createElement('option');
         option.value = contact.id;
-        option.textContent = contact.companyName;
+        let displayText = contact.companyName || 'No Company Name';
+        
+        // If contact has linked user, get role and show inline
+        if (contact.linkedUserId && typeof window !== 'undefined' && typeof window.getUserById === 'function') {
+            try {
+                const linkedUser = await window.getUserById(contact.linkedUserId);
+                if (linkedUser && linkedUser.role && typeof window.getRoleLabel === 'function') {
+                    const roleLabel = window.getRoleLabel(linkedUser.role);
+                    displayText += ` (${roleLabel})`;
+                }
+            } catch (error) {
+                console.warn('Error fetching linked user for contact:', contact.id, error);
+            }
+        }
+        
+        option.textContent = displayText;
         shipperSelect.appendChild(option);
     });
+    await Promise.all(shipperPromises);
     
     // Restore selection if it still exists
     if (currentShipperValue && currentShipperValue !== 'edit') {
@@ -4056,12 +4072,28 @@ async function updateContactDropdowns() {
     
     // Clear and rebuild consignee dropdown
     consigneeSelect.innerHTML = '<option value="">-- Select Consignee --</option>';
-    contacts.filter(c => c.type === 'Consignee').forEach(contact => {
+    const consigneePromises = contacts.filter(c => c.type === 'Consignee').map(async (contact) => {
         const option = document.createElement('option');
         option.value = contact.id;
-        option.textContent = contact.companyName;
+        let displayText = contact.companyName || 'No Company Name';
+        
+        // If contact has linked user, get role and show inline
+        if (contact.linkedUserId && typeof window !== 'undefined' && typeof window.getUserById === 'function') {
+            try {
+                const linkedUser = await window.getUserById(contact.linkedUserId);
+                if (linkedUser && linkedUser.role && typeof window.getRoleLabel === 'function') {
+                    const roleLabel = window.getRoleLabel(linkedUser.role);
+                    displayText += ` (${roleLabel})`;
+                }
+            } catch (error) {
+                console.warn('Error fetching linked user for contact:', contact.id, error);
+            }
+        }
+        
+        option.textContent = displayText;
         consigneeSelect.appendChild(option);
     });
+    await Promise.all(consigneePromises);
     
     // Restore selection if it still exists
     if (currentConsigneeValue && currentConsigneeValue !== 'edit') {

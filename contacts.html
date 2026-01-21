@@ -47,11 +47,11 @@
         }
         .tab-button {
             padding: 4px 12px;
-            background: #C0C0C0;
-            border: 1px outset #C0C0C0;
+            background: #D4D4D4;
+            border: 2px solid #808080;
             border-bottom: none;
             cursor: pointer;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: normal;
             color: #000000;
             position: relative;
@@ -71,9 +71,9 @@
             background: #E8E8E8;
         }
         .tab-button.active {
-            background: #C0C0C0;
-            border: 2px inset #C0C0C0;
-            border-bottom: 2px solid #C0C0C0;
+            background: #B0B0B0;
+            border: 2px solid #808080;
+            border-bottom: 2px solid #B0B0B0;
             margin-bottom: -2px;
             z-index: 1;
         }
@@ -91,11 +91,11 @@
         }
         .btn-add {
             padding: 4px 16px;
-            background: #C0C0C0;
+            background: #D4D4D4;
             color: #000000;
-            border: 2px outset #C0C0C0;
+            border: 2px solid #808080;
             font-size: 11px;
-            font-weight: normal;
+            font-weight: bold;
             cursor: pointer;
             font-family: 'MS Sans Serif', Arial, sans-serif;
         }
@@ -103,8 +103,8 @@
             background: #E8E8E8;
         }
         .btn-add:active {
-            border: 2px inset #C0C0C0;
-            background: #808080;
+            border: 2px solid #606060;
+            background: #B0B0B0;
         }
         .contacts-list {
             background: white;
@@ -126,12 +126,20 @@
             color: #000000;
             font-size: 11px;
             text-transform: uppercase;
+            border-right: 1px solid #808080;
+        }
+        .contacts-table th:last-child {
+            border-right: none;
         }
         .contacts-table td {
             padding: 4px 8px;
             border-bottom: 1px solid #C0C0C0;
+            border-right: 1px solid #C0C0C0;
             color: #000000;
             font-size: 11px;
+        }
+        .contacts-table td:last-child {
+            border-right: none;
         }
         .contacts-table tbody tr {
             background: white;
@@ -198,33 +206,33 @@
         .btn-edit, .btn-delete {
             flex: 1;
             padding: 2px 12px;
-            border: 2px outset #C0C0C0;
+            border: 2px solid #808080;
             font-size: 11px;
-            font-weight: normal;
+            font-weight: bold;
             cursor: pointer;
             font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .btn-edit {
-            background: #C0C0C0;
+            background: #D4D4D4;
             color: #000000;
         }
         .btn-edit:hover {
             background: #E8E8E8;
         }
         .btn-edit:active {
-            border: 2px inset #C0C0C0;
-            background: #808080;
+            border: 2px solid #606060;
+            background: #B0B0B0;
         }
         .btn-delete {
-            background: #C0C0C0;
+            background: #D4D4D4;
             color: #000000;
         }
         .btn-delete:hover {
             background: #E8E8E8;
         }
         .btn-delete:active {
-            border: 2px inset #C0C0C0;
-            background: #808080;
+            border: 2px solid #606060;
+            background: #B0B0B0;
         }
         .empty-state {
             text-align: center;
@@ -257,12 +265,21 @@
         .user-profile-info {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 4px;
+            gap: 0;
+            border: 2px inset #C0C0C0;
+            background: white;
         }
         .user-info-item {
             background: white;
             padding: 4px 8px;
-            border: 2px inset #C0C0C0;
+            border-right: 1px solid #C0C0C0;
+            border-bottom: 1px solid #C0C0C0;
+        }
+        .user-info-item:last-child {
+            border-right: none;
+        }
+        .user-info-item[style*="grid-column: 1 / -1"] {
+            border-right: none;
         }
         .user-info-item strong {
             display: block;
@@ -395,7 +412,7 @@
                             <!-- Commodity entries will be added here -->
                         </div>
                         <button type="button" id="addCommodityBtn" style="padding: 4px 8px; margin-bottom: 8px; border: 2px outset var(--win98-button-face); cursor: pointer; background: var(--win98-button-face); font-size: 11px;">+ Add Commodity</button>
-                        <small>Add commodity entries with name and autofill text. These will be available in a dropdown in the Description tab.</small>
+                        <small>Add commodity entries with name, autofill text, and HTS code. These will be available in a dropdown in the Description tab.</small>
                     </div>
                     
                     <div class="form-group" id="contactSignatureIssuingCarrierGroup" style="display: none;">
@@ -710,9 +727,9 @@
                 tableHTML += `
                     <tr>
                         <td>
-                            <div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
                                 <strong>${escapeHtml(companyName)}</strong>
-                                ${!showTypeBadge ? `<br><span class="contact-type-badge ${badgeClass}">${contactType}</span>` : ''}
+                                ${!showTypeBadge ? `<span class="contact-type-badge ${badgeClass}">${contactType}</span>` : ''}
                             </div>
                         </td>
                         ${showTypeBadge ? `<td><span class="contact-type-badge ${badgeClass}">${contactType}</span></td>` : ''}
@@ -889,7 +906,7 @@
                             commodityList.innerHTML = '';
                             if (profile.field33 && Array.isArray(profile.field33) && profile.field33.length > 0) {
                                 profile.field33.forEach((item, index) => {
-                                    addCommodityEntry(item.commodity || '', item.autofillText || '', index);
+                                    addCommodityEntry(item.commodity || '', item.autofillText || '', item.htsCode || '', index);
                                 });
                             }
                         }
@@ -1021,11 +1038,13 @@
                 commodityEntries.forEach(entry => {
                     const commodityInput = entry.querySelector('.commodity-name-input');
                     const autofillInput = entry.querySelector('.commodity-autofill-input');
-                    if (commodityInput && autofillInput) {
+                    const htsInput = entry.querySelector('.commodity-hts-input');
+                    if (commodityInput && autofillInput && htsInput) {
                         const commodity = commodityInput.value.trim();
                         const autofillText = autofillInput.value.trim();
-                        if (commodity || autofillText) {
-                            field33.push({ commodity, autofillText });
+                        const htsCode = htsInput.value.trim();
+                        if (commodity || autofillText || htsCode) {
+                            field33.push({ commodity, autofillText, htsCode });
                         }
                     }
                 });
@@ -1296,7 +1315,7 @@
                             ${profile.field33 && Array.isArray(profile.field33) && profile.field33.length > 0 
                                 ? profile.field33.map(item => 
                                     `<div style="padding: 4px; background: #f0f0f0; border: 1px solid #ccc;">
-                                        <strong>${escapeHtml(item.commodity || '')}</strong>: ${escapeHtml(item.autofillText || '')}
+                                        <strong>${escapeHtml(item.commodity || '')}</strong>: ${escapeHtml(item.autofillText || '')}${item.htsCode ? ' (HTS: ' + escapeHtml(item.htsCode) + ')' : ''}
                                     </div>`
                                   ).join('')
                                 : '<span>Not set</span>'
@@ -1407,7 +1426,7 @@
                     commodityList.innerHTML = '';
                     if (profile.field33 && Array.isArray(profile.field33) && profile.field33.length > 0) {
                         profile.field33.forEach((item, index) => {
-                            addCommodityEntry(item.commodity || '', item.autofillText || '', index);
+                            addCommodityEntry(item.commodity || '', item.autofillText || '', item.htsCode || '', index);
                         });
                     }
                 }
@@ -1448,7 +1467,7 @@
         }
         
         // Function to add a commodity entry
-        function addCommodityEntry(commodity = '', autofillText = '', index = null) {
+        function addCommodityEntry(commodity = '', autofillText = '', htsCode = '', index = null) {
             const commodityList = document.getElementById('commodityList');
             if (!commodityList) return;
             
@@ -1460,6 +1479,7 @@
             entry.innerHTML = `
                 <input type="text" class="commodity-name-input" placeholder="Commodity" value="${escapeHtml(commodity)}" style="flex: 1; padding: 2px 4px; border: 2px inset var(--win98-button-face); font-size: 11px;">
                 <input type="text" class="commodity-autofill-input" placeholder="Autofills Text" value="${escapeHtml(autofillText)}" style="flex: 1; padding: 2px 4px; border: 2px inset var(--win98-button-face); font-size: 11px;">
+                <input type="text" class="commodity-hts-input" placeholder="HTS Code" value="${escapeHtml(htsCode)}" style="flex: 1; padding: 2px 4px; border: 2px inset var(--win98-button-face); font-size: 11px;">
                 <button type="button" class="remove-commodity-btn" style="padding: 2px 8px; border: 2px outset var(--win98-button-face); cursor: pointer; background: var(--win98-button-face); font-size: 11px;">Remove</button>
             `;
             

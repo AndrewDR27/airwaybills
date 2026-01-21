@@ -40,10 +40,11 @@
         }
         .status-tab {
             padding: 4px 16px;
-            background: #C0C0C0;
-            border: 2px outset #C0C0C0;
+            background: #D4D4D4;
+            border: 2px solid #808080;
+            border-bottom: none;
             cursor: pointer;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: normal;
             color: #000000;
             font-family: 'MS Sans Serif', Arial, sans-serif;
@@ -54,15 +55,15 @@
             background: #E8E8E8;
         }
         .status-tab:active {
-            border: 2px inset #C0C0C0;
-            background: #808080;
+            border: 2px solid #606060;
+            background: #B0B0B0;
         }
         .status-tab.active {
-            background: #C0C0C0;
-            border-bottom: 2px solid #C0C0C0;
-            border-top: 2px outset #C0C0C0;
-            border-left: 2px outset #C0C0C0;
-            border-right: 2px outset #C0C0C0;
+            background: #B0B0B0;
+            border-bottom: 2px solid #B0B0B0;
+            border-top: 2px solid #808080;
+            border-left: 2px solid #808080;
+            border-right: 2px solid #808080;
             font-weight: normal;
         }
         .status-tab .count {
@@ -177,13 +178,15 @@
             flex-shrink: 0;
         }
         .btn-view, .btn-success, .btn-warning, .btn-danger {
-            border: 2px outset #C0C0C0;
+            border: 2px solid #808080;
             padding: 4px 12px;
             cursor: pointer;
             font-size: 11px;
-            font-weight: normal;
+            font-weight: bold;
             white-space: nowrap;
             font-family: 'MS Sans Serif', Arial, sans-serif;
+            background: #D4D4D4;
+            color: #000000;
         }
         .btn-view {
             background: #C0C0C0;
@@ -193,41 +196,29 @@
             background: #E8E8E8;
         }
         .btn-view:active {
-            border: 2px inset #C0C0C0;
-            background: #808080;
-        }
-        .btn-success {
-            background: #C0C0C0;
-            color: #000000;
+            border: 2px solid #606060;
+            background: #B0B0B0;
         }
         .btn-success:hover {
             background: #E8E8E8;
         }
         .btn-success:active {
-            border: 2px inset #C0C0C0;
-            background: #808080;
-        }
-        .btn-warning {
-            background: #C0C0C0;
-            color: #000000;
+            border: 2px solid #606060;
+            background: #B0B0B0;
         }
         .btn-warning:hover {
             background: #E8E8E8;
         }
         .btn-warning:active {
-            border: 2px inset #C0C0C0;
-            background: #808080;
-        }
-        .btn-danger {
-            background: #C0C0C0;
-            color: #000000;
+            border: 2px solid #606060;
+            background: #B0B0B0;
         }
         .btn-danger:hover {
             background: #E8E8E8;
         }
         .btn-danger:active {
-            border: 2px inset #C0C0C0;
-            background: #808080;
+            border: 2px solid #606060;
+            background: #B0B0B0;
         }
         .empty-state {
             text-align: center;
