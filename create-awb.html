@@ -185,6 +185,20 @@
                                     <option value="No">No</option>
                                 </select>
                             </div>
+                            <div class="contact-select-group" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 150px;">
+                                    <label for="airWaybillNoInput">Air Waybill No.</label>
+                                    <input type="text" id="airWaybillNoInput" class="contact-select" placeholder="Enter Air Waybill No." style="width: 100%;">
+                                </div>
+                                <div style="flex: 1; min-width: 150px;">
+                                    <label for="flightNoInput">Flight No.</label>
+                                    <input type="text" id="flightNoInput" class="contact-select" placeholder="Enter Flight No." style="width: 100%;">
+                                </div>
+                                <div style="flex: 1; min-width: 150px;">
+                                    <label for="flightDateInput">Flight Date</label>
+                                    <input type="date" id="flightDateInput" class="contact-select" style="width: 100%;">
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="form-header">
@@ -217,6 +231,10 @@
                                 <select id="commoditySelect" class="contact-select">
                                     <option value="">-- Select Commodity --</option>
                                 </select>
+                            </div>
+                            <div class="contact-select-group">
+                                <label for="grossWeightInput">Gross Weight:</label>
+                                <input type="number" id="grossWeightInput" class="contact-select" placeholder="Enter weight" min="0" step="0.01" style="width: 100%;">
                             </div>
                         </div>
                     </div>
@@ -255,6 +273,21 @@
                                     <option value="Prepaid">Prepaid</option>
                                     <option value="Collect">Collect</option>
                                 </select>
+                            </div>
+                        </div>
+                        <!-- Customs Fields Container (Fields 50-57) -->
+                        <div id="customsFieldsContainer" class="customs-fields-container" style="display: none; margin-top: 16px; border: 2px solid #808080; padding: 8px; background-color: #F0F0F0; position: relative;">
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <div style="font-weight: bold; font-size: 12px;">Customs Fields (50-57)</div>
+                                    <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; font-weight: normal;">
+                                        <input type="checkbox" id="ignoreRemainingChargesCheckbox" style="cursor: pointer;">
+                                        Ignore remaining charge fields
+                                    </label>
+                                </div>
+                                <div id="customsFieldsRows" style="display: flex; flex-direction: column; gap: 8px;">
+                                    <!-- Fields 50-55 will be dynamically added here in 3 rows of 2 -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -803,6 +836,19 @@
                     const shipment = getShipmentBySpaceId(spaceId);
                     if (!shipment) {
                         console.error('Shipment space not found:', spaceId);
+                        // Hide loading on error
+                        if (loadingEl) {
+                            loadingEl.style.display = 'none';
+                        }
+                        if (contentWrapper) {
+                            contentWrapper.style.opacity = '1';
+                            contentWrapper.style.pointerEvents = 'auto';
+                        }
+                        if (createBtn) {
+                            createBtn.disabled = false;
+                            createBtn.textContent = 'Create AWB';
+                        }
+                        alert('Error: Shipment space not found. Please refresh the page.');
                         return;
                     }
                     
@@ -814,9 +860,24 @@
                     
                     // Regenerate PDF to get bytes (since we can't intercept the original)
                     console.log('Generating PDF to store in shipment...');
-                    const pdfBytes = await fillPdfWithData(formData, true); // true = flattened
+                    
+                    // Add timeout to PDF generation to prevent infinite hanging
+                    let pdfBytes;
+                    try {
+                        const pdfGenerationPromise = fillPdfWithData(formData, true); // true = flattened
+                        const timeoutPromise = new Promise((_, reject) => {
+                            setTimeout(() => reject(new Error('PDF generation timed out after 60 seconds')), 60000);
+                        });
+                        
+                        pdfBytes = await Promise.race([pdfGenerationPromise, timeoutPromise]);
+                        console.log('✅ PDF generated successfully, size:', pdfBytes.byteLength || pdfBytes.length, 'bytes');
+                    } catch (pdfError) {
+                        console.error('❌ Error generating PDF:', pdfError);
+                        throw new Error('Failed to generate PDF: ' + (pdfError.message || 'Unknown error'));
+                    }
                     
                     // Convert PDF bytes to base64 for storage
+                    console.log('Converting PDF to base64...');
                     const uint8Array = new Uint8Array(pdfBytes);
                     let binaryString = '';
                     const chunkSize = 8192; // Process in chunks to avoid stack overflow
@@ -826,7 +887,7 @@
                     }
                     const pdfBase64 = btoa(binaryString);
                     
-                    console.log('PDF converted to base64, size:', (pdfBase64.length / 1024).toFixed(2), 'KB');
+                    console.log('✅ PDF converted to base64, size:', (pdfBase64.length / 1024).toFixed(2), 'KB');
                     
                     // Extract AWB number (prioritize field 101)
                     let awbNumberFromForm = null;
@@ -920,8 +981,28 @@
                         }
                     }
                     
-                    const result = updateShipment(spaceId, updates);
-                    if (result.success) {
+                    console.log('Updating shipment space with AWB data...');
+                    console.log('Updates object:', { ...updates, pdfBase64: updates.pdfBase64 ? `${(updates.pdfBase64.length / 1024).toFixed(2)} KB` : 'missing' });
+                    
+                    let result;
+                    try {
+                        console.log('Calling updateShipment with spaceId:', spaceId);
+                        
+                        // Add timeout to updateShipment call to prevent infinite hanging
+                        const updatePromise = updateShipment(spaceId, updates);
+                        const timeoutPromise = new Promise((_, reject) => {
+                            setTimeout(() => reject(new Error('Shipment update timed out after 30 seconds')), 30000);
+                        });
+                        
+                        result = await Promise.race([updatePromise, timeoutPromise]);
+                        console.log('✅ Shipment update result received:', result);
+                    } catch (updateError) {
+                        console.error('❌ Error in updateShipment call:', updateError);
+                        console.error('Error stack:', updateError.stack);
+                        throw new Error('Failed to update shipment: ' + (updateError.message || 'Unknown error'));
+                    }
+                    
+                    if (result && result.success) {
                         shipmentUpdated = true;
                         sessionStorage.setItem('currentShipmentAWB', result.shipment.awbNumber);
                         console.log('✅✅✅ SHIPMENT SPACE UPDATED WITH AWB:', result.shipment.awbNumber);

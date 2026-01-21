@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Destination List - Airway Bills</title>
+    <title>Origin List - Airway Bills</title>
     <link rel="stylesheet" href="styles.css">
     <script type="module" src="js/themes.js"></script>
     <script src="js/roles.js"></script>
@@ -17,43 +17,43 @@
                 repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
             min-height: 100vh;
         }
-        .destinations-container {
+        .origins-container {
             max-width: 1200px;
             margin: 0 auto;
             background: #C0C0C0;
             border: 2px outset #C0C0C0;
             overflow: hidden;
         }
-        .destinations-header {
+        .origins-header {
             background: linear-gradient(to bottom, #000080 0%, #000080 100%);
             color: white;
             padding: 4px 8px;
             text-align: center;
             border-bottom: 2px solid #000000;
         }
-        .destinations-header h1 {
+        .origins-header h1 {
             font-size: 16px;
             margin-bottom: 2px;
             font-weight: bold;
             font-family: 'MS Sans Serif', Arial, sans-serif;
         }
-        .destinations-content {
+        .origins-content {
             padding: 8px;
         }
-        .destinations-list {
+        .origins-list {
             background: white;
             overflow: hidden;
             border: 2px inset #C0C0C0;
         }
-        .destinations-table {
+        .origins-table {
             width: 100%;
             border-collapse: collapse;
         }
-        .destinations-table thead {
+        .origins-table thead {
             background: #C0C0C0;
             border-bottom: 2px inset #C0C0C0;
         }
-        .destinations-table th {
+        .origins-table th {
             padding: 4px 8px;
             text-align: left;
             font-weight: bold;
@@ -62,30 +62,30 @@
             text-transform: uppercase;
             border-right: 1px solid #808080;
         }
-        .destinations-table th:last-child {
+        .origins-table th:last-child {
             border-right: none;
         }
-        .destinations-table td {
+        .origins-table td {
             padding: 4px 8px;
             border-bottom: 1px solid #C0C0C0;
             border-right: 1px solid #C0C0C0;
             color: #000000;
             font-size: 11px;
         }
-        .destinations-table td:last-child {
+        .origins-table td:last-child {
             border-right: none;
         }
-        .destinations-table tbody tr {
+        .origins-table tbody tr {
             background: white;
         }
-        .destinations-table tbody tr:hover {
+        .origins-table tbody tr:hover {
             background: #316AC5;
             color: white;
         }
-        .destinations-table tbody tr:last-child td {
+        .origins-table tbody tr:last-child td {
             border-bottom: none;
         }
-        .destination-actions {
+        .origin-actions {
             display: flex;
             gap: 4px;
         }
@@ -119,7 +119,7 @@
             border: 2px inset #C0C0C0;
             background: #808080;
         }
-        .add-destination-btn {
+        .add-origin-btn {
             margin-bottom: 8px;
             padding: 4px 16px;
             background: #C0C0C0;
@@ -130,10 +130,10 @@
             font-weight: normal;
             font-family: 'MS Sans Serif', Arial, sans-serif;
         }
-        .add-destination-btn:hover {
+        .add-origin-btn:hover {
             background: #E8E8E8;
         }
-        .add-destination-btn:active {
+        .add-origin-btn:active {
             border: 2px inset #C0C0C0;
             background: #808080;
         }
@@ -273,29 +273,29 @@
     </style>
 </head>
 <body>
-    <div class="destinations-container">
-        <div class="destinations-header">
-            <h1>🌍 Destination List</h1>
-            <p>Manage your destination codes and information</p>
+    <div class="origins-container">
+        <div class="origins-header">
+            <h1>🛫 Origin List</h1>
+            <p>Manage your origin codes and information</p>
         </div>
-        <div class="destinations-content">
-            <button class="add-destination-btn" id="addDestinationBtn">+ Add Destination</button>
-            <div class="destinations-list" id="destinationsList">
-                <!-- Destinations will be dynamically loaded here -->
+        <div class="origins-content">
+            <button class="add-origin-btn" id="addOriginBtn">+ Add Origin</button>
+            <div class="origins-list" id="originsList">
+                <!-- Origins will be dynamically loaded here -->
             </div>
         </div>
     </div>
 
-    <!-- Destination Modal -->
-    <div id="destinationModal" class="modal" style="display: none;">
+    <!-- Origin Modal -->
+    <div id="originModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="destinationModalTitle">Add Destination</h2>
-                <button type="button" class="modal-close" id="closeDestinationModal">&times;</button>
+                <h2 id="originModalTitle">Add Origin</h2>
+                <button type="button" class="modal-close" id="closeOriginModal">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="destinationForm">
-                    <input type="hidden" id="destinationId" value="">
+                <form id="originForm">
+                    <input type="hidden" id="originId" value="">
                     
                     <div class="form-group">
                         <label for="airportCode">Airport Code *</label>
@@ -318,8 +318,8 @@
                     </div>
                     
                     <div class="modal-actions">
-                        <button type="button" class="btn-secondary" id="cancelDestinationBtn">Cancel</button>
-                        <button type="submit" class="btn-primary" id="saveDestinationBtn">Save</button>
+                        <button type="button" class="btn-secondary" id="cancelOriginBtn">Cancel</button>
+                        <button type="submit" class="btn-primary" id="saveOriginBtn">Save</button>
                     </div>
                 </form>
             </div>
@@ -329,29 +329,29 @@
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/api.js"></script>
     <script>
-        let destinationsAPI = null;
+        let originsAPI = null;
         
         // Wait for API to be available
         async function waitForAPI() {
-            if (window.destinationsAPI) {
-                destinationsAPI = window.destinationsAPI;
+            if (window.originsAPI) {
+                originsAPI = window.originsAPI;
                 return;
             }
             
             // Wait for apiReady event
             await new Promise((resolve) => {
-                if (window.destinationsAPI) {
-                    destinationsAPI = window.destinationsAPI;
+                if (window.originsAPI) {
+                    originsAPI = window.originsAPI;
                     resolve();
                 } else {
                     window.addEventListener('apiReady', () => {
-                        destinationsAPI = window.destinationsAPI;
+                        originsAPI = window.originsAPI;
                         resolve();
                     }, { once: true });
                     // Timeout after 2 seconds
                     setTimeout(() => {
-                        if (window.destinationsAPI) {
-                            destinationsAPI = window.destinationsAPI;
+                        if (window.originsAPI) {
+                            originsAPI = window.originsAPI;
                         }
                         resolve();
                     }, 2000);
@@ -389,40 +389,40 @@
             }
         }
 
-        // Render destinations list
-        async function renderDestinations() {
-            const destinationsList = document.getElementById('destinationsList');
+        // Render origins list
+        async function renderOrigins() {
+            const originsList = document.getElementById('originsList');
             
             // Wait for API
             await waitForAPI();
             
-            let destinations = [];
+            let origins = [];
             let dataSource = 'unknown';
             
             try {
-                if (destinationsAPI) {
-                    destinations = await destinationsAPI.getAll();
+                if (originsAPI) {
+                    origins = await originsAPI.getAll();
                     dataSource = 'database';
-                    console.log('💾 Loaded destinations from database:', destinations.length);
+                    console.log('💾 Loaded origins from database:', origins.length);
                 } else {
                     throw new Error('API not available');
                 }
             } catch (error) {
-                console.warn('Error loading destinations from API, trying localStorage:', error);
+                console.warn('Error loading origins from API, trying localStorage:', error);
                 // Fallback to localStorage
                 try {
-                    const destinationsJson = localStorage.getItem('awbDestinations');
-                    destinations = destinationsJson ? JSON.parse(destinationsJson) : [];
+                    const originsJson = localStorage.getItem('awbOrigins');
+                    origins = originsJson ? JSON.parse(originsJson) : [];
                     dataSource = 'localstorage';
-                    console.log('📦 Loaded destinations from localStorage:', destinations.length);
+                    console.log('📦 Loaded origins from localStorage:', origins.length);
                 } catch (e) {
-                    console.error('Error loading destinations:', e);
-                    destinations = [];
+                    console.error('Error loading origins:', e);
+                    origins = [];
                 }
             }
             
             // Show data source indicator
-            const header = document.querySelector('.destinations-header p');
+            const header = document.querySelector('.origins-header p');
             if (header) {
                 const sourceText = dataSource === 'database' ? '💾 Database' : (dataSource === 'localstorage' ? '📦 Localhost' : '');
                 if (sourceText) {
@@ -439,11 +439,11 @@
                 }
             }
             
-            if (destinations.length === 0) {
-                destinationsList.innerHTML = `
+            if (origins.length === 0) {
+                originsList.innerHTML = `
                     <div class="empty-state">
-                        <p>No destinations added yet</p>
-                        <p>Click "Add Destination" to get started</p>
+                        <p>No origins added yet</p>
+                        <p>Click "Add Origin" to get started</p>
                     </div>
                 `;
                 return;
@@ -452,30 +452,30 @@
             // TEMPORARY: Allow issuing carrier agents during development
             const canManage = canManageLocations();
             const actionsColumn = '<th>Actions</th>';
-            const tableRows = destinations.map(dest => {
-                const escapedId = (dest.id || '').replace(/'/g, "\\'");
-                const deleteButton = canManage ? `<button class="btn-delete" onclick="deleteDestination('${escapedId}')">Delete</button>` : '';
+            const tableRows = origins.map(origin => {
+                const escapedId = (origin.id || '').replace(/'/g, "\\'");
+                const deleteButton = canManage ? `<button class="btn-delete" onclick="deleteOrigin('${escapedId}')">Delete</button>` : '';
                 const actionsCell = `
                     <td>
-                        <div class="destination-actions">
-                            <button class="btn-edit" onclick="editDestination('${escapedId}')">Edit</button>
+                        <div class="origin-actions">
+                            <button class="btn-edit" onclick="editOrigin('${escapedId}')">Edit</button>
                             ${deleteButton}
                         </div>
                     </td>
                 `;
                 return `
                 <tr>
-                    <td>${escapeHtml(dest.airportCode || '')}</td>
-                    <td>${escapeHtml(dest.cityName || '')}</td>
-                    <td>${escapeHtml(dest.stateName || '')}</td>
-                    <td>${escapeHtml(dest.airportName || '')}</td>
+                    <td>${escapeHtml(origin.airportCode || '')}</td>
+                    <td>${escapeHtml(origin.cityName || '')}</td>
+                    <td>${escapeHtml(origin.stateName || '')}</td>
+                    <td>${escapeHtml(origin.airportName || '')}</td>
                     ${actionsCell}
                 </tr>
             `;
             }).join('');
             
-            destinationsList.innerHTML = `
-                <table class="destinations-table">
+            originsList.innerHTML = `
+                <table class="origins-table">
                     <thead>
                         <tr>
                             <th>Airport Code</th>
@@ -498,97 +498,97 @@
             return div.innerHTML;
         }
 
-        // Open destination modal
-        async function openDestinationModal(destinationId) {
+        // Open origin modal
+        async function openOriginModal(originId) {
             // TEMPORARY: Allow issuing carrier agents during development
-            if (!destinationId && !canManageLocations()) {
-                alert('Only administrators and issuing carrier agents can add new destinations.');
+            if (!originId && !canManageLocations()) {
+                alert('Only administrators and issuing carrier agents can add new origins.');
                 return;
             }
             
-            const modal = document.getElementById('destinationModal');
-            const form = document.getElementById('destinationForm');
-            const title = document.getElementById('destinationModalTitle');
-            const destinationIdInput = document.getElementById('destinationId');
+            const modal = document.getElementById('originModal');
+            const form = document.getElementById('originForm');
+            const title = document.getElementById('originModalTitle');
+            const originIdInput = document.getElementById('originId');
             
             await waitForAPI();
             
-            if (destinationId) {
+            if (originId) {
                 try {
-                    if (destinationsAPI) {
-                        const destinations = await destinationsAPI.getAll();
-                        const destination = destinations.find(d => d.id === destinationId);
-                        if (destination) {
-                            title.textContent = 'Edit Destination';
-                            destinationIdInput.value = destination.id;
-                            document.getElementById('airportCode').value = destination.airportCode || '';
-                            document.getElementById('cityName').value = destination.cityName || '';
-                            document.getElementById('stateName').value = destination.stateName || '';
-                            document.getElementById('airportName').value = destination.airportName || '';
+                    if (originsAPI) {
+                        const origins = await originsAPI.getAll();
+                        const origin = origins.find(o => o.id === originId);
+                        if (origin) {
+                            title.textContent = 'Edit Origin';
+                            originIdInput.value = origin.id;
+                            document.getElementById('airportCode').value = origin.airportCode || '';
+                            document.getElementById('cityName').value = origin.cityName || '';
+                            document.getElementById('stateName').value = origin.stateName || '';
+                            document.getElementById('airportName').value = origin.airportName || '';
                         }
                     } else {
                         throw new Error('API not available');
                     }
                 } catch (error) {
-                    console.error('Error loading destination:', error);
-                    alert('Error loading destination data.');
+                    console.error('Error loading origin:', error);
+                    alert('Error loading origin data.');
                 }
             } else {
-                title.textContent = 'Add Destination';
+                title.textContent = 'Add Origin';
                 form.reset();
-                destinationIdInput.value = '';
+                originIdInput.value = '';
             }
             
             modal.style.display = 'flex';
         }
 
-        // Close destination modal
-        function closeDestinationModal() {
-            const modal = document.getElementById('destinationModal');
-            const form = document.getElementById('destinationForm');
+        // Close origin modal
+        function closeOriginModal() {
+            const modal = document.getElementById('originModal');
+            const form = document.getElementById('originForm');
             modal.style.display = 'none';
             form.reset();
         }
 
-        // Edit destination
-        function editDestination(id) {
-            openDestinationModal(id);
+        // Edit origin
+        function editOrigin(id) {
+            openOriginModal(id);
         }
 
-        // Delete destination
-        async function deleteDestination(id) {
+        // Delete origin
+        async function deleteOrigin(id) {
             // Check if user is admin
             // TEMPORARY: Allow issuing carrier agents during development
             if (!canManageLocations()) {
-                alert('Only administrators and issuing carrier agents can delete destinations.');
+                alert('Only administrators and issuing carrier agents can delete origins.');
                 return;
             }
             
-            if (!confirm('Are you sure you want to delete this destination?')) {
+            if (!confirm('Are you sure you want to delete this origin?')) {
                 return;
             }
             
             await waitForAPI();
             
             try {
-                if (destinationsAPI) {
-                    await destinationsAPI.delete(id);
-                    alert('Destination deleted successfully!');
-                    await renderDestinations();
+                if (originsAPI) {
+                    await originsAPI.delete(id);
+                    alert('Origin deleted successfully!');
+                    await renderOrigins();
                 } else {
                     throw new Error('API not available');
                 }
             } catch (error) {
-                console.error('Error deleting destination:', error);
-                alert('Error deleting destination. Please try again.');
+                console.error('Error deleting origin:', error);
+                alert('Error deleting origin. Please try again.');
             }
         }
 
-        // Handle save destination
-        async function handleSaveDestination(e) {
+        // Handle save origin
+        async function handleSaveOrigin(e) {
             e.preventDefault();
             
-            const id = document.getElementById('destinationId').value || `dest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            const id = document.getElementById('originId').value || `orig_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             const airportCode = document.getElementById('airportCode').value.trim().toUpperCase();
             const cityName = document.getElementById('cityName').value.trim();
             const stateName = document.getElementById('stateName').value.trim();
@@ -599,7 +599,7 @@
                 return;
             }
             
-            const destination = {
+            const origin = {
                 id,
                 cityName,
                 stateName,
@@ -610,129 +610,60 @@
             await waitForAPI();
             
             try {
-                if (destinationsAPI) {
-                    const destinations = await destinationsAPI.getAll();
-                    const exists = destinations.find(d => d.id === id);
+                if (originsAPI) {
+                    const origins = await originsAPI.getAll();
+                    const exists = origins.find(o => o.id === id);
                     
                     if (exists) {
-                        // Editing existing destination - allowed for all users
-                        await destinationsAPI.update(destination);
+                        // Editing existing origin - allowed for all users
+                        await originsAPI.update(origin);
                     } else {
-                        // Creating new destination - only admins
+                        // Creating new origin - only admins
                         // TEMPORARY: Allow issuing carrier agents during development
                         if (!canManageLocations()) {
-                            alert('Only administrators and issuing carrier agents can add new destinations.');
+                            alert('Only administrators and issuing carrier agents can add new origins.');
                             return;
                         }
-                        await destinationsAPI.create(destination);
+                        await originsAPI.create(origin);
                     }
                     
-                    closeDestinationModal();
-                    alert('✓ Destination saved successfully!');
-                    await renderDestinations();
+                    // Update localStorage cache
+                    try {
+                        const updatedOrigins = await originsAPI.getAll();
+                        localStorage.setItem('awbOrigins', JSON.stringify(updatedOrigins));
+                    } catch (e) {
+                        console.warn('Could not update localStorage cache:', e);
+                    }
+                    
+                    alert('Origin saved successfully!');
+                    closeOriginModal();
+                    await renderOrigins();
                 } else {
                     throw new Error('API not available');
                 }
             } catch (error) {
-                console.error('Error saving destination:', error);
-                alert('Error saving destination. Please try again.');
+                console.error('Error saving origin:', error);
+                alert('Error saving origin. Please try again.');
             }
         }
 
-        // Make functions available globally
-        window.deleteDestination = deleteDestination;
-        window.editDestination = editDestination;
-        window.openDestinationModal = openDestinationModal;
-        window.closeDestinationModal = closeDestinationModal;
-        window.handleSaveDestination = handleSaveDestination;
-
-        // Function to check and show button
-        async function checkAndShowAddButton() {
-            const addBtn = document.getElementById('addDestinationBtn');
-            if (!addBtn) {
-                console.error('Add button not found');
-                return;
+        // Event listeners
+        document.getElementById('addOriginBtn').addEventListener('click', () => openOriginModal(null));
+        document.getElementById('closeOriginModal').addEventListener('click', closeOriginModal);
+        document.getElementById('cancelOriginBtn').addEventListener('click', closeOriginModal);
+        document.getElementById('originForm').addEventListener('submit', handleSaveOrigin);
+        
+        // Close modal when clicking outside
+        document.getElementById('originModal').addEventListener('click', (e) => {
+            if (e.target.id === 'originModal') {
+                closeOriginModal();
             }
-            
-            // Wait for auth to be ready - try multiple times
-            let attempts = 0;
-            while (typeof getCurrentUser === 'undefined' && attempts < 100) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                attempts++;
-            }
-            
-            // Try checking user multiple times in case session loads asynchronously
-            let user = null;
-            for (let i = 0; i < 5; i++) {
-                try {
-                    if (typeof getCurrentUser === 'function') {
-                        user = getCurrentUser();
-                        if (user) {
-                            console.log(`✓ User found on attempt ${i + 1}:`, user.email, user.role);
-                            break;
-                        }
-                    }
-                } catch (error) {
-                    console.warn(`Attempt ${i + 1} to get user failed:`, error);
-                }
-                if (i < 4) {
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                }
-            }
-            
-            if (!user) {
-                console.warn('⚠ No user logged in. Please log in to see the Add Destination button.');
-                addBtn.style.display = 'none';
-                return;
-            }
-            
-            // TEMPORARY: Allow issuing carrier agents during development
-            const canManage = user && (user.role === 'admin' || user.role === 'issuing-carrier-agent');
-            if (canManage) {
-                addBtn.style.display = 'block';
-                console.log('✓ Admin user detected - showing Add Destination button');
-            } else {
-                addBtn.style.display = 'none';
-                console.log('✗ Non-admin user - hiding Add Destination button. User:', user.email, 'Role:', user.role);
-            }
-        }
+        });
 
         // Initialize
-        async function initializeDestinations() {
-            // Wait for auth to be ready
-            let attempts = 0;
-            while (typeof getCurrentUser === 'undefined' && attempts < 50) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                attempts++;
-            }
-            
-            await renderDestinations();
-            await checkAndShowAddButton();
-            
-            const addBtn = document.getElementById('addDestinationBtn');
-            if (addBtn) {
-                addBtn.addEventListener('click', () => {
-                    openDestinationModal(null);
-                });
-            }
-            
-            document.getElementById('closeDestinationModal').addEventListener('click', closeDestinationModal);
-            document.getElementById('cancelDestinationBtn').addEventListener('click', closeDestinationModal);
-            document.getElementById('destinationForm').addEventListener('submit', handleSaveDestination);
-            
-            // Close modal when clicking outside
-            document.getElementById('destinationModal').addEventListener('click', (e) => {
-                if (e.target.id === 'destinationModal') {
-                    closeDestinationModal();
-                }
-            });
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeDestinations);
-        } else {
-            initializeDestinations();
-        }
+        (async () => {
+            await renderOrigins();
+        })();
     </script>
 </body>
 </html>

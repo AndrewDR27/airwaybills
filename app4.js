@@ -419,6 +419,42 @@ function initializeApp() {
         });
     }
     
+    // Air Waybill No. input handler (Field 03)
+    const airWaybillNoInput = document.getElementById('airWaybillNoInput');
+    if (airWaybillNoInput) {
+        airWaybillNoInput.addEventListener('input', (e) => {
+            const value = e.target.value.trim();
+            fillFieldByPrefix('03', value);
+        });
+    }
+    
+    // Flight No. input handler (Field 19)
+    const flightNoInput = document.getElementById('flightNoInput');
+    if (flightNoInput) {
+        flightNoInput.addEventListener('input', (e) => {
+            const value = e.target.value.trim();
+            fillFieldByPrefix('19', value);
+        });
+    }
+    
+    // Flight Date input handler (Field 20)
+    const flightDateInput = document.getElementById('flightDateInput');
+    if (flightDateInput) {
+        flightDateInput.addEventListener('change', (e) => {
+            const dateValue = e.target.value;
+            if (dateValue) {
+                // Convert YYYY-MM-DD to DD/MM/YYYY format for field 20
+                const dateParts = dateValue.split('-');
+                if (dateParts.length === 3) {
+                    const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                    fillFieldByPrefix('20', formattedDate);
+                }
+            } else {
+                fillFieldByPrefix('20', '');
+            }
+        });
+    }
+    
     // Declared Values dropdown handler
     const declaredValuesSelect = document.getElementById('declaredValuesSelect');
     if (declaredValuesSelect) {
@@ -495,6 +531,34 @@ function initializeApp() {
                 fillField33FromCommodity(selectedCommodity);
             }
         });
+    }
+    
+    // Gross Weight input handler (from upper area)
+    const grossWeightInput = document.getElementById('grossWeightInput');
+    if (grossWeightInput) {
+        // Set up autofill to Gross Weight field and field 27
+        grossWeightInput.addEventListener('input', function() {
+            const value = this.value;
+            // Fill the Gross Weight field in the form (if it exists)
+            const grossWeightField = document.getElementById('grossWeightField');
+            if (grossWeightField) {
+                grossWeightField.value = value;
+                grossWeightField.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            // Also fill field 27
+            fillFieldByPrefix('27', value);
+        });
+        
+        // If there's already a value, populate on load
+        if (grossWeightInput.value) {
+            setTimeout(() => {
+                const grossWeightField = document.getElementById('grossWeightField');
+                if (grossWeightField) {
+                    grossWeightField.value = grossWeightInput.value;
+                    fillFieldByPrefix('27', grossWeightInput.value);
+                }
+            }, 500);
+        }
     }
     
     if (shipperSelect) {
@@ -1148,121 +1212,348 @@ function generateForm() {
         });
     }
     
-    // Check if we have billing fields starting with 42, 43, 44, 45
-    const billingRow6FieldPrefixes = ['42', '43', '44', '45'];
-    const billingFieldsToRow6 = {};
-    billingRow6FieldPrefixes.forEach(prefix => {
+    // Create two-column layout for billing fields 42-49 (left) and 50-55 (right)
+    // Left side: 4 rows of 2 fields (42-46, 43-47, 44-48, 45-49)
+    // Right side: 3 rows of 2 fields (50-51, 52-53, 54-55)
+    let billingTwoColumnContainer = null;
+    
+    // Check for fields 42-49 (left side)
+    const leftSidePrefixes = ['42', '43', '44', '45', '46', '47', '48', '49'];
+    const leftSideFields = {};
+    leftSidePrefixes.forEach(prefix => {
         const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
         if (matchingField) {
-            billingFieldsToRow6[prefix] = matchingField;
+            leftSideFields[prefix] = matchingField;
         }
     });
     
-    // Create row container for billing fields 42, 43, 44, 45 (create if at least one exists)
-    // Note: This row will be appended after individual fields 40 and 41 are processed
-    let billingRowContainer6 = null;
-    const hasAnyBillingRow6Fields = billingRow6FieldPrefixes.some(prefix => billingFieldsToRow6[prefix]);
-    if (hasAnyBillingRow6Fields && billingFieldsForm) {
-        billingRowContainer6 = document.createElement('div');
-        billingRowContainer6.className = 'form-row';
-        
-        // Add row fields in correct order (42, 43, 44, 45)
-        billingRow6FieldPrefixes.forEach(prefix => {
-            const fieldName = billingFieldsToRow6[prefix];
-            if (fieldName) {
-                const fieldsWithSameName = fieldsByName.get(fieldName);
-                const primaryField = fieldsWithSameName[0];
-                
-                primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
-                primaryField.duplicateCount = fieldsWithSameName.length;
-                
-                if (fieldsWithSameName.length > 1) {
-                    console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
-                        fieldsWithSameName.map(f => f.pdfFieldName));
-                }
-                
-                const formGroup = createFormField(primaryField);
-                billingRowContainer6.appendChild(formGroup);
-            }
-        });
-    }
-    
-    // Check if we have billing fields starting with 46, 47, 48, 49
-    const billingRow7FieldPrefixes = ['46', '47', '48', '49'];
-    const billingFieldsToRow7 = {};
-    billingRow7FieldPrefixes.forEach(prefix => {
+    // Check for fields 50-55 (right side)
+    const rightSidePrefixes = ['50', '51', '52', '53', '54', '55'];
+    const rightSideFields = {};
+    rightSidePrefixes.forEach(prefix => {
         const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
         if (matchingField) {
-            billingFieldsToRow7[prefix] = matchingField;
+            rightSideFields[prefix] = matchingField;
         }
     });
     
-    // Create row container for billing fields 46, 47, 48, 49 (create if at least one exists)
-    // Note: This row will be appended after field 45 is processed
-    let billingRowContainer7 = null;
-    const hasAnyBillingRow7Fields = billingRow7FieldPrefixes.some(prefix => billingFieldsToRow7[prefix]);
-    if (hasAnyBillingRow7Fields && billingFieldsForm) {
-        billingRowContainer7 = document.createElement('div');
-        billingRowContainer7.className = 'form-row';
+    const hasLeftSideFields = leftSidePrefixes.some(prefix => leftSideFields[prefix]);
+    const hasRightSideFields = rightSidePrefixes.some(prefix => rightSideFields[prefix]);
+    
+    if ((hasLeftSideFields || hasRightSideFields) && billingFieldsForm) {
+        billingTwoColumnContainer = document.createElement('div');
+        billingTwoColumnContainer.className = 'billing-two-column-container';
+        billingTwoColumnContainer.style.display = 'flex';
+        billingTwoColumnContainer.style.gap = '16px';
+        billingTwoColumnContainer.style.marginTop = '8px';
         
-        // Add row fields in correct order (46, 47, 48, 49)
-        billingRow7FieldPrefixes.forEach(prefix => {
-            const fieldName = billingFieldsToRow7[prefix];
-            if (fieldName) {
-                const fieldsWithSameName = fieldsByName.get(fieldName);
-                const primaryField = fieldsWithSameName[0];
-                
-                primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
-                primaryField.duplicateCount = fieldsWithSameName.length;
-                
-                if (fieldsWithSameName.length > 1) {
-                    console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
-                        fieldsWithSameName.map(f => f.pdfFieldName));
+        // Left side container
+        const leftSideContainer = document.createElement('div');
+        leftSideContainer.className = 'billing-left-column';
+        leftSideContainer.style.flex = '1';
+        leftSideContainer.style.display = 'flex';
+        leftSideContainer.style.flexDirection = 'column';
+        leftSideContainer.style.gap = '8px';
+        leftSideContainer.style.border = '2px solid #808080';
+        leftSideContainer.style.padding = '8px';
+        leftSideContainer.style.backgroundColor = '#F0F0F0';
+        
+        // Create 4 rows for left side: 42-46, 43-47, 44-48, 45-49
+        const leftSideRows = [
+            ['42', '46'],
+            ['43', '47'],
+            ['44', '48'],
+            ['45', '49']
+        ];
+        
+        leftSideRows.forEach(rowPrefixes => {
+            const row = document.createElement('div');
+            row.className = 'form-row';
+            row.style.display = 'flex';
+            row.style.gap = '8px';
+            
+            rowPrefixes.forEach(prefix => {
+                const fieldName = leftSideFields[prefix];
+                if (fieldName) {
+                    const fieldsWithSameName = fieldsByName.get(fieldName);
+                    const primaryField = fieldsWithSameName[0];
+                    
+                    primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
+                    primaryField.duplicateCount = fieldsWithSameName.length;
+                    
+                    if (fieldsWithSameName.length > 1) {
+                        console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
+                            fieldsWithSameName.map(f => f.pdfFieldName));
+                    }
+                    
+                    const formGroup = createFormField(primaryField);
+                    formGroup.style.flex = '1';
+                    row.appendChild(formGroup);
                 }
-                
-                const formGroup = createFormField(primaryField);
-                billingRowContainer7.appendChild(formGroup);
+            });
+            
+            if (row.children.length > 0) {
+                leftSideContainer.appendChild(row);
             }
         });
-    }
-    
-    // Check if we have billing fields starting with 50, 51, 52, 53, 54, 55
-    const billingRow8FieldPrefixes = ['50', '51', '52', '53', '54', '55'];
-    const billingFieldsToRow8 = {};
-    billingRow8FieldPrefixes.forEach(prefix => {
-        const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
-        if (matchingField) {
-            billingFieldsToRow8[prefix] = matchingField;
+        
+        // Right side container
+        const rightSideContainer = document.createElement('div');
+        rightSideContainer.className = 'billing-right-column';
+        rightSideContainer.style.flex = '1';
+        rightSideContainer.style.display = 'flex';
+        rightSideContainer.style.flexDirection = 'column';
+        rightSideContainer.style.gap = '8px';
+        rightSideContainer.style.border = '2px solid #808080';
+        rightSideContainer.style.padding = '8px';
+        rightSideContainer.style.backgroundColor = '#F0F0F0';
+        
+        // Create 3 rows for right side: 50-51, 52-53, 54-55
+        const rightSideRows = [
+            ['50', '51'],
+            ['52', '53'],
+            ['54', '55']
+        ];
+        
+        rightSideRows.forEach(rowPrefixes => {
+            const row = document.createElement('div');
+            row.className = 'form-row';
+            row.style.display = 'flex';
+            row.style.gap = '8px';
+            
+            rowPrefixes.forEach(prefix => {
+                const fieldName = rightSideFields[prefix];
+                if (fieldName) {
+                    const fieldsWithSameName = fieldsByName.get(fieldName);
+                    const primaryField = fieldsWithSameName[0];
+                    
+                    primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
+                    primaryField.duplicateCount = fieldsWithSameName.length;
+                    
+                    if (fieldsWithSameName.length > 1) {
+                        console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
+                            fieldsWithSameName.map(f => f.pdfFieldName));
+                    }
+                    
+                    const formGroup = createFormField(primaryField);
+                    formGroup.style.flex = '1';
+                    row.appendChild(formGroup);
+                }
+            });
+            
+            if (row.children.length > 0) {
+                rightSideContainer.appendChild(row);
+            }
+        });
+        
+        // Add both columns to the container
+        if (leftSideContainer.children.length > 0) {
+            billingTwoColumnContainer.appendChild(leftSideContainer);
         }
-    });
-    
-    // Create row container for billing fields 50, 51, 52, 53, 54, 55 (create if at least one exists)
-    // Note: This row will be appended after field 49 is processed
-    let billingRowContainer8 = null;
-    const hasAnyBillingRow8Fields = billingRow8FieldPrefixes.some(prefix => billingFieldsToRow8[prefix]);
-    if (hasAnyBillingRow8Fields && billingFieldsForm) {
-        billingRowContainer8 = document.createElement('div');
-        billingRowContainer8.className = 'form-row';
+        if (rightSideContainer.children.length > 0) {
+            billingTwoColumnContainer.appendChild(rightSideContainer);
+        }
         
-        // Add row fields in correct order (50, 51, 52, 53, 54, 55)
-        billingRow8FieldPrefixes.forEach(prefix => {
-            const fieldName = billingFieldsToRow8[prefix];
-            if (fieldName) {
-                const fieldsWithSameName = fieldsByName.get(fieldName);
-                const primaryField = fieldsWithSameName[0];
-                
-                primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
-                primaryField.duplicateCount = fieldsWithSameName.length;
-                
-                if (fieldsWithSameName.length > 1) {
-                    console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
-                        fieldsWithSameName.map(f => f.pdfFieldName));
+        // Also create a similar container in the upper area for customs fields (50-55)
+        const customsFieldsContainer = document.getElementById('customsFieldsContainer');
+        const customsFieldsRows = document.getElementById('customsFieldsRows');
+        if (customsFieldsContainer && customsFieldsRows && hasRightSideFields) {
+            // Create 4 rows for customs fields: 50-53, 51-54, 52-55, 56-57
+            const customsRows = [
+                ['50', '53'],
+                ['51', '54'],
+                ['52', '55'],
+                ['56', '57']
+            ];
+            
+            // Check for fields 56-57 as well for the customs container
+            const customsFieldsAll = { ...rightSideFields };
+            const customs56Prefixes = ['56', '57'];
+            customs56Prefixes.forEach(prefix => {
+                const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
+                if (matchingField) {
+                    customsFieldsAll[prefix] = matchingField;
                 }
+            });
+            
+            // Store references to upper area input elements for autofill
+            const upperAreaInputs = {};
+            
+            customsRows.forEach(rowPrefixes => {
+                const row = document.createElement('div');
+                row.className = 'form-row';
+                row.style.display = 'flex';
+                row.style.gap = '8px';
                 
-                const formGroup = createFormField(primaryField);
-                billingRowContainer8.appendChild(formGroup);
+                rowPrefixes.forEach(prefix => {
+                    const fieldName = customsFieldsAll[prefix];
+                    if (fieldName) {
+                        const fieldsWithSameName = fieldsByName.get(fieldName);
+                        const primaryField = fieldsWithSameName[0];
+                        
+                        primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
+                        primaryField.duplicateCount = fieldsWithSameName.length;
+                        
+                        if (fieldsWithSameName.length > 1) {
+                            console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
+                                fieldsWithSameName.map(f => f.pdfFieldName));
+                        }
+                        
+                        // Create a copy of the field to modify label for upper area
+                        const fieldForUpper = { ...primaryField };
+                        
+                        // Rename field 56 in upper area to "Chargeable Weight"
+                        if (prefix === '56') {
+                            fieldForUpper.label = 'Chargeable Weight';
+                        }
+                        
+                        // Rename field 57 in upper area to "Rate per kg"
+                        if (prefix === '57') {
+                            fieldForUpper.label = 'Rate per kg';
+                        }
+                        
+                        const formGroup = createFormField(fieldForUpper);
+                        formGroup.style.flex = '1';
+                        row.appendChild(formGroup);
+                        
+                        // Store reference to the input element for autofill
+                        const input = formGroup.querySelector('input, textarea, select');
+                        if (input && prefix >= '50' && prefix <= '55') {
+                            upperAreaInputs[prefix] = input;
+                        }
+                        // Also store field 57 for autofill to field 31
+                        if (input && prefix === '57') {
+                            upperAreaInputs['57'] = input;
+                        }
+                        // Store field 56 for autofill to field 30
+                        if (input && prefix === '56') {
+                            upperAreaInputs['56'] = input;
+                        }
+                        
+                        // Make labels red for fields 56 and 57 until populated
+                        if (input && (prefix === '56' || prefix === '57')) {
+                            const label = formGroup.querySelector('label');
+                            if (label) {
+                                // Function to update label color based on field value
+                                const updateLabelColor = () => {
+                                    if (!input.value || input.value.trim() === '') {
+                                        label.style.color = 'red';
+                                    } else {
+                                        label.style.color = '';
+                                    }
+                                };
+                                
+                                // Set initial color
+                                updateLabelColor();
+                                
+                                // Listen for changes
+                                input.addEventListener('input', updateLabelColor);
+                                input.addEventListener('change', updateLabelColor);
+                            }
+                        }
+                    }
+                });
+                
+                if (row.children.length > 0) {
+                    customsFieldsRows.appendChild(row);
+                }
+            });
+            
+            // Set up autofill from upper area to lower area for fields 50-55
+            if (Object.keys(upperAreaInputs).length > 0) {
+                // Wait for lower area fields to be created, then set up autofill
+                setTimeout(() => {
+                    const billingFieldsForm = document.getElementById('billingFieldsForm');
+                    if (billingFieldsForm) {
+                        ['50', '51', '52', '53', '54', '55'].forEach(prefix => {
+                            const upperInput = upperAreaInputs[prefix];
+                            if (upperInput) {
+                                // Find corresponding lower area input by name prefix
+                                const lowerInputs = billingFieldsForm.querySelectorAll(`input[name^="${prefix}"], textarea[name^="${prefix}"], select[name^="${prefix}"]`);
+                                
+                                if (lowerInputs.length > 0) {
+                                    // Sync from upper to lower
+                                    upperInput.addEventListener('input', function() {
+                                        lowerInputs.forEach(lowerInput => {
+                                            lowerInput.value = this.value;
+                                            lowerInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                        });
+                                    });
+                                    
+                                    // Also sync on change for select elements
+                                    if (upperInput.tagName === 'SELECT') {
+                                        upperInput.addEventListener('change', function() {
+                                            lowerInputs.forEach(lowerInput => {
+                                                lowerInput.value = this.value;
+                                                lowerInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                            });
+                                        });
+                                    }
+                                    
+                                    // Initial sync if upper has a value
+                                    if (upperInput.value) {
+                                        lowerInputs.forEach(lowerInput => {
+                                            lowerInput.value = upperInput.value;
+                                            lowerInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                        });
+                                    }
+                                }
+                            }
+                        });
+                        
+                        // Field 56 (Chargeable Weight) is now manually entered, not auto-calculated
+                        
+                        // Set up autofill from field 57 to field 31
+                        const field57Input = upperAreaInputs['57'];
+                        if (field57Input) {
+                            const autofillToField31 = function() {
+                                fillFieldByPrefix('31', this.value);
+                            };
+                            
+                            field57Input.addEventListener('input', autofillToField31);
+                            
+                            // Also sync on change for select elements
+                            if (field57Input.tagName === 'SELECT') {
+                                field57Input.addEventListener('change', autofillToField31);
+                            }
+                            
+                            // Initial sync if field 57 has a value
+                            if (field57Input.value) {
+                                fillFieldByPrefix('31', field57Input.value);
+                            }
+                        }
+                        
+                        // Set up autofill from field 56 to field 30
+                        const field56Input = upperAreaInputs['56'];
+                        if (field56Input) {
+                            const autofillToField30 = function() {
+                                fillFieldByPrefix('30', this.value);
+                            };
+                            
+                            field56Input.addEventListener('input', autofillToField30);
+                            
+                            // Also sync on change for select elements
+                            if (field56Input.tagName === 'SELECT') {
+                                field56Input.addEventListener('change', autofillToField30);
+                            }
+                            
+                            // Initial sync if field 56 has a value
+                            if (field56Input.value) {
+                                fillFieldByPrefix('30', field56Input.value);
+                            }
+                        }
+                    }
+                }, 100);
             }
-        });
+            
+            // Show the container if it has fields
+            if (customsFieldsRows.children.length > 0) {
+                customsFieldsContainer.style.display = 'block';
+                
+                // Set up checkbox to ignore remaining charge fields (50-55)
+                setupIgnoreRemainingChargesCheckbox();
+            }
+        }
     }
     
     const billingRow9FieldPrefixes = ['57', '56', '58', '59'];
@@ -1341,22 +1632,12 @@ function generateForm() {
             return;
         }
         
+        // Get field prefix for routing (but don't skip field 40 - it needs to be processed)
+        const fieldPrefix = fieldName.substring(0, 2);
         
-        // Skip fields that are already in the billing row 6 (42, 43, 44, 45)
-        const isBillingRowField6 = Object.values(billingFieldsToRow6).includes(fieldName);
-        if (isBillingRowField6) {
-            return;
-        }
-        
-        // Skip fields that are already in the billing row 7 (46, 47, 48, 49)
-        const isBillingRowField7 = Object.values(billingFieldsToRow7).includes(fieldName);
-        if (isBillingRowField7) {
-            return;
-        }
-        
-        // Skip fields that are already in the billing row 8 (50, 51, 52, 53, 54, 55)
-        const isBillingRowField8 = Object.values(billingFieldsToRow8).includes(fieldName);
-        if (isBillingRowField8) {
+        // Skip fields that are already in the two-column billing container (42-55)
+        const twoColumnPrefixes = ['42', '43', '44', '45', '46', '47', '48', '49', '50', '51', '52', '53', '54', '55'];
+        if (twoColumnPrefixes.includes(fieldPrefix) && (leftSideFields[fieldPrefix] || rightSideFields[fieldPrefix])) {
             return;
         }
         
@@ -1384,9 +1665,6 @@ function generateForm() {
             return;
         }
         
-        // Get field prefix for routing (but don't skip field 40 - it needs to be processed)
-        const fieldPrefix = fieldName.substring(0, 2);
-        
         // Skip field 40 from being added to main form, but it will be routed to dimensions tab
         if (fieldPrefix === '40') {
             // Process field 40 separately for dimensions tab
@@ -1399,7 +1677,66 @@ function generateForm() {
                 
                 const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
                 if (dimensionsFieldsForm) {
-                    dimensionsFieldsForm.appendChild(formGroup);
+                    // Create a container for field 40 and Gross Weight side by side
+                    const field40Container = document.createElement('div');
+                    field40Container.className = 'form-row';
+                    field40Container.style.display = 'flex';
+                    field40Container.style.gap = '8px';
+                    
+                    // Add field 40 to the container
+                    formGroup.style.flex = '1';
+                    field40Container.appendChild(formGroup);
+                    
+                    // Create Gross Weight field next to field 40
+                    const grossWeightGroup = document.createElement('div');
+                    grossWeightGroup.className = 'form-group';
+                    grossWeightGroup.style.flex = '1';
+                    
+                    const grossWeightLabel = document.createElement('label');
+                    grossWeightLabel.textContent = 'Gross Weight';
+                    grossWeightLabel.setAttribute('for', 'grossWeightField');
+                    grossWeightGroup.appendChild(grossWeightLabel);
+                    
+                    const grossWeightInput = document.createElement('input');
+                    grossWeightInput.type = 'number';
+                    grossWeightInput.id = 'grossWeightField';
+                    grossWeightInput.name = 'grossWeight';
+                    grossWeightInput.className = 'form-control';
+                    grossWeightInput.placeholder = 'Enter gross weight';
+                    grossWeightInput.min = '0';
+                    grossWeightInput.step = '0.01';
+                    grossWeightInput.style.fontSize = '12px';
+                    grossWeightGroup.appendChild(grossWeightInput);
+                    
+                    // Set up autofill from upper area grossWeightInput
+                    const upperGrossWeightInput = document.getElementById('grossWeightInput');
+                    if (upperGrossWeightInput) {
+                        // Sync from upper input to this field
+                        upperGrossWeightInput.addEventListener('input', function() {
+                            grossWeightInput.value = this.value;
+                            grossWeightInput.dispatchEvent(new Event('input', { bubbles: true }));
+                            // Also fill field 27
+                            fillFieldByPrefix('27', this.value);
+                        });
+                        
+                        // If upper input already has a value, populate this field
+                        if (upperGrossWeightInput.value) {
+                            grossWeightInput.value = upperGrossWeightInput.value;
+                            fillFieldByPrefix('27', upperGrossWeightInput.value);
+                        }
+                    }
+                    
+                    // Sync from this field to upper input and field 27
+                    grossWeightInput.addEventListener('input', function() {
+                        if (upperGrossWeightInput) {
+                            upperGrossWeightInput.value = this.value;
+                        }
+                        // Also fill field 27
+                        fillFieldByPrefix('27', this.value);
+                    });
+                    
+                    field40Container.appendChild(grossWeightGroup);
+                    dimensionsFieldsForm.appendChild(field40Container);
                     
                     // Append the 34-36 row after field 40
                     if (dimensionsRowContainer1 && !dimensionsRowContainer1.parentNode) {
@@ -1463,19 +1800,9 @@ function generateForm() {
             // Append to billing fields form in Billing tab
             billingFieldsForm.appendChild(formGroup);
             
-            // If this is field 42, append the 42-45 row after it (fields 43-45 are skipped from individual processing)
-            if (fieldPrefix === '42' && billingRowContainer6 && !billingRowContainer6.parentNode) {
-                billingFieldsForm.appendChild(billingRowContainer6);
-            }
-            
-            // If this is field 45, append the 46-49 row after it (fields 46-49 are skipped from individual processing)
-            if (fieldPrefix === '45' && billingRowContainer7 && !billingRowContainer7.parentNode) {
-                billingFieldsForm.appendChild(billingRowContainer7);
-            }
-            
-            // If this is field 49, append the 50-55 row after it (fields 50-55 are skipped from individual processing)
-            if (fieldPrefix === '49' && billingRowContainer8 && !billingRowContainer8.parentNode) {
-                billingFieldsForm.appendChild(billingRowContainer8);
+            // If this is field 42, append the two-column container (fields 43-49 and 50-55 are skipped from individual processing)
+            if (fieldPrefix === '42' && billingTwoColumnContainer && !billingTwoColumnContainer.parentNode) {
+                billingFieldsForm.appendChild(billingTwoColumnContainer);
             }
             
             // If this is field 55, append the 57-59 row after it (fields 57, 56, 58, 59 are skipped from individual processing)
@@ -1501,14 +1828,8 @@ function generateForm() {
     
     // Make sure billing row containers are added if they exist and haven't been added yet
     if (billingFieldsForm) {
-        if (billingRowContainer6 && !billingRowContainer6.parentNode) {
-            billingFieldsForm.appendChild(billingRowContainer6);
-        }
-        if (billingRowContainer7 && !billingRowContainer7.parentNode) {
-            billingFieldsForm.appendChild(billingRowContainer7);
-        }
-        if (billingRowContainer8 && !billingRowContainer8.parentNode) {
-            billingFieldsForm.appendChild(billingRowContainer8);
+        if (billingTwoColumnContainer && !billingTwoColumnContainer.parentNode) {
+            billingFieldsForm.appendChild(billingTwoColumnContainer);
         }
         if (billingRowContainer9 && !billingRowContainer9.parentNode) {
             billingFieldsForm.appendChild(billingRowContainer9);
@@ -1598,6 +1919,26 @@ function generateForm() {
     
     // Initialize tabs
     initializeTabs();
+    
+    // Auto-populate lower field 57 with current date and time
+    setTimeout(() => {
+        const billingFieldsForm = document.getElementById('billingFieldsForm');
+        if (billingFieldsForm) {
+            const formElements = billingFieldsForm.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith('57')) {
+                    // Check if this is in the billing form (not upper customs container)
+                    const customsFieldsRows = document.getElementById('customsFieldsRows');
+                    const isInUpperArea = customsFieldsRows && customsFieldsRows.contains(element);
+                    if (!isInUpperArea && (!element.value || element.value.trim() === '')) {
+                        element.value = formatDateTimeForField57();
+                        element.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+            }
+        }
+    }, 150);
     
     // Calculate field 32 if fields 30 and 31 have values
     setTimeout(() => calculateField32(), 100);
@@ -1692,9 +2033,13 @@ function collectFormDataForTemplate() {
         
         if (!name) continue;
         
-        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40 - do not save in template
+        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40, 42-55 - do not save in template
         // Note: Field 33 is kept in template (not excluded)
-        if (name.startsWith('03') || name.startsWith('20') || name.startsWith('26') || name.startsWith('27') || name.startsWith('30') || name.startsWith('31') || name.startsWith('32') || name.startsWith('40')) continue;
+        if (name.startsWith('03') || name.startsWith('20') || name.startsWith('26') || name.startsWith('27') || name.startsWith('30') || name.startsWith('31') || name.startsWith('32') || name.startsWith('40') || 
+            name.startsWith('42') || name.startsWith('43') || name.startsWith('44') || name.startsWith('45') || 
+            name.startsWith('46') || name.startsWith('47') || name.startsWith('48') || name.startsWith('49') || 
+            name.startsWith('50') || name.startsWith('51') || name.startsWith('52') || name.startsWith('53') || 
+            name.startsWith('54') || name.startsWith('55')) continue;
         
         if (element.type === 'checkbox') {
             formData[name] = element.checked.toString();
@@ -1714,9 +2059,13 @@ function collectFormDataForTemplate() {
         
         if (!name) continue;
         
-        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40 - do not save in template
+        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40, 42-55 - do not save in template
         // Note: Field 33 is kept in template (not excluded)
-        if (name.startsWith('03') || name.startsWith('20') || name.startsWith('26') || name.startsWith('27') || name.startsWith('30') || name.startsWith('31') || name.startsWith('32') || name.startsWith('40')) continue;
+        if (name.startsWith('03') || name.startsWith('20') || name.startsWith('26') || name.startsWith('27') || name.startsWith('30') || name.startsWith('31') || name.startsWith('32') || name.startsWith('40') || 
+            name.startsWith('42') || name.startsWith('43') || name.startsWith('44') || name.startsWith('45') || 
+            name.startsWith('46') || name.startsWith('47') || name.startsWith('48') || name.startsWith('49') || 
+            name.startsWith('50') || name.startsWith('51') || name.startsWith('52') || name.startsWith('53') || 
+            name.startsWith('54') || name.startsWith('55')) continue;
         
         if (element.type === 'checkbox') {
             formData[name] = element.checked.toString();
@@ -1736,9 +2085,13 @@ function collectFormDataForTemplate() {
         
         if (!name) continue;
         
-        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40 - do not save in template
+        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40, 42-55 - do not save in template
         // Note: Field 33 is kept in template (not excluded)
-        if (name.startsWith('03') || name.startsWith('20') || name.startsWith('26') || name.startsWith('27') || name.startsWith('30') || name.startsWith('31') || name.startsWith('32') || name.startsWith('40')) continue;
+        if (name.startsWith('03') || name.startsWith('20') || name.startsWith('26') || name.startsWith('27') || name.startsWith('30') || name.startsWith('31') || name.startsWith('32') || name.startsWith('40') || 
+            name.startsWith('42') || name.startsWith('43') || name.startsWith('44') || name.startsWith('45') || 
+            name.startsWith('46') || name.startsWith('47') || name.startsWith('48') || name.startsWith('49') || 
+            name.startsWith('50') || name.startsWith('51') || name.startsWith('52') || name.startsWith('53') || 
+            name.startsWith('54') || name.startsWith('55')) continue;
         
         if (element.type === 'checkbox') {
             formData[name] = element.checked.toString();
@@ -2639,14 +2992,30 @@ function createFormField(field) {
     }
     
     input.style.fontSize = '12px'; // Set font size to 12px
-    if (field.required) input.required = true;
+    
+    // Fields 50-55 are not required, but fields 56-57 are required
+    const isField50to55 = field.name.startsWith('50') || field.name.startsWith('51') || 
+                         field.name.startsWith('52') || field.name.startsWith('53') || 
+                         field.name.startsWith('54') || field.name.startsWith('55');
+    const isField56or57 = field.name.startsWith('56') || field.name.startsWith('57');
+    
+    if (field.required && !isField50to55) {
+        input.required = true;
+    } else if (isField50to55) {
+        input.required = false;
+    } else if (isField56or57) {
+        // Fields 56-57 are always required
+        input.required = true;
+    }
+    
     if (field.readOnly) input.disabled = true;
     if (field.maxLength) input.maxLength = field.maxLength;
     if (field.placeholder) input.placeholder = field.placeholder;
     
-    // Check if this is field 31, 32, or 43-49 (dollar amounts)
+    // Check if this is field 31, 32, or 42-49 (dollar amounts)
     const isField31 = field.name.startsWith('31');
     const isField32 = field.name.startsWith('32');
+    const isField42 = field.name.startsWith('42');
     const isField43 = field.name.startsWith('43');
     const isField44 = field.name.startsWith('44');
     const isField45 = field.name.startsWith('45');
@@ -2655,7 +3024,7 @@ function createFormField(field) {
     const isField48 = field.name.startsWith('48');
     const isField49 = field.name.startsWith('49');
     
-    if (isField31 || isField32 || isField43 || isField44 || isField45 || isField46 || isField47 || isField48 || isField49) {
+    if (isField31 || isField32 || isField42 || isField43 || isField44 || isField45 || isField46 || isField47 || isField48 || isField49) {
         // Set up dollar formatting
         input.type = 'text'; // Use text input to allow $ formatting
         
@@ -2705,6 +3074,45 @@ function createFormField(field) {
     
     formGroup.appendChild(input);
     return formGroup;
+}
+
+// Format current date and time for field 57: "JANUARY 15TH, 2026 1:00PM"
+function formatDateTimeForField57() {
+    const now = new Date();
+    
+    // Month names in uppercase
+    const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                    'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+    
+    const month = months[now.getMonth()];
+    const day = now.getDate();
+    const year = now.getFullYear();
+    
+    // Get ordinal suffix for day
+    const getOrdinalSuffix = (day) => {
+        if (day >= 11 && day <= 13) {
+            return 'TH';
+        }
+        switch (day % 10) {
+            case 1: return 'ST';
+            case 2: return 'ND';
+            case 3: return 'RD';
+            default: return 'TH';
+        }
+    };
+    
+    const dayWithOrdinal = day + getOrdinalSuffix(day);
+    
+    // Format time in 12-hour format with AM/PM
+    let hours = now.getHours();
+    const minutes = now.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0 should be 12
+    const minutesStr = minutes.toString().padStart(2, '0');
+    const timeStr = `${hours}:${minutesStr}${ampm}`;
+    
+    return `${month} ${dayWithOrdinal}, ${year} ${timeStr}`;
 }
 
 // Format number as dollar amount (e.g., 123.45 -> "$123.45")
@@ -2787,11 +3195,13 @@ async function handleFillPdf(flatten = false) {
 function collectFormData() {
     const data = {};
     
-    // Get all form elements from all forms (main form, contact fields form, and billing fields form)
+    // Get all form elements from all forms (main form, contact fields form, dimensions fields form, and billing fields form)
     const formElements = generatedForm.elements;
     const contactFieldsForm = document.getElementById('contactFieldsForm');
+    const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
     const billingFieldsForm = document.getElementById('billingFieldsForm');
     const contactFormElements = contactFieldsForm ? contactFieldsForm.elements : [];
+    const dimensionsFormElements = dimensionsFieldsForm ? dimensionsFieldsForm.elements : [];
     const billingFormElements = billingFieldsForm ? billingFieldsForm.elements : [];
     
     // Collect all form data manually to ensure we get everything from main form
@@ -2854,6 +3264,34 @@ function collectFormData() {
         }
     }
     
+    // Collect data from dimensions fields form (fields 33, 34-39, 40, 41)
+    for (let i = 0; i < dimensionsFormElements.length; i++) {
+        const element = dimensionsFormElements[i];
+        const name = element.name;
+        
+        if (!name) continue; // Skip elements without names
+        
+        if (element.type === 'checkbox') {
+            data[name] = element.checked;
+        } else if (element.type === 'radio') {
+            if (element.checked) {
+                data[name] = element.value;
+            }
+        } else if (element.type === 'select-one' || element.type === 'select-multiple') {
+            if (element.selectedIndex >= 0) {
+                data[name] = element.options[element.selectedIndex].value;
+            }
+        } else if (element.tagName === 'TEXTAREA') {
+            // Textarea - preserve line breaks (\n)
+            data[name] = element.value || '';
+            console.log(`Multiline field ${name} captured with ${(element.value.match(/\n/g) || []).length} line breaks`);
+        } else {
+            // Text input, etc.
+            let value = element.value || '';
+            data[name] = value;
+        }
+    }
+    
     // Collect data from billing fields form (fields 16, 17)
     for (let i = 0; i < billingFormElements.length; i++) {
         const element = billingFormElements[i];
@@ -2897,6 +3335,17 @@ function collectFormData() {
     if (contactFieldsForm) {
         const contactFormData = new FormData(contactFieldsForm);
         contactFormData.forEach((value, key) => {
+            // Only add if not already captured
+            if (!(key in data)) {
+                data[key] = value;
+            }
+        });
+    }
+    
+    // Also use FormData for dimensions fields form
+    if (dimensionsFieldsForm) {
+        const dimensionsFormData = new FormData(dimensionsFieldsForm);
+        dimensionsFormData.forEach((value, key) => {
             // Only add if not already captured
             if (!(key in data)) {
                 data[key] = value;
@@ -3205,8 +3654,11 @@ async function fillPdfWithData(formData, flatten = false) {
                 const isField101 = field.name && field.name.startsWith('101');
                 const fontSize = isField28 ? 7 : (isField98 ? 6 : (isField100 ? 12 : (isField02 ? 12 : (isField01 || isField03 || isField101 ? 12 : 8))));
                 
-                // Check if this is field 42 - set center alignment
+                // Check if this is field 42, 46, 47, 48 - set center alignment
                 const isField42 = field.name && field.name.startsWith('42');
+                const isField46 = field.name && field.name.startsWith('46');
+                const isField47 = field.name && field.name.startsWith('47');
+                const isField48 = field.name && field.name.startsWith('48');
                 
                 // Set font size (PDF uses points, not pixels)
                 try {
@@ -3276,8 +3728,8 @@ async function fillPdfWithData(formData, flatten = false) {
                     }
                 }
                 
-                // Set center alignment for field 42 AFTER setting text
-                if (isField42) {
+                // Set center alignment for fields 42, 46, 47, 48 AFTER setting text
+                if (isField42 || isField46 || isField47 || isField48) {
                     try {
                         // Try different methods to set center alignment
                         if (typeof pdfField.setAlignment === 'function') {
@@ -4405,38 +4857,86 @@ function openContactModal(type, contactIdToEdit) {
     }
     
     if (contactIdToEdit) {
-        // Editing existing contact
-        const contacts = getContacts();
-        const contact = contacts.find(c => c.id === contactIdToEdit);
-        if (contact) {
-            modalTitle.textContent = `Edit ${type}`;
-            contactCompanyName.value = contact.companyName || '';
-            contactName.value = contact.contactName || '';
-            contactEmail.value = contact.email || '';
-            contactPhone.value = contact.phone || '';
-            contactAddress.value = contact.address || '';
-            contactFormattedValue.value = contact.formattedValue || '';
-            if (contactAccountInfo) {
-                contactAccountInfo.value = contact.accountInfo || '';
+        // For User type, load from profile instead of contacts
+        if (type === 'User' && contactIdToEdit === 'user') {
+            const profile = getUserProfile();
+            if (profile) {
+                modalTitle.textContent = 'Edit My Autofills';
+                contactCompanyName.value = profile.companyName || '';
+                contactName.value = profile.contactName || '';
+                contactEmail.value = profile.email || '';
+                contactPhone.value = profile.phone || '';
+                contactAddress.value = profile.address || '';
+                if (contactOrigin) {
+                    contactOrigin.value = profile.origin || '';
+                }
+                if (contactAoDEP) {
+                    contactAoDEP.value = profile.aoDEP || '';
+                }
+                if (contactHandlingInfo) {
+                    contactHandlingInfo.value = profile.handlingInfo || '';
+                }
+                if (contactField06) {
+                    contactField06.value = profile.field06 || profile.formattedValue || '';
+                }
+                const contactSignatureIssuingCarrier = document.getElementById('contactSignatureIssuingCarrier');
+                if (contactSignatureIssuingCarrier) {
+                    contactSignatureIssuingCarrier.value = profile.signatureIssuingCarrier || '';
+                }
+                const contactSignatureShipper = document.getElementById('contactSignatureShipper');
+                if (contactSignatureShipper) {
+                    contactSignatureShipper.value = profile.signatureShipper || '';
+                }
+                const contactSignaturePlace = document.getElementById('contactSignaturePlace');
+                if (contactSignaturePlace) {
+                    contactSignaturePlace.value = profile.signaturePlace || '';
+                }
+                
+                // Load commodity list (field33)
+                const commodityList = document.getElementById('commodityList');
+                if (commodityList && typeof window.addCommodityEntry === 'function') {
+                    commodityList.innerHTML = '';
+                    if (profile.field33 && Array.isArray(profile.field33) && profile.field33.length > 0) {
+                        profile.field33.forEach((item, index) => {
+                            window.addCommodityEntry(item.commodity || '', item.autofillText || '', item.field41 || '', index);
+                        });
+                    }
+                }
             }
-            if (contactAWBP) {
-                contactAWBP.value = contact.awbp || '';
-            }
-            if (contactAirlineAbbreviation) {
-                contactAirlineAbbreviation.value = contact.airlineAbbreviation || '';
-            }
-            // Load airline image if it exists
-            const airlineImageInput = document.getElementById('contactAirlineImage');
-            const airlineImagePreview = document.getElementById('airlineImagePreview');
-            const airlineImagePreviewImg = document.getElementById('airlineImagePreviewImg');
-            if (contact.image && airlineImagePreview && airlineImagePreviewImg) {
-                airlineImagePreviewImg.src = contact.image;
-                airlineImagePreview.style.display = 'block';
-            } else if (airlineImagePreview) {
-                airlineImagePreview.style.display = 'none';
-            }
-            if (airlineImageInput) {
-                airlineImageInput.value = ''; // Clear file input
+        } else {
+            // Editing existing contact
+            const contacts = getContacts();
+            const contact = contacts.find(c => c.id === contactIdToEdit);
+            if (contact) {
+                modalTitle.textContent = `Edit ${type}`;
+                contactCompanyName.value = contact.companyName || '';
+                contactName.value = contact.contactName || '';
+                contactEmail.value = contact.email || '';
+                contactPhone.value = contact.phone || '';
+                contactAddress.value = contact.address || '';
+                contactFormattedValue.value = contact.formattedValue || '';
+                if (contactAccountInfo) {
+                    contactAccountInfo.value = contact.accountInfo || '';
+                }
+                if (contactAWBP) {
+                    contactAWBP.value = contact.awbp || '';
+                }
+                if (contactAirlineAbbreviation) {
+                    contactAirlineAbbreviation.value = contact.airlineAbbreviation || '';
+                }
+                // Load airline image if it exists
+                const airlineImageInput = document.getElementById('contactAirlineImage');
+                const airlineImagePreview = document.getElementById('airlineImagePreview');
+                const airlineImagePreviewImg = document.getElementById('airlineImagePreviewImg');
+                if (contact.image && airlineImagePreview && airlineImagePreviewImg) {
+                    airlineImagePreviewImg.src = contact.image;
+                    airlineImagePreview.style.display = 'block';
+                } else if (airlineImagePreview) {
+                    airlineImagePreview.style.display = 'none';
+                }
+                if (airlineImageInput) {
+                    airlineImageInput.value = ''; // Clear file input
+                }
             }
         }
     } else {
@@ -4546,9 +5046,25 @@ function openUserProfileModal() {
         if (contactSignaturePlace) {
             contactSignaturePlace.value = profile.signaturePlace || '';
         }
+        
+        // Load commodity list (field33)
+        const commodityList = document.getElementById('commodityList');
+        if (commodityList && typeof window.addCommodityEntry === 'function') {
+            commodityList.innerHTML = '';
+            if (profile.field33 && Array.isArray(profile.field33) && profile.field33.length > 0) {
+                profile.field33.forEach((item, index) => {
+                    window.addCommodityEntry(item.commodity || '', item.autofillText || '', item.htsCode || '', index);
+                });
+            }
+        }
     } else {
         contactForm.reset();
         contactId.value = 'user';
+        // Clear commodity list if no profile
+        const commodityList = document.getElementById('commodityList');
+        if (commodityList) {
+            commodityList.innerHTML = '';
+        }
     }
     
     contactModal.style.display = 'flex';
@@ -4634,20 +5150,69 @@ function handleSaveContact(e) {
         const signatureShipper = contactSignatureShipper ? contactSignatureShipper.value.trim() : '';
         const contactSignaturePlace = document.getElementById('contactSignaturePlace');
         const signaturePlace = contactSignaturePlace ? contactSignaturePlace.value.trim() : '';
+        
+        // Get existing profile to preserve data not being edited
+        const existingProfile = getUserProfile() || {};
+        
+        // Check which fields are visible to determine what to update
+        const contactField33GroupEl = document.getElementById('contactField33Group');
+        const contactHandlingInfoGroupEl = document.getElementById('contactHandlingInfoGroup') || handlingInfoGroup;
+        const contactSignatureIssuingCarrierGroupEl = document.getElementById('contactSignatureIssuingCarrierGroup');
+        const contactSignatureShipperGroupEl = document.getElementById('contactSignatureShipperGroup');
+        const contactSignaturePlaceGroupEl = document.getElementById('contactSignaturePlaceGroup');
+        const contactField06GroupEl = document.getElementById('contactField06Group') || contactField06Group;
+        const originInfoGroupEl = document.getElementById('originInfoGroup') || originInfoGroup;
+        const aoDEPInfoGroupEl = document.getElementById('aoDEPInfoGroup') || aoDEPInfoGroup;
+        const contactNameGroupEl = document.getElementById('contactNameGroup') || contactNameGroup;
+        const contactPhoneGroupEl = document.getElementById('contactPhoneGroup');
+        const contactAddressGroupEl = document.getElementById('contactAddressGroup');
+        
+        // Collect commodity list (field33) - only if commodity entries are visible
+        let field33 = existingProfile.field33 || []; // Preserve existing by default
+        try {
+            const commodityList = document.getElementById('commodityList');
+            // Only collect commodity list if the field33 group is visible
+            if (commodityList && contactField33GroupEl && contactField33GroupEl.style.display !== 'none') {
+                field33 = [];
+                const commodityEntries = commodityList.querySelectorAll('.commodity-entry');
+                commodityEntries.forEach(entry => {
+                    const commodityInput = entry.querySelector('.commodity-name-input');
+                    const autofillInput = entry.querySelector('.commodity-autofill-input');
+                    const field41Input = entry.querySelector('.commodity-field41-input');
+                    if (commodityInput && autofillInput && field41Input) {
+                        const commodity = commodityInput.value.trim();
+                        const autofillText = autofillInput.value.trim();
+                        const field41 = field41Input.value.trim();
+                        if (commodity || autofillText || field41) {
+                            field33.push({ commodity, autofillText, field41 });
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            console.warn('Error collecting commodity list:', error);
+            // Continue without commodity data - preserve existing
+        }
+        
+        // Only update fields that are visible in the current modal
+        // Merge with existing profile to preserve all data
         const profile = {
+            ...existingProfile, // Preserve all existing data first
             companyName,
-            contactName: contactNameValue,
             email,
-            phone,
-            address,
             formattedValue,
-            field06: field06,
-            origin,
-            aoDEP,
-            handlingInfo,
-            signatureIssuingCarrier: signatureIssuingCarrier,
-            signatureShipper: signatureShipper,
-            signaturePlace: signaturePlace
+            // Only update these if their groups are visible
+            ...(contactNameGroupEl && contactNameGroupEl.style.display !== 'none' ? { contactName: contactNameValue } : {}),
+            ...(contactPhoneGroupEl && contactPhoneGroupEl.style.display !== 'none' ? { phone } : {}),
+            ...(contactAddressGroupEl && contactAddressGroupEl.style.display !== 'none' ? { address } : {}),
+            ...(contactField06GroupEl && contactField06GroupEl.style.display !== 'none' ? { field06: field06 } : {}),
+            ...(contactHandlingInfoGroupEl && contactHandlingInfoGroupEl.style.display !== 'none' ? { handlingInfo: handlingInfo } : {}),
+            ...(contactSignatureIssuingCarrierGroupEl && contactSignatureIssuingCarrierGroupEl.style.display !== 'none' ? { signatureIssuingCarrier: signatureIssuingCarrier } : {}),
+            ...(contactSignatureShipperGroupEl && contactSignatureShipperGroupEl.style.display !== 'none' ? { signatureShipper: signatureShipper } : {}),
+            ...(contactSignaturePlaceGroupEl && contactSignaturePlaceGroupEl.style.display !== 'none' ? { signaturePlace: signaturePlace } : {}),
+            ...(originInfoGroupEl && originInfoGroupEl.style.display !== 'none' ? { origin: origin } : {}),
+            ...(aoDEPInfoGroupEl && aoDEPInfoGroupEl.style.display !== 'none' ? { aoDEP: aoDEP } : {}),
+            field33: field33 // Always update field33 if it was collected, otherwise preserve existing
         };
         
         if (saveUserProfile(profile)) {
@@ -6542,6 +7107,313 @@ function handlePrepaidCollectChange(value) {
     }
     
     setTimeout(() => updateTabValidationIndicators(), 50);
+    
+    // Update prepaid/collect billing fields (42-49)
+    updatePrepaidCollectFields();
+}
+
+// Helper function to get field value by prefix
+function getFieldValueByPrefix(prefix, formsToCheck) {
+    for (const form of formsToCheck) {
+        if (!form) continue;
+        const formElements = form.elements;
+        for (let i = 0; i < formElements.length; i++) {
+            const element = formElements[i];
+            if (element.name && element.name.startsWith(prefix)) {
+                return element.value || '';
+            }
+        }
+    }
+    return '';
+}
+
+// Helper function to set field value by prefix
+function setFieldValueByPrefix(prefix, value, formsToCheck) {
+    for (const form of formsToCheck) {
+        if (!form) continue;
+        const formElements = form.elements;
+        for (let i = 0; i < formElements.length; i++) {
+            const element = formElements[i];
+            if (element.name && element.name.startsWith(prefix)) {
+                element.value = value;
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
+    }
+}
+
+// Helper function to get all field elements by prefix
+function getFieldElementsByPrefix(prefix, formsToCheck) {
+    const elements = [];
+    for (const form of formsToCheck) {
+        if (!form) continue;
+        const formElements = form.elements;
+        for (let i = 0; i < formElements.length; i++) {
+            const element = formElements[i];
+            if (element.name && element.name.startsWith(prefix)) {
+                elements.push(element);
+            }
+        }
+    }
+    return elements;
+}
+
+// Grey out fields by prefix
+function greyOutFieldsByPrefix(prefixes, formsToCheck) {
+    prefixes.forEach(prefix => {
+        const elements = getFieldElementsByPrefix(prefix, formsToCheck);
+        elements.forEach(element => {
+            element.disabled = true;
+            element.style.backgroundColor = '#e9ecef';
+            element.style.color = '#6c757d';
+            element.style.cursor = 'not-allowed';
+            const formGroup = element.closest('.form-group');
+            if (formGroup) {
+                formGroup.style.opacity = '0.6';
+            }
+            element.setAttribute('data-prepaid-collect-complete', 'true');
+        });
+    });
+}
+
+// Enable fields by prefix
+function enableFieldsByPrefix(prefixes, formsToCheck) {
+    prefixes.forEach(prefix => {
+        const elements = getFieldElementsByPrefix(prefix, formsToCheck);
+        elements.forEach(element => {
+            element.disabled = false;
+            element.style.backgroundColor = '';
+            element.style.color = '';
+            element.style.cursor = '';
+            const formGroup = element.closest('.form-group');
+            if (formGroup) {
+                formGroup.style.opacity = '1';
+            }
+            element.removeAttribute('data-prepaid-collect-complete');
+        });
+    });
+}
+
+// Calculate field 45 (Prepaid total: sum of 42, 43, 44)
+function calculateField45() {
+    const billingFieldsForm = document.getElementById('billingFieldsForm');
+    const formsToCheck = [billingFieldsForm].filter(f => f);
+    
+    let field42Value = extractNumericValue(getFieldValueByPrefix('42', formsToCheck));
+    let field43Value = extractNumericValue(getFieldValueByPrefix('43', formsToCheck));
+    let field44Value = extractNumericValue(getFieldValueByPrefix('44', formsToCheck));
+    
+    const total = field42Value + field43Value + field44Value;
+    const formattedTotal = total > 0 ? formatDollarAmount(total) : '';
+    
+    setFieldValueByPrefix('45', formattedTotal, formsToCheck);
+}
+
+// Calculate field 49 (Collect total: sum of 46, 47, 48)
+function calculateField49() {
+    const billingFieldsForm = document.getElementById('billingFieldsForm');
+    const formsToCheck = [billingFieldsForm].filter(f => f);
+    
+    let field46Value = extractNumericValue(getFieldValueByPrefix('46', formsToCheck));
+    let field47Value = extractNumericValue(getFieldValueByPrefix('47', formsToCheck));
+    let field48Value = extractNumericValue(getFieldValueByPrefix('48', formsToCheck));
+    
+    const total = field46Value + field47Value + field48Value;
+    const formattedTotal = total > 0 ? formatDollarAmount(total) : '';
+    
+    setFieldValueByPrefix('49', formattedTotal, formsToCheck);
+}
+
+// Update prepaid/collect billing fields (42-49) based on selection
+function updatePrepaidCollectFields() {
+    const prepaidCollectSelect = document.getElementById('prepaidCollectSelect');
+    if (!prepaidCollectSelect) return;
+    
+    const billingFieldsForm = document.getElementById('billingFieldsForm');
+    const customsFieldsContainer = document.getElementById('customsFieldsContainer');
+    const customsFieldsRows = document.getElementById('customsFieldsRows');
+    const formsToCheck = [billingFieldsForm].filter(f => f);
+    
+    const selectedValue = prepaidCollectSelect.value;
+    
+    // Get source values
+    const field32Value = getFieldValueByPrefix('32', formsToCheck);
+    const field55Value = getFieldValueByPrefix('55', formsToCheck);
+    
+    // Calculate CDC total directly from fields 50-54 (not from field 56)
+    let cdcTotal = 0;
+    const cdcPrefixes = ['50', '51', '52', '53', '54'];
+    
+    // Check upper area (customs container) first
+    if (customsFieldsRows) {
+        cdcPrefixes.forEach(prefix => {
+            const input = customsFieldsRows.querySelector(`input[name^="${prefix}"], textarea[name^="${prefix}"], select[name^="${prefix}"]`);
+            if (input && input.value) {
+                const value = extractNumericValue(input.value);
+                cdcTotal += value;
+            }
+        });
+    }
+    
+    // Also check lower area if not found in upper area
+    if (cdcTotal === 0) {
+        cdcPrefixes.forEach(prefix => {
+            const value = extractNumericValue(getFieldValueByPrefix(prefix, formsToCheck));
+            cdcTotal += value;
+        });
+    }
+    
+    const cdcTotalFormatted = cdcTotal > 0 ? formatDollarAmount(cdcTotal) : '';
+    
+    if (selectedValue === 'Prepaid') {
+        // Clear collect fields (46-49) first
+        setFieldValueByPrefix('46', '', formsToCheck);
+        setFieldValueByPrefix('47', '', formsToCheck);
+        setFieldValueByPrefix('48', '', formsToCheck);
+        setFieldValueByPrefix('49', '', formsToCheck);
+        
+        // Prepaid logic: CDC total (50-54) → 44, 32 → 42, 55 → 43, 45 = sum(42,43,44)
+        setFieldValueByPrefix('44', cdcTotalFormatted, formsToCheck);
+        setFieldValueByPrefix('42', field32Value, formsToCheck);
+        setFieldValueByPrefix('43', field55Value, formsToCheck);
+        
+        // Calculate field 45
+        calculateField45();
+        
+        // Grey out collect fields (46-49)
+        greyOutFieldsByPrefix(['46', '47', '48', '49'], formsToCheck);
+        
+        // Enable prepaid fields (42-45)
+        enableFieldsByPrefix(['42', '43', '44', '45'], formsToCheck);
+        
+    } else if (selectedValue === 'Collect') {
+        // Clear prepaid fields (42-45) first
+        setFieldValueByPrefix('42', '', formsToCheck);
+        setFieldValueByPrefix('43', '', formsToCheck);
+        setFieldValueByPrefix('44', '', formsToCheck);
+        setFieldValueByPrefix('45', '', formsToCheck);
+        
+        // Collect logic: CDC total (50-54) → 48, 55 → 47, 32 → 46, 49 = sum(46,47,48)
+        setFieldValueByPrefix('48', cdcTotalFormatted, formsToCheck);
+        setFieldValueByPrefix('47', field55Value, formsToCheck);
+        setFieldValueByPrefix('46', field32Value, formsToCheck);
+        
+        // Calculate field 49
+        calculateField49();
+        
+        // Grey out prepaid fields (42-45)
+        greyOutFieldsByPrefix(['42', '43', '44', '45'], formsToCheck);
+        
+        // Enable collect fields (46-49)
+        enableFieldsByPrefix(['46', '47', '48', '49'], formsToCheck);
+        
+    } else {
+        // No selection - clear all fields and enable all
+        setFieldValueByPrefix('42', '', formsToCheck);
+        setFieldValueByPrefix('43', '', formsToCheck);
+        setFieldValueByPrefix('44', '', formsToCheck);
+        setFieldValueByPrefix('45', '', formsToCheck);
+        setFieldValueByPrefix('46', '', formsToCheck);
+        setFieldValueByPrefix('47', '', formsToCheck);
+        setFieldValueByPrefix('48', '', formsToCheck);
+        setFieldValueByPrefix('49', '', formsToCheck);
+        enableFieldsByPrefix(['42', '43', '44', '45', '46', '47', '48', '49'], formsToCheck);
+    }
+}
+
+// Set up listeners for field 32, 55, and 56 changes
+function setupPrepaidCollectFieldListeners() {
+    const billingFieldsForm = document.getElementById('billingFieldsForm');
+    const customsFieldsContainer = document.getElementById('customsFieldsContainer');
+    const customsFieldsRows = document.getElementById('customsFieldsRows');
+    
+    // Listen for field 32 changes
+    if (billingFieldsForm) {
+        billingFieldsForm.addEventListener('input', (e) => {
+            if (e.target.name && e.target.name.startsWith('32')) {
+                updatePrepaidCollectFields();
+            }
+        });
+        
+        billingFieldsForm.addEventListener('change', (e) => {
+            if (e.target.name && e.target.name.startsWith('32')) {
+                updatePrepaidCollectFields();
+            }
+        });
+    }
+    
+    // Listen for field 55 changes
+    if (billingFieldsForm) {
+        billingFieldsForm.addEventListener('input', (e) => {
+            if (e.target.name && e.target.name.startsWith('55')) {
+                updatePrepaidCollectFields();
+            }
+        });
+        
+        billingFieldsForm.addEventListener('change', (e) => {
+            if (e.target.name && e.target.name.startsWith('55')) {
+                updatePrepaidCollectFields();
+            }
+        });
+    }
+    
+    // Listen for field 50-54 changes (CDC fields) in customs container
+    if (customsFieldsRows) {
+        customsFieldsRows.addEventListener('input', (e) => {
+            if (e.target.name && (e.target.name.startsWith('50') || e.target.name.startsWith('51') || 
+                e.target.name.startsWith('52') || e.target.name.startsWith('53') || e.target.name.startsWith('54'))) {
+                updatePrepaidCollectFields();
+            }
+        });
+        
+        customsFieldsRows.addEventListener('change', (e) => {
+            if (e.target.name && (e.target.name.startsWith('50') || e.target.name.startsWith('51') || 
+                e.target.name.startsWith('52') || e.target.name.startsWith('53') || e.target.name.startsWith('54'))) {
+                updatePrepaidCollectFields();
+            }
+        });
+    }
+    
+    // Also listen for field 50-54 changes in billing form
+    if (billingFieldsForm) {
+        billingFieldsForm.addEventListener('input', (e) => {
+            if (e.target.name && (e.target.name.startsWith('50') || e.target.name.startsWith('51') || 
+                e.target.name.startsWith('52') || e.target.name.startsWith('53') || e.target.name.startsWith('54'))) {
+                updatePrepaidCollectFields();
+            }
+        });
+        
+        billingFieldsForm.addEventListener('change', (e) => {
+            if (e.target.name && (e.target.name.startsWith('50') || e.target.name.startsWith('51') || 
+                e.target.name.startsWith('52') || e.target.name.startsWith('53') || e.target.name.startsWith('54'))) {
+                updatePrepaidCollectFields();
+            }
+        });
+    }
+    
+    // Listen for changes to fields 42-44 to recalculate 45
+    if (billingFieldsForm) {
+        billingFieldsForm.addEventListener('input', (e) => {
+            if (e.target.name && (e.target.name.startsWith('42') || e.target.name.startsWith('43') || e.target.name.startsWith('44'))) {
+                const prepaidCollectSelect = document.getElementById('prepaidCollectSelect');
+                if (prepaidCollectSelect && prepaidCollectSelect.value === 'Prepaid') {
+                    calculateField45();
+                }
+            }
+        });
+    }
+    
+    // Listen for changes to fields 46-48 to recalculate 49
+    if (billingFieldsForm) {
+        billingFieldsForm.addEventListener('input', (e) => {
+            if (e.target.name && (e.target.name.startsWith('46') || e.target.name.startsWith('47') || e.target.name.startsWith('48'))) {
+                const prepaidCollectSelect = document.getElementById('prepaidCollectSelect');
+                if (prepaidCollectSelect && prepaidCollectSelect.value === 'Collect') {
+                    calculateField49();
+                }
+            }
+        });
+    }
 }
 
 // Show contact section when form is generated
@@ -6644,6 +7516,11 @@ function initializeTabs() {
     // Set up calculation for field 32 (30 * 31)
     setupField32Calculation();
     
+    // Field 56 (Chargeable Weight) is now manually entered, not auto-calculated
+    
+    // Set up prepaid/collect field listeners and logic
+    setupPrepaidCollectFieldListeners();
+    
     // Set up validation for field 26 (must match total PCS)
     setupField26Validation();
     
@@ -6705,43 +7582,8 @@ function calculateField32() {
         // Trigger input event to ensure validation updates
         field32Element.dispatchEvent(new Event('input', { bubbles: true }));
         
-        // Check prepaid/collect dropdown and autofill field 42 or 43
-        const prepaidCollectSelect = document.getElementById('prepaidCollectSelect');
-        if (prepaidCollectSelect) {
-            const selectedValue = prepaidCollectSelect.value;
-            
-            if (selectedValue === 'Prepaid') {
-                // Autofill field 42 with field 32's value
-                for (const form of formsToCheck) {
-                    if (!form) continue;
-                    const formElements = form.elements;
-                    for (let i = 0; i < formElements.length; i++) {
-                        const element = formElements[i];
-                        if (element.name && element.name.startsWith('42')) {
-                            element.value = formattedValue;
-                            element.dispatchEvent(new Event('input', { bubbles: true }));
-                            console.log(`Filled field ${element.name} with field 32 value: ${formattedValue}`);
-                            break;
-                        }
-                    }
-                }
-            } else if (selectedValue === 'Collect') {
-                // Autofill field 43 with field 32's value
-                for (const form of formsToCheck) {
-                    if (!form) continue;
-                    const formElements = form.elements;
-                    for (let i = 0; i < formElements.length; i++) {
-                        const element = formElements[i];
-                        if (element.name && element.name.startsWith('43')) {
-                            element.value = formattedValue;
-                            element.dispatchEvent(new Event('input', { bubbles: true }));
-                            console.log(`Filled field ${element.name} with field 32 value: ${formattedValue}`);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
+        // Update prepaid/collect fields based on selection (handled in handlePrepaidCollectChange)
+        updatePrepaidCollectFields();
     } else if (field32Element && (field30Value === null || field31Value === null)) {
         // Clear field 32 if either 30 or 31 is empty
         field32Element.value = '';
@@ -6766,6 +7608,145 @@ function setupField32Calculation() {
             calculateField32();
         }
     });
+}
+
+// Extract numeric value from text (handles letters, numbers, symbols, currency, commas, etc.)
+function extractNumericValue(text) {
+    if (!text || typeof text !== 'string') return 0;
+    
+    // Remove all non-numeric characters except decimal point and minus sign
+    // This handles: letters, currency symbols ($, €, £, etc.), commas, spaces, and other symbols
+    const cleaned = text.replace(/[^\d.-]/g, '');
+    
+    // Handle multiple decimal points (take the first one as decimal separator)
+    const parts = cleaned.split('.');
+    let numericString = parts[0] || '';
+    if (parts.length > 1) {
+        // Take first decimal point and up to 2 decimal places
+        numericString += '.' + parts.slice(1).join('').substring(0, 2);
+    }
+    
+    // Parse as float
+    const num = parseFloat(numericString);
+    
+    return isNaN(num) ? 0 : num;
+}
+
+// Calculate field 56 as the sum of fields 50-54
+function calculateField56() {
+    const billingFieldsForm = document.getElementById('billingFieldsForm');
+    const customsFieldsContainer = document.getElementById('customsFieldsContainer');
+    const customsFieldsRows = document.getElementById('customsFieldsRows');
+    
+    let total = 0;
+    let field56Elements = [];
+    const processedFields = new Set(); // Track processed fields to avoid double-counting
+    
+    // First, check upper area (customs fields) - prefer these as they're the source
+    if (customsFieldsRows) {
+        const upperInputs = customsFieldsRows.querySelectorAll('input, textarea, select');
+        upperInputs.forEach(input => {
+            if (input.name) {
+                const prefix = input.name.substring(0, 2);
+                const fieldKey = `${input.name}_${input.id || ''}`;
+                
+                if (prefix >= '50' && prefix <= '54') {
+                    // Only process if not already processed
+                    if (!processedFields.has(fieldKey)) {
+                        const value = extractNumericValue(input.value);
+                        if (!isNaN(value) && value !== 0) {
+                            total += value;
+                            processedFields.add(fieldKey);
+                        }
+                    }
+                } else if (input.name.startsWith('56')) {
+                    if (!field56Elements.includes(input)) {
+                        field56Elements.push(input);
+                    }
+                }
+            }
+        });
+    }
+    
+    // Then check lower area (billing form) - only count if not already counted from upper area
+    if (billingFieldsForm) {
+        const formElements = billingFieldsForm.elements;
+        for (let i = 0; i < formElements.length; i++) {
+            const element = formElements[i];
+            if (!element.name) continue;
+            
+            const prefix = element.name.substring(0, 2);
+            const fieldKey = `${element.name}_${element.id || ''}`;
+            
+            if (prefix >= '50' && prefix <= '54') {
+                // Only process if not already processed from upper area
+                if (!processedFields.has(fieldKey)) {
+                    const value = extractNumericValue(element.value);
+                    if (!isNaN(value) && value !== 0) {
+                        total += value;
+                        processedFields.add(fieldKey);
+                    }
+                }
+            } else if (element.name.startsWith('56')) {
+                if (!field56Elements.includes(element)) {
+                    field56Elements.push(element);
+                }
+            }
+        }
+    }
+    
+    // Set field 56 to the total (format as number with 2 decimal places)
+    const formattedTotal = total > 0 ? total.toFixed(2) : '';
+    field56Elements.forEach(element => {
+        element.value = formattedTotal;
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+}
+
+// Set up event listeners for fields 50-54 to calculate field 56
+function setupField56Calculation() {
+    const billingFieldsForm = document.getElementById('billingFieldsForm');
+    const customsFieldsContainer = document.getElementById('customsFieldsContainer');
+    
+    // Function to check if an event should trigger calculation
+    const shouldCalculate = (element) => {
+        if (!element || !element.name) return false;
+        const prefix = element.name.substring(0, 2);
+        return prefix >= '50' && prefix <= '54';
+    };
+    
+    // Set up listeners on billing form
+    if (billingFieldsForm) {
+        billingFieldsForm.addEventListener('input', (e) => {
+            if (shouldCalculate(e.target)) {
+                calculateField56();
+            }
+        });
+        
+        billingFieldsForm.addEventListener('change', (e) => {
+            if (shouldCalculate(e.target)) {
+                calculateField56();
+            }
+        });
+    }
+    
+    // Set up listeners on customs container
+    if (customsFieldsContainer) {
+        customsFieldsContainer.addEventListener('input', (e) => {
+            if (shouldCalculate(e.target)) {
+                calculateField56();
+            }
+        });
+        
+        customsFieldsContainer.addEventListener('change', (e) => {
+            if (shouldCalculate(e.target)) {
+                calculateField56();
+            }
+        });
+    }
+    
+    // Initial calculation
+    setTimeout(() => calculateField56(), 200);
 }
 
 // Calculate total PCS from all dimensions rows
@@ -6806,6 +7787,11 @@ function updateField40() {
             if (element.name && element.name.startsWith('40')) {
                 element.value = totalQTY > 0 ? `${totalQTY} PCS` : '';
                 element.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                // Autofill field 26 with the numeric value (just the number, not "X PCS")
+                if (totalQTY > 0) {
+                    fillFieldByPrefix('26', totalQTY.toString());
+                }
                 break;
             }
         }
@@ -6834,6 +7820,217 @@ function setupField40Autofill() {
     
     // Initial update
     setTimeout(() => updateField40(), 100);
+}
+
+// Set up checkbox to ignore remaining charge fields (50-55)
+function setupIgnoreRemainingChargesCheckbox() {
+    const checkbox = document.getElementById('ignoreRemainingChargesCheckbox');
+    const customsFieldsContainer = document.getElementById('customsFieldsContainer');
+    const customsFieldsRows = document.getElementById('customsFieldsRows');
+    const billingFieldsForm = document.getElementById('billingFieldsForm');
+    
+    if (!checkbox || !customsFieldsRows) return;
+    
+    // Function to grey out empty fields 50-55 in both upper and lower areas
+    const greyOutEmptyFields = () => {
+        const prefixes = ['50', '51', '52', '53', '54', '55'];
+        
+        prefixes.forEach(prefix => {
+            // Handle upper area fields (customs container)
+            const upperInputs = customsFieldsRows.querySelectorAll(`input[name^="${prefix}"], textarea[name^="${prefix}"], select[name^="${prefix}"]`);
+            upperInputs.forEach(input => {
+                const formGroup = input.closest('.form-group');
+                if (formGroup) {
+                    if (checkbox.checked) {
+                        // When checkbox is checked, mark ALL fields 50-55 as complete (both empty and filled)
+                        input.setAttribute('data-ignore-remaining-complete', 'true');
+                        
+                        // Grey out only empty fields visually
+                        if (!input.value || input.value.trim() === '') {
+                            input.disabled = true;
+                            input.style.backgroundColor = '#e9ecef';
+                            input.style.color = '#6c757d';
+                            input.style.cursor = 'not-allowed';
+                            formGroup.style.opacity = '0.6';
+                        } else {
+                            // Filled fields remain enabled but are marked as complete
+                            input.disabled = false;
+                            input.style.backgroundColor = '';
+                            input.style.color = '';
+                            input.style.cursor = '';
+                            formGroup.style.opacity = '1';
+                        }
+                    } else {
+                        // When checkbox is unchecked, remove complete marker and enable all fields
+                        input.disabled = false;
+                        input.style.backgroundColor = '';
+                        input.style.color = '';
+                        input.style.cursor = '';
+                        formGroup.style.opacity = '1';
+                        input.removeAttribute('data-ignore-remaining-complete');
+                    }
+                }
+            });
+            
+            // Handle lower area fields (billing form) - fields 50-55 in the two-column container
+            if (billingFieldsForm) {
+                // Find the two-column container (where lower fields 50-55 are located)
+                const twoColumnContainer = billingFieldsForm.querySelector('.billing-two-column-container');
+                if (twoColumnContainer) {
+                    // Find the right column container (where fields 50-55 are)
+                    const rightColumn = twoColumnContainer.querySelector('.billing-right-column');
+                    if (rightColumn) {
+                        // Find all inputs with this prefix in the right column (lower area)
+                        const lowerInputs = rightColumn.querySelectorAll(`input[name^="${prefix}"], textarea[name^="${prefix}"], select[name^="${prefix}"]`);
+                        lowerInputs.forEach(input => {
+                            const formGroup = input.closest('.form-group');
+                            if (formGroup) {
+                                if (checkbox.checked) {
+                                    // When checkbox is checked, mark ALL fields 50-55 as complete (both empty and filled)
+                                    input.setAttribute('data-ignore-remaining-complete', 'true');
+                                    
+                                    // Grey out only empty fields visually
+                                    if (!input.value || input.value.trim() === '') {
+                                        input.disabled = true;
+                                        input.style.backgroundColor = '#e9ecef';
+                                        input.style.color = '#6c757d';
+                                        input.style.cursor = 'not-allowed';
+                                        formGroup.style.opacity = '0.6';
+                                    } else {
+                                        // Filled fields remain enabled but are marked as complete
+                                        input.disabled = false;
+                                        input.style.backgroundColor = '';
+                                        input.style.color = '';
+                                        input.style.cursor = '';
+                                        formGroup.style.opacity = '1';
+                                    }
+                                } else {
+                                    // When checkbox is unchecked, remove complete marker and enable all fields
+                                    input.disabled = false;
+                                    input.style.backgroundColor = '';
+                                    input.style.color = '';
+                                    input.style.cursor = '';
+                                    formGroup.style.opacity = '1';
+                                    input.removeAttribute('data-ignore-remaining-complete');
+                                }
+                            }
+                        });
+                    }
+                }
+                
+                // Also check all fields in billingFieldsForm as fallback (in case structure is different)
+                const allInputs = billingFieldsForm.querySelectorAll(`input[name^="${prefix}"], textarea[name^="${prefix}"], select[name^="${prefix}"]`);
+                allInputs.forEach(input => {
+                    // Check if this is NOT in the upper area (customs container)
+                    const isInUpperArea = customsFieldsRows && customsFieldsRows.contains(input);
+                    // Also check if it's in the customs container itself
+                    const customsContainer = document.getElementById('customsFieldsContainer');
+                    const isInCustomsContainer = customsContainer && customsContainer.contains(input);
+                    // Check if it's already in the right column (already processed above)
+                    const twoColumnContainer = billingFieldsForm.querySelector('.billing-two-column-container');
+                    const rightColumn = twoColumnContainer ? twoColumnContainer.querySelector('.billing-right-column') : null;
+                    const isInRightColumn = rightColumn && rightColumn.contains(input);
+                    
+                    // Only process fields that are in the lower area (not in upper customs container, and not already processed)
+                    if (!isInUpperArea && !isInCustomsContainer && !isInRightColumn) {
+                        const formGroup = input.closest('.form-group');
+                        if (formGroup) {
+                            if (checkbox.checked) {
+                                // When checkbox is checked, mark ALL fields 50-55 as complete (both empty and filled)
+                                input.setAttribute('data-ignore-remaining-complete', 'true');
+                                
+                                // Grey out only empty fields visually
+                                if (!input.value || input.value.trim() === '') {
+                                    input.disabled = true;
+                                    input.style.backgroundColor = '#e9ecef';
+                                    input.style.color = '#6c757d';
+                                    input.style.cursor = 'not-allowed';
+                                    formGroup.style.opacity = '0.6';
+                                } else {
+                                    // Filled fields remain enabled but are marked as complete
+                                    input.disabled = false;
+                                    input.style.backgroundColor = '';
+                                    input.style.color = '';
+                                    input.style.cursor = '';
+                                    formGroup.style.opacity = '1';
+                                }
+                            } else {
+                                // When checkbox is unchecked, remove complete marker and enable all fields
+                                input.disabled = false;
+                                input.style.backgroundColor = '';
+                                input.style.color = '';
+                                input.style.cursor = '';
+                                formGroup.style.opacity = '1';
+                                input.removeAttribute('data-ignore-remaining-complete');
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    };
+    
+    // Listen for checkbox changes
+    checkbox.addEventListener('change', () => {
+        greyOutEmptyFields();
+        // Update validation immediately after checkbox change
+        setTimeout(() => {
+            if (typeof updateTabValidationIndicators === 'function') {
+                updateTabValidationIndicators();
+            }
+        }, 50);
+    });
+    
+    // Initial check
+    greyOutEmptyFields();
+    
+    // Also listen for input changes in fields 50-55 to update greyed state
+    if (customsFieldsRows) {
+        customsFieldsRows.addEventListener('input', (e) => {
+            if (checkbox.checked && e.target.name) {
+                const prefix = e.target.name.substring(0, 2);
+                if (['50', '51', '52', '53', '54', '55'].includes(prefix)) {
+                    greyOutEmptyFields();
+                }
+            }
+        });
+        
+        customsFieldsRows.addEventListener('change', (e) => {
+            if (checkbox.checked && e.target.name) {
+                const prefix = e.target.name.substring(0, 2);
+                if (['50', '51', '52', '53', '54', '55'].includes(prefix)) {
+                    greyOutEmptyFields();
+                }
+            }
+        });
+    }
+    
+    // Listen for input changes in lower area fields 50-55
+    if (billingFieldsForm) {
+        billingFieldsForm.addEventListener('input', (e) => {
+            if (checkbox.checked && e.target.name) {
+                const prefix = e.target.name.substring(0, 2);
+                if (['50', '51', '52', '53', '54', '55'].includes(prefix)) {
+                    const isInUpperArea = customsFieldsRows && customsFieldsRows.contains(e.target);
+                    if (!isInUpperArea) {
+                        greyOutEmptyFields();
+                    }
+                }
+            }
+        });
+        
+        billingFieldsForm.addEventListener('change', (e) => {
+            if (checkbox.checked && e.target.name) {
+                const prefix = e.target.name.substring(0, 2);
+                if (['50', '51', '52', '53', '54', '55'].includes(prefix)) {
+                    const isInUpperArea = customsFieldsRows && customsFieldsRows.contains(e.target);
+                    if (!isInUpperArea) {
+                        greyOutEmptyFields();
+                    }
+                }
+            }
+        });
+    }
 }
 
 // Update field 101 with format "X-Y" where X is field 01 and Y is field 03
@@ -7068,6 +8265,90 @@ function updateTabValidationIndicators() {
         }
     }
     
+    // Check Air Waybill No. (Field 03)
+    const airWaybillNoInput = document.getElementById('airWaybillNoInput');
+    const airWaybillNoLabel = airWaybillNoInput ? airWaybillNoInput.closest('div')?.querySelector('label') : null;
+    let field03Filled = false;
+    if (airWaybillNoInput && airWaybillNoInput.value.trim()) {
+        field03Filled = true;
+    } else {
+        // Also check if field 03 is filled in the form
+        if (generatedForm) {
+            const formElements = generatedForm.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith('03') && element.value.trim()) {
+                    field03Filled = true;
+                    break;
+                }
+            }
+        }
+    }
+    if (!field03Filled) {
+        routingMissing++;
+        if (airWaybillNoLabel) {
+            airWaybillNoLabel.style.color = 'red';
+        }
+    } else if (airWaybillNoLabel) {
+        airWaybillNoLabel.style.color = '';
+    }
+    
+    // Check Flight No. (Field 19)
+    const flightNoInput = document.getElementById('flightNoInput');
+    const flightNoLabel = flightNoInput ? flightNoInput.closest('div')?.querySelector('label') : null;
+    let field19Filled = false;
+    if (flightNoInput && flightNoInput.value.trim()) {
+        field19Filled = true;
+    } else {
+        // Also check if field 19 is filled in the form
+        if (generatedForm) {
+            const formElements = generatedForm.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith('19') && element.value.trim()) {
+                    field19Filled = true;
+                    break;
+                }
+            }
+        }
+    }
+    if (!field19Filled) {
+        routingMissing++;
+        if (flightNoLabel) {
+            flightNoLabel.style.color = 'red';
+        }
+    } else if (flightNoLabel) {
+        flightNoLabel.style.color = '';
+    }
+    
+    // Check Flight Date (Field 20)
+    const flightDateInput = document.getElementById('flightDateInput');
+    const flightDateLabel = flightDateInput ? flightDateInput.closest('div')?.querySelector('label') : null;
+    let field20Filled = false;
+    if (flightDateInput && flightDateInput.value) {
+        field20Filled = true;
+    } else {
+        // Also check if field 20 is filled in the form
+        if (generatedForm) {
+            const formElements = generatedForm.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith('20') && element.value.trim()) {
+                    field20Filled = true;
+                    break;
+                }
+            }
+        }
+    }
+    if (!field20Filled) {
+        routingMissing++;
+        if (flightDateLabel) {
+            flightDateLabel.style.color = 'red';
+        }
+    } else if (flightDateLabel) {
+        flightDateLabel.style.color = '';
+    }
+    
     updateTabIndicator('routing', routingMissing);
     
     // Count missing fields in Dimensions tab
@@ -7125,6 +8406,75 @@ function getMissingFieldNames() {
         missingFields.push(label ? label.textContent.trim() : 'Interline Shipment');
     }
     
+    // Check Air Waybill No. (Field 03)
+    const airWaybillNoInput = document.getElementById('airWaybillNoInput');
+    let field03Filled = false;
+    if (airWaybillNoInput && airWaybillNoInput.value.trim()) {
+        field03Filled = true;
+    } else {
+        // Also check if field 03 is filled in the form
+        if (generatedForm) {
+            const formElements = generatedForm.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith('03') && element.value.trim()) {
+                    field03Filled = true;
+                    break;
+                }
+            }
+        }
+    }
+    if (!field03Filled) {
+        const label = airWaybillNoInput ? airWaybillNoInput.closest('div')?.querySelector('label') : null;
+        missingFields.push(label ? label.textContent.trim() : 'Air Waybill No.');
+    }
+    
+    // Check Flight No. (Field 19)
+    const flightNoInput = document.getElementById('flightNoInput');
+    let field19Filled = false;
+    if (flightNoInput && flightNoInput.value.trim()) {
+        field19Filled = true;
+    } else {
+        // Also check if field 19 is filled in the form
+        if (generatedForm) {
+            const formElements = generatedForm.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith('19') && element.value.trim()) {
+                    field19Filled = true;
+                    break;
+                }
+            }
+        }
+    }
+    if (!field19Filled) {
+        const label = flightNoInput ? flightNoInput.closest('div')?.querySelector('label') : null;
+        missingFields.push(label ? label.textContent.trim() : 'Flight No.');
+    }
+    
+    // Check Flight Date (Field 20)
+    const flightDateInput = document.getElementById('flightDateInput');
+    let field20Filled = false;
+    if (flightDateInput && flightDateInput.value) {
+        field20Filled = true;
+    } else {
+        // Also check if field 20 is filled in the form
+        if (generatedForm) {
+            const formElements = generatedForm.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith('20') && element.value.trim()) {
+                    field20Filled = true;
+                    break;
+                }
+            }
+        }
+    }
+    if (!field20Filled) {
+        const label = flightDateInput ? flightDateInput.closest('div')?.querySelector('label') : null;
+        missingFields.push(label ? label.textContent.trim() : 'Flight Date');
+    }
+    
     // Check form fields
     formsToCheck.forEach(form => {
         if (!form) return;
@@ -7176,6 +8526,20 @@ function getMissingFieldNames() {
             // Skip field 29 - optional field, not counted as missing
             if (name.startsWith('29')) {
                 continue;
+            }
+            
+            // Skip fields 50-55 if ignore checkbox is checked (all fields 50-55 are optional when ignored)
+            if (name.startsWith('50') || name.startsWith('51') || name.startsWith('52') || 
+                name.startsWith('53') || name.startsWith('54') || name.startsWith('55')) {
+                const ignoreCheckbox = document.getElementById('ignoreRemainingChargesCheckbox');
+                // Skip all fields 50-55 if checkbox is checked, or if field is marked as complete
+                if (ignoreCheckbox && ignoreCheckbox.checked) {
+                    continue;
+                }
+                // Also skip if marked as complete by ignore checkbox (for safety)
+                if (element.hasAttribute('data-ignore-remaining-complete')) {
+                    continue;
+                }
             }
             
             // Special validation for field 26 - must match total PCS
@@ -7315,6 +8679,12 @@ function countMissingFields(form) {
             continue;
         }
         
+        // Skip fields marked as complete by ignore remaining charges checkbox
+        // This check must come BEFORE the field-specific checks below
+        if (element.hasAttribute('data-ignore-remaining-complete')) {
+            continue;
+        }
+        
         // Skip field 99 if logo is complete
         if (name.startsWith('99') && element.hasAttribute('data-logo-complete')) {
             continue;
@@ -7323,6 +8693,17 @@ function countMissingFields(form) {
         // Skip field 29 - optional field, not counted as missing
         if (name.startsWith('29')) {
             continue;
+        }
+        
+        // Skip fields 50-55 if ignore checkbox is checked (all fields 50-55 are optional when ignored)
+        // This is a secondary check - the attribute check above should catch most cases
+        if (name.startsWith('50') || name.startsWith('51') || name.startsWith('52') || 
+            name.startsWith('53') || name.startsWith('54') || name.startsWith('55')) {
+            const ignoreCheckbox = document.getElementById('ignoreRemainingChargesCheckbox');
+            // Skip all fields 50-55 if checkbox is checked (as a fallback if attribute wasn't set)
+            if (ignoreCheckbox && ignoreCheckbox.checked) {
+                continue;
+            }
         }
         
         // Special validation for field 26 - must match total PCS
@@ -7413,6 +8794,7 @@ const fieldToPromptMapping = {
     '07': { prompt: 'consigneeSelect', label: 'Consignee', tab: 'contacts' },
     '01': { prompt: 'airlineSelect1', label: 'Issuing Carrier', tab: 'routing' },
     '10': { prompt: 'airlineSelect1', label: 'Issuing Carrier', tab: 'routing' },
+    '03': { prompt: 'airWaybillNoInput', label: 'Air Waybill No.', tab: 'routing' },
     '09': { prompt: 'destinationSelect', label: 'Destination', tab: 'routing' },
     '18': { prompt: 'destinationSelect', label: 'Destination', tab: 'routing' },
     '11': { prompt: 'directFlightSelect', label: 'Direct Flight', tab: 'routing' },
@@ -7487,6 +8869,11 @@ function updatePromptIndicators() {
                 isEmpty = !element.value || element.value.trim() === '';
             }
             
+            // Skip field 101 - it's auto-generated from fields 01 and 03
+            if (name.startsWith('101')) {
+                continue;
+            }
+            
             // Check if label is red (field is missing)
             if (isEmpty) {
                 const formGroup = element.closest('.form-group');
@@ -7517,12 +8904,29 @@ function updatePromptIndicators() {
     
     // Add/update indicators on prompts
     Object.keys(promptNeeds).forEach(promptId => {
+        // Skip airWaybillNoInput - no indicator should be shown
+        if (promptId === 'airWaybillNoInput') {
+            return;
+        }
+        
         const promptElement = document.getElementById(promptId);
         if (promptElement) {
-            const promptGroup = promptElement.closest('.contact-select-group');
+            // Handle both .contact-select-group structure and the new Air Waybill No. input structure
+            let promptGroup = promptElement.closest('.contact-select-group');
+            let label = null;
+            
             if (promptGroup) {
-                const label = promptGroup.querySelector('label');
-                
+                label = promptGroup.querySelector('label');
+            } else {
+                // For airWaybillNoInput, find the parent div and its label
+                const parentDiv = promptElement.closest('div');
+                if (parentDiv) {
+                    label = parentDiv.querySelector('label');
+                    promptGroup = parentDiv;
+                }
+            }
+            
+            if (promptGroup && label) {
                 // Remove existing indicator
                 const existingIndicator = promptGroup.querySelector('.prompt-indicator');
                 if (existingIndicator) {
@@ -7536,18 +8940,23 @@ function updatePromptIndicators() {
                 indicator.textContent = `${promptNeeds[promptId].fields.length} field${promptNeeds[promptId].fields.length > 1 ? 's' : ''}`;
                 indicator.title = `Missing fields: ${promptNeeds[promptId].fields.join(', ')}`;
                 
-                if (label) {
-                    label.appendChild(indicator);
-                }
+                label.appendChild(indicator);
                 
-                // Highlight the prompt group
-                promptGroup.style.borderLeft = '3px solid #dc3545';
-                promptGroup.style.paddingLeft = '8px';
+                // Highlight the prompt group (only if it's a .contact-select-group)
+                if (promptGroup.classList.contains('contact-select-group')) {
+                    promptGroup.style.borderLeft = '3px solid #dc3545';
+                    promptGroup.style.paddingLeft = '8px';
+                } else {
+                    // For the new structure, highlight the parent container
+                    promptGroup.style.borderLeft = '3px solid #dc3545';
+                    promptGroup.style.paddingLeft = '8px';
+                }
             }
         }
     });
     
     // Remove indicators from prompts that don't need them
+    // Note: airWaybillNoInput is excluded from prompt indicators
     const allPrompts = ['shipperSelect', 'consigneeSelect', 'airlineSelect1', 'destinationSelect', 
                         'directFlightSelect', 'interlineCarrierSelect1', 'interlineCarrierSelect2',
                         'declaredValuesSelect', 'insuranceSelect', 'prepaidCollectSelect'];
@@ -7556,7 +8965,13 @@ function updatePromptIndicators() {
         if (!promptNeeds[promptId]) {
             const promptElement = document.getElementById(promptId);
             if (promptElement) {
-                const promptGroup = promptElement.closest('.contact-select-group');
+                // Handle both .contact-select-group structure and the new Air Waybill No. input structure
+                let promptGroup = promptElement.closest('.contact-select-group');
+                if (!promptGroup) {
+                    // For airWaybillNoInput, find the parent div
+                    promptGroup = promptElement.closest('div');
+                }
+                
                 if (promptGroup) {
                     const indicator = promptGroup.querySelector('.prompt-indicator');
                     if (indicator) {
@@ -7568,6 +8983,20 @@ function updatePromptIndicators() {
             }
         }
     });
+    
+    // Always remove indicator from airWaybillNoInput (it should never have one)
+    const airWaybillNoInput = document.getElementById('airWaybillNoInput');
+    if (airWaybillNoInput) {
+        const parentDiv = airWaybillNoInput.closest('div');
+        if (parentDiv) {
+            const indicator = parentDiv.querySelector('.prompt-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+            parentDiv.style.borderLeft = '';
+            parentDiv.style.paddingLeft = '';
+        }
+    }
 }
 
 // Update individual tab indicator
@@ -7654,6 +9083,39 @@ function populateCommodityDropdown() {
     }
 }
 
+// Fill form field by prefix (e.g., '03', '19', '20')
+function fillFieldByPrefix(fieldPrefix, value) {
+    if (!generatedForm) return;
+    
+    const contactFieldsForm = document.getElementById('contactFieldsForm');
+    const billingFieldsForm = document.getElementById('billingFieldsForm');
+    const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+    const formsToCheck = [generatedForm];
+    if (contactFieldsForm) {
+        formsToCheck.push(contactFieldsForm);
+    }
+    if (billingFieldsForm) {
+        formsToCheck.push(billingFieldsForm);
+    }
+    if (dimensionsFieldsForm) {
+        formsToCheck.push(dimensionsFieldsForm);
+    }
+    
+    for (const form of formsToCheck) {
+        if (!form) continue;
+        const formElements = form.elements;
+        for (let i = 0; i < formElements.length; i++) {
+            const element = formElements[i];
+            if (element.name && element.name.startsWith(fieldPrefix)) {
+                element.value = value;
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+                console.log(`Filled field ${element.name} with value: ${value}`);
+                setTimeout(() => updateTabValidationIndicators(), 50);
+            }
+        }
+    }
+}
+
 // Fill field 33 with autofill text from selected commodity
 function fillField33FromCommodity(commodityName) {
     const profile = getUserProfile();
@@ -7670,6 +9132,7 @@ function fillField33FromCommodity(commodityName) {
     
     const billingFieldsForm = document.getElementById('billingFieldsForm');
     const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+    const contactFieldsForm = document.getElementById('contactFieldsForm');
     const formsToCheck = [generatedForm];
     if (billingFieldsForm) {
         formsToCheck.push(billingFieldsForm);
@@ -7677,7 +9140,11 @@ function fillField33FromCommodity(commodityName) {
     if (dimensionsFieldsForm) {
         formsToCheck.push(dimensionsFieldsForm);
     }
+    if (contactFieldsForm) {
+        formsToCheck.push(contactFieldsForm);
+    }
     
+    // Fill field 33 with commodity autofill text
     for (const form of formsToCheck) {
         if (!form) continue;
         const formElements = form.elements;
@@ -7687,11 +9154,57 @@ function fillField33FromCommodity(commodityName) {
                 element.value = commodity.autofillText;
                 element.dispatchEvent(new Event('input', { bubbles: true }));
                 console.log(`Filled field ${element.name} with autofill text for commodity: ${commodityName}`);
-                setTimeout(() => updateTabValidationIndicators(), 50);
-                return;
+                break;
             }
         }
     }
+    
+    // Fill field 41 with commodity field41 value if it exists
+    if (commodity.field41) {
+        for (const form of formsToCheck) {
+            if (!form) continue;
+            const formElements = form.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith('41')) {
+                    element.value = commodity.field41;
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
+                    console.log(`Filled field ${element.name} with field41 value for commodity: ${commodityName}`);
+                    break;
+                }
+            }
+        }
+    }
+    
+    // Also fill field 22 (handling info) from user profile if it exists
+    if (profile.handlingInfo) {
+        let field22Found = false;
+        for (const form of formsToCheck) {
+            if (!form) continue;
+            const formElements = form.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith('22')) {
+                    element.value = profile.handlingInfo;
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
+                    console.log(`Filled field ${element.name} with handling info from user profile`);
+                    field22Found = true;
+                }
+            }
+        }
+        
+        // If field 22 wasn't found in the forms, try searching the entire document
+        if (!field22Found) {
+            const allField22Inputs = document.querySelectorAll('input[name^="22"], textarea[name^="22"], select[name^="22"]');
+            allField22Inputs.forEach(element => {
+                element.value = profile.handlingInfo;
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+                console.log(`Filled field ${element.name} with handling info from user profile (found via document search)`);
+            });
+        }
+    }
+    
+    setTimeout(() => updateTabValidationIndicators(), 50);
 }
 
 // ==================== Dimensions Functions ====================

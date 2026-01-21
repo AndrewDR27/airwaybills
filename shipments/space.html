@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shipment Space - Airway Bills</title>
-    <link rel="stylesheet" href="../styles.css">
-    <script type="module" src="../js/themes.js"></script>
+    <base href="/">
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/js/themes.js"></script>
     <style>
         body {
             margin: 0;
@@ -17,11 +18,25 @@
             min-height: 100vh;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: #C0C0C0;
             padding: 8px;
             border: 2px outset #C0C0C0;
+            display: flex;
+            gap: 8px;
+        }
+        .main-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .participants-sidebar {
+            width: 300px;
+            background: #C0C0C0;
+            border: 2px inset #C0C0C0;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
         }
         .space-header {
             display: flex;
@@ -125,20 +140,83 @@
         }
         .participants-list {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
+            flex-direction: column;
+            gap: 6px;
             margin-top: 8px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        .role-section {
+            border: 2px inset #C0C0C0;
+            padding: 8px;
+            background: white;
+        }
+        .role-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #C0C0C0;
+        }
+        .role-section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #000000;
+        }
+        .role-participants {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+        .role-add-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .role-add-select {
+            width: 100%;
+            padding: 2px 4px;
+            border: 2px inset #C0C0C0;
+            font-size: 10px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            background: white;
+        }
+        .role-add-btn {
+            padding: 2px 8px;
+            border: 2px outset #C0C0C0;
+            background: #C0C0C0;
+            color: #000000;
+            font-size: 10px;
+            font-weight: normal;
+            cursor: pointer;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .role-add-btn:hover {
+            background: #E8E8E8;
+        }
+        .role-add-btn:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .participant-badge {
             background: #C0C0C0;
             color: #000000;
-            padding: 4px 12px;
+            padding: 6px 8px;
             border: 2px inset #C0C0C0;
             font-size: 11px;
-            display: inline-flex;
+            display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 6px;
             font-family: 'MS Sans Serif', Arial, sans-serif;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .participant-info {
+            flex: 1;
+            min-width: 0;
         }
         .participant-remove {
             background: #808080;
@@ -161,6 +239,23 @@
         .participant-remove:active {
             border: 2px inset #C0C0C0;
             background: #606060;
+        }
+        .participant-leave {
+            background: #C0C0C0;
+            border: 2px outset #C0C0C0;
+            color: #000000;
+            padding: 2px 6px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: normal;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .participant-leave:hover {
+            background: #E8E8E8;
+        }
+        .participant-leave:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
         .pdf-section {
             margin: 20px 0;
@@ -196,39 +291,45 @@
 </head>
 <body>
     <div class="container">
-        <div class="space-header">
-            <div>
-                <h1>Shipment Space</h1>
-                <div class="awb-number" id="awbDisplay" style="display: none;"></div>
-                <div class="space-id" id="spaceIdDisplay">Loading...</div>
+        <div class="main-content">
+            <div class="space-header">
+                <div>
+                    <h1>Shipment Space</h1>
+                    <div class="awb-number" id="awbDisplay" style="display: none;"></div>
+                    <div class="space-id" id="spaceIdDisplay">Loading...</div>
+                </div>
+                <div>
+                    <span class="status-badge" id="statusBadge">Loading...</span>
+                </div>
             </div>
-            <div>
-                <span class="status-badge" id="statusBadge">Loading...</span>
+
+            <div id="agentSection" style="display: none;">
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="createAWBBtn">Create AWB</button>
+                    <button class="btn btn-success" id="shareAWBBtn" style="display: none;">Share AWB with Participants</button>
+                    <button class="btn btn-warning" id="cancelBtn">Cancel Shipment</button>
+                    <button class="btn btn-danger" id="deleteBtn" style="display: none;">Delete Shipment</button>
+                </div>
+            </div>
+
+            <div id="pdfSection" class="pdf-section" style="display: none;">
+                <h2>AWB Document</h2>
+                <p id="pdfStatus">PDF is available for download.</p>
+                <button class="btn btn-success" id="downloadPDFBtn">Download AWB PDF</button>
+            </div>
+
+            <div id="restrictedSection" class="restricted-section" style="display: none;">
+                <p><strong>Access Restricted:</strong> Only the Issuing Carrier Agent can view and modify AWB form data. You can view and download the AWB PDF if it has been shared.</p>
             </div>
         </div>
 
-        <div id="agentSection" style="display: none;">
-            <div class="action-buttons">
-                <button class="btn btn-primary" id="createAWBBtn">Create AWB</button>
-                <button class="btn btn-success" id="shareAWBBtn" style="display: none;">Share AWB with Participants</button>
-                <button class="btn btn-warning" id="cancelBtn">Cancel Shipment</button>
-                <button class="btn btn-danger" id="deleteBtn" style="display: none;">Delete Shipment</button>
+        <div class="participants-sidebar">
+            <div style="margin-bottom: 8px;">
+                <h2 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">Participants</h2>
             </div>
-        </div>
-
-        <div class="info-section">
-            <h2>Participants</h2>
-            <div class="participants-list" id="participantsList">Loading...</div>
-        </div>
-
-        <div id="pdfSection" class="pdf-section" style="display: none;">
-            <h2>AWB Document</h2>
-            <p id="pdfStatus">PDF is available for download.</p>
-            <button class="btn btn-success" id="downloadPDFBtn">Download AWB PDF</button>
-        </div>
-
-        <div id="restrictedSection" class="restricted-section" style="display: none;">
-            <p><strong>Access Restricted:</strong> Only the Issuing Carrier Agent can view and modify AWB form data. You can view and download the AWB PDF if it has been shared.</p>
+            <div id="participantsList" style="display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto;">
+                <!-- Role sections will be dynamically generated here -->
+            </div>
         </div>
     </div>
 
@@ -488,6 +589,12 @@
 
             // Load participants
             loadParticipants();
+            
+            // Setup add participant functionality if user is creator or admin/agent
+            const isCreator = currentShipment.createdBy === user.id;
+            if (isCreator || isAgent || isAdmin) {
+                setupAddParticipant();
+            }
 
             // Disable actions if cancelled (except for agent or admin)
             if (isCancelled && !isAgent && !isAdmin) {
@@ -531,91 +638,425 @@
             const participants = currentShipment.participants || [];
             const list = document.getElementById('participantsList');
             
-            if (participants.length === 0) {
-                list.innerHTML = '<p>No participants</p>';
+            // Check if ROLES and ROLE_LABELS are available
+            if (typeof ROLES === 'undefined' || typeof ROLE_LABELS === 'undefined') {
+                list.innerHTML = '<p>Roles not loaded. Please refresh the page.</p>';
                 return;
             }
-
-            // Check if current user is the creator (can remove participants)
+            
+            // Check if current user can add/remove participants (creator, admin, or agent)
             const isCreator = currentShipment.createdBy === user.id;
-            const canRemove = isCreator; // Only the creator can remove participants
-
-            // Fetch all participant users in parallel
+            const isAdmin = user.role === 'admin';
+            const isAgent = user.role === 'issuing-carrier-agent';
+            const canManage = isCreator || isAdmin || isAgent;
+            
+            // Define the 4 addable roles
+            const addableRoles = [
+                { role: ROLES.SHIPPER, label: ROLE_LABELS[ROLES.SHIPPER] },
+                { role: ROLES.CONSIGNEE, label: ROLE_LABELS[ROLES.CONSIGNEE] },
+                { role: ROLES.CUSTOMS_BROKER, label: ROLE_LABELS[ROLES.CUSTOMS_BROKER] },
+                { role: ROLES.COURIER, label: ROLE_LABELS[ROLES.COURIER] }
+            ];
+            
+            // Group participants by role
+            const participantsByRole = {};
+            addableRoles.forEach(r => {
+                participantsByRole[r.role] = [];
+            });
+            
+            // Fetch participant user data and group by role
             const participantPromises = participants.map(async (p) => {
                 try {
                     let participantUser = null;
                     if (typeof window !== 'undefined' && typeof window.getUserById === 'function') {
                         participantUser = await window.getUserById(p.userId);
                     }
-                    
-                    const roleLabel = (typeof window !== 'undefined' && typeof window.getRoleLabel === 'function') 
-                        ? window.getRoleLabel(p.role) 
-                        : (p.role || 'Unknown Role');
-                    const name = participantUser ? participantUser.name : 'Unknown User';
-                    const isSelf = p.userId === user.id;
-                    const canRemoveThis = canRemove && !isSelf; // Can't remove yourself
-                    
-                    let removeButton = '';
-                    if (canRemoveThis) {
-                        removeButton = `<button class="participant-remove" onclick="removeParticipant('${p.userId}')" title="Remove participant">×</button>`;
-                    }
-                    
-                    return `<span class="participant-badge">${name} (${roleLabel})${removeButton}</span>`;
+                    return {
+                        ...p,
+                        user: participantUser
+                    };
                 } catch (error) {
                     console.error('Error loading participant:', p.userId, error);
-                    const roleLabel = (typeof window !== 'undefined' && typeof window.getRoleLabel === 'function') 
-                        ? window.getRoleLabel(p.role) 
-                        : (p.role || 'Unknown Role');
-                    return `<span class="participant-badge">Unknown User (${roleLabel})</span>`;
+                    return {
+                        ...p,
+                        user: null
+                    };
                 }
             });
             
-            const participantHTML = await Promise.all(participantPromises);
-            list.innerHTML = participantHTML.join('');
+            const participantsWithUsers = await Promise.all(participantPromises);
+            
+            // Group by role
+            participantsWithUsers.forEach(p => {
+                if (participantsByRole[p.role]) {
+                    participantsByRole[p.role].push(p);
+                }
+            });
+            
+            // Build HTML for each role section
+            let html = '';
+            
+            for (const roleInfo of addableRoles) {
+                const roleParticipants = participantsByRole[roleInfo.role] || [];
+                const roleId = roleInfo.role.replace(/-/g, '_');
+                
+                html += `<div class="role-section" data-role="${roleInfo.role}">`;
+                html += `<div class="role-section-header">`;
+                html += `<span class="role-section-title">${escapeHtml(roleInfo.label)}</span>`;
+                html += `<span style="font-size: 10px; color: #666;">(${roleParticipants.length})</span>`;
+                html += `</div>`;
+                
+                // Participants list
+                html += `<div class="role-participants" id="participants_${roleId}">`;
+                if (roleParticipants.length === 0) {
+                    html += `<p style="font-size: 10px; color: #666; margin: 0;">No ${roleInfo.label}s</p>`;
+                } else {
+                    roleParticipants.forEach(p => {
+                        const name = p.user ? p.user.name : 'Unknown User';
+                        const isSelf = p.userId === user.id;
+                        
+                        let actionButton = '';
+                        if (isSelf) {
+                            actionButton = `<button class="participant-leave" onclick="leaveSpace()" title="Leave this space">Leave</button>`;
+                        } else if (canManage) {
+                            actionButton = `<button class="participant-remove" onclick="removeParticipant('${p.userId}')" title="Remove participant">×</button>`;
+                        }
+                        
+                        html += `<div class="participant-badge">`;
+                        html += `<span class="participant-info">${escapeHtml(name)}</span>`;
+                        html += actionButton;
+                        html += `</div>`;
+                    });
+                }
+                html += `</div>`;
+                
+                // Add section (only if can manage)
+                if (canManage) {
+                    html += `<div class="role-add-section">`;
+                    html += `<select id="userSelect_${roleId}" class="role-add-select">`;
+                    html += `<option value="">-- Add ${roleInfo.label} --</option>`;
+                    html += `</select>`;
+                    html += `<button class="role-add-btn" onclick="addParticipantForRole('${roleInfo.role}')">Add</button>`;
+                    html += `</div>`;
+                }
+                
+                html += `</div>`;
+            }
+            
+            list.innerHTML = html;
+            
+            // Load users for each role dropdown
+            if (canManage) {
+                await loadUsersForAllRoles();
+            }
         }
+        
+        async function loadUsersForAllRoles() {
+            // Check if ROLES and ROLE_LABELS are available
+            if (typeof ROLES === 'undefined' || typeof ROLE_LABELS === 'undefined') {
+                console.error('Roles not available');
+                return;
+            }
+            
+            // Wait for getAllUsers to be available
+            let attempts = 0;
+            while (typeof getAllUsers === 'undefined' && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            if (typeof getAllUsers === 'undefined') {
+                console.error('getAllUsers not available');
+                return;
+            }
+            
+            const allUsers = await getAllUsers();
+            
+            if (!Array.isArray(allUsers)) {
+                console.error('getAllUsers did not return an array:', allUsers);
+                return;
+            }
+            
+            // Get current participants to exclude them
+            const currentParticipants = currentShipment.participants || [];
+            const participantIds = currentParticipants.map(p => p.userId);
+            
+            // Define the 4 addable roles
+            const addableRoles = [
+                ROLES.SHIPPER,
+                ROLES.CONSIGNEE,
+                ROLES.CUSTOMS_BROKER,
+                ROLES.COURIER
+            ];
+            
+            // Populate each role's dropdown
+            for (const role of addableRoles) {
+                const roleId = role.replace(/-/g, '_');
+                const select = document.getElementById(`userSelect_${roleId}`);
+                
+                if (!select) continue;
+                
+                // Filter users by role and exclude existing participants
+                const filteredUsers = allUsers.filter(u => 
+                    u.role === role && 
+                    u.isActive !== false && 
+                    !participantIds.includes(u.id)
+                );
+                
+                // Clear and populate dropdown
+                select.innerHTML = '<option value="">-- Add ' + (ROLE_LABELS[role] || role) + ' --</option>';
+                if (filteredUsers.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = '-- No Users Available --';
+                    select.appendChild(option);
+                } else {
+                    filteredUsers.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = `${user.name}${user.company ? ' - ' + user.company : ''} (${user.email})`;
+                        select.appendChild(option);
+                    });
+                }
+            }
+        }
+        
+        async function addParticipantForRole(role) {
+            const roleId = role.replace(/-/g, '_');
+            const select = document.getElementById(`userSelect_${roleId}`);
+            
+            if (!select || !select.value) {
+                alert('Please select a user to add.');
+                return;
+            }
+            
+            const userId = select.value;
+            
+            try {
+                const selectedUser = await getUserById(userId);
+                if (selectedUser && selectedUser.role === role) {
+                    await addParticipantToSpace(selectedUser.id, role, user.id);
+                    // Clear the dropdown selection
+                    select.value = '';
+                    // Reload participants to update all sections (don't reload full space)
+                    await loadParticipants();
+                } else {
+                    alert('Invalid user selected.');
+                }
+            } catch (error) {
+                console.error('Error getting user:', error);
+                alert('Error loading user. Please try again.');
+            }
+        }
+        
+        // Make function available globally
+        window.addParticipantForRole = addParticipantForRole;
 
-        function removeParticipant(userId) {
+        async function removeParticipant(userId) {
             if (!confirm('Are you sure you want to remove this participant from the shipment space?')) {
                 return;
             }
 
-            // Get all shipments to update directly
-            const shipments = typeof getAllShipments === 'function' ? getAllShipments() : [];
-            const shipmentIndex = shipments.findIndex(s => s.spaceId === spaceId);
-            
-            if (shipmentIndex === -1) {
-                alert('Shipment not found.');
-                return;
+            try {
+                const SHIPMENTS_STORAGE_KEY = 'awb_shipments';
+                
+                // Use currentShipment as source of truth to preserve existing participants
+                if (!currentShipment) {
+                    alert('Shipment not loaded. Please refresh the page.');
+                    return;
+                }
+                
+                // Get current participants from currentShipment
+                let participants = currentShipment.participants || [];
+                
+                // Remove the participant
+                const originalCount = participants.length;
+                participants = participants.filter(p => p.userId !== userId);
+                
+                if (participants.length === originalCount) {
+                    alert('Participant not found in shipment.');
+                    return;
+                }
+                
+                console.log('Removing participant:', userId);
+                console.log('Remaining participants:', participants);
+
+                // Update currentShipment with the filtered participants
+                currentShipment.participants = participants;
+                
+                // Get shipments array for saving
+                let shipments = [];
+                if (typeof getAllShipments === 'function') {
+                    const result = await getAllShipments();
+                    shipments = Array.isArray(result) ? result : [];
+                } else {
+                    // Fallback to localStorage
+                    try {
+                        const shipmentsJson = localStorage.getItem(SHIPMENTS_STORAGE_KEY);
+                        shipments = shipmentsJson ? JSON.parse(shipmentsJson) : [];
+                        if (!Array.isArray(shipments)) {
+                            shipments = [];
+                        }
+                    } catch (e) {
+                        console.error('Error reading shipments from localStorage:', e);
+                        shipments = [];
+                    }
+                }
+                
+                // Update the shipment in the shipments array
+                const shipmentIndex = shipments.findIndex(s => s.spaceId === spaceId);
+                if (shipmentIndex === -1) {
+                    alert('Shipment not found in shipments list.');
+                    return;
+                }
+                
+                // Update the shipment with currentShipment's participants (preserving all other data)
+                shipments[shipmentIndex].participants = currentShipment.participants;
+                
+                // Save to localStorage
+                localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+                
+                // Update via API if available
+                if (window.shipmentsAPI) {
+                    try {
+                        // Use currentShipment data to ensure we're sending the complete, up-to-date shipment
+                        // The update function expects a single shipment object with spaceId
+                        const shipmentToUpdate = {
+                            ...shipments[shipmentIndex],
+                            spaceId: spaceId, // Ensure spaceId is present
+                            participants: currentShipment.participants
+                        };
+                        await window.shipmentsAPI.update(shipmentToUpdate);
+                    } catch (error) {
+                        console.warn('Could not update shipment via API:', error);
+                    }
+                }
+                
+                alert('Participant removed successfully.');
+                // Reload participants to update all role sections
+                // Don't call loadSpace() as it will fetch from API which might not be updated yet
+                await loadParticipants();
+            } catch (error) {
+                console.error('Error removing participant:', error);
+                alert('Error removing participant. Please try again.');
             }
-
-            // Get current participants
-            let participants = shipments[shipmentIndex].participants || [];
-            
-            // Remove the participant
-            const originalCount = participants.length;
-            participants = participants.filter(p => p.userId !== userId);
-            
-            if (participants.length === originalCount) {
-                alert('Participant not found in shipment.');
-                return;
-            }
-            
-            console.log('Removing participant:', userId);
-            console.log('Remaining participants:', participants);
-
-            // Update the shipment directly
-            shipments[shipmentIndex].participants = participants;
-            
-            // Use the same storage key as shipments.js
-            const SHIPMENTS_STORAGE_KEY = 'awb_shipments';
-            localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
-
-            alert('Participant removed successfully.');
-            loadSpace(); // Reload to update UI
         }
 
         // Make function available globally for onclick handlers
         window.removeParticipant = removeParticipant;
+        
+        // Leave space function (for participants to remove themselves)
+        async function leaveSpace() {
+            if (!confirm('Are you sure you want to leave this shipment space?')) {
+                return;
+            }
+            
+            await removeParticipant(user.id);
+        }
+        
+        // Make function available globally
+        window.leaveSpace = leaveSpace;
+        
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Setup add participant functionality (now handled in loadParticipants)
+        async function setupAddParticipant() {
+            // Functionality is now integrated into loadParticipants()
+            // This function is kept for compatibility but does nothing
+        }
+        
+        // Add participant to existing space
+        async function addParticipantToSpace(userId, role, invitedBy) {
+            try {
+                const SHIPMENTS_STORAGE_KEY = 'awb_shipments';
+                
+                // Use currentShipment as source of truth to preserve existing participants
+                if (!currentShipment) {
+                    alert('Shipment not loaded. Please refresh the page.');
+                    return;
+                }
+                
+                // Check if participant already exists in currentShipment
+                const existingParticipants = currentShipment.participants || [];
+                const existing = existingParticipants.find(p => p.userId === userId);
+                if (existing) {
+                    alert('This participant is already added to the space.');
+                    return;
+                }
+                
+                // Add new participant to the existing participants list
+                const newParticipant = {
+                    userId: userId,
+                    role: role,
+                    invitedAt: new Date().toISOString(),
+                    invitedBy: invitedBy
+                };
+                
+                // Update currentShipment with the new participant
+                currentShipment.participants = [...existingParticipants, newParticipant];
+                
+                // Get shipments array for saving
+                let shipments = [];
+                if (typeof getAllShipments === 'function') {
+                    const result = await getAllShipments();
+                    shipments = Array.isArray(result) ? result : [];
+                } else {
+                    // Fallback to localStorage
+                    try {
+                        const shipmentsJson = localStorage.getItem(SHIPMENTS_STORAGE_KEY);
+                        shipments = shipmentsJson ? JSON.parse(shipmentsJson) : [];
+                        if (!Array.isArray(shipments)) {
+                            shipments = [];
+                        }
+                    } catch (e) {
+                        console.error('Error reading shipments from localStorage:', e);
+                        shipments = [];
+                    }
+                }
+                
+                // Update the shipment in the shipments array with currentShipment data
+                const shipmentIndex = shipments.findIndex(s => s.spaceId === spaceId);
+                if (shipmentIndex === -1) {
+                    alert('Shipment not found in shipments list.');
+                    return;
+                }
+                
+                // Update the shipment with currentShipment's participants (preserving all other data)
+                shipments[shipmentIndex].participants = currentShipment.participants;
+                
+                // Save to localStorage first
+                localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+                
+                // Update via API if available
+                if (window.shipmentsAPI) {
+                    try {
+                        // Use currentShipment data to ensure we're sending the complete, up-to-date shipment
+                        // The update function expects a single shipment object with spaceId
+                        const shipmentToUpdate = {
+                            ...shipments[shipmentIndex],
+                            spaceId: spaceId, // Ensure spaceId is present
+                            participants: currentShipment.participants
+                        };
+                        await window.shipmentsAPI.update(shipmentToUpdate);
+                    } catch (error) {
+                        console.warn('Could not update shipment via API:', error);
+                        // Continue even if API update fails - localStorage is saved
+                    }
+                }
+                
+                // Reload participants list immediately without full page reload
+                // Don't call loadSpace() as it will fetch from API which might not be updated yet
+                await loadParticipants();
+            } catch (error) {
+                console.error('Error adding participant:', error);
+                alert('Error adding participant. Please try again.');
+            }
+        }
 
         // Button handlers
         document.getElementById('createAWBBtn').addEventListener('click', function() {

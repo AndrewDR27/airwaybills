@@ -242,9 +242,14 @@
         (async function() {
             // Wait for auth functions to be available
             let attempts = 0;
-            while ((typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined' || typeof requireRole === 'undefined') && attempts < 50) {
+            while ((typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined' || typeof getCurrentUserAsync === 'undefined') && attempts < 50) {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 attempts++;
+            }
+            
+            if (typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined') {
+                document.body.innerHTML = '<div style="padding: 20px; text-align: center;"><h2>Error</h2><p>Authentication system not available. Please refresh the page.</p></div>';
+                return;
             }
             
             // Wait for API to be ready
@@ -274,10 +279,49 @@
             // Give auth.js time to initialize
             await new Promise(resolve => setTimeout(resolve, 200));
             
-            // Check authentication
-            try {
-                if (typeof isAuthenticated === 'undefined' || !isAuthenticated()) {
-                    alert('You must be logged in to access this page.');
+            // Get user with robust checking
+            let user = getCurrentUser();
+            if (!user && typeof getCurrentUserAsync !== 'undefined') {
+                try {
+                    user = await getCurrentUserAsync();
+                } catch (error) {
+                    console.warn('Error getting user from async method:', error);
+                }
+            }
+            
+            // If still no user, check localStorage for auth data
+            if (!user) {
+                const authData = localStorage.getItem('awb_auth');
+                if (authData) {
+                    try {
+                        const auth = JSON.parse(authData);
+                        if (auth.isAuthenticated && auth.userId) {
+                            // Try to get user from cache or localStorage
+                            const cachedUser = getCurrentUser();
+                            if (cachedUser && cachedUser.id === auth.userId) {
+                                user = cachedUser;
+                            } else {
+                                // Try async method one more time
+                                if (typeof getCurrentUserAsync !== 'undefined') {
+                                    try {
+                                        user = await getCurrentUserAsync();
+                                    } catch (error) {
+                                        console.warn('Error getting user from async method:', error);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing auth data:', e);
+                    }
+                }
+            }
+            
+            // Only redirect if we truly have no user and no auth data
+            if (!user) {
+                const authData = localStorage.getItem('awb_auth');
+                if (!authData) {
+                    console.log('No authentication data found, redirecting to login');
                     if (window.parent && window.parent !== window) {
                         window.parent.location.href = 'login.html';
                     } else {
@@ -285,24 +329,18 @@
                     }
                     return;
                 }
-                
-                // Check admin role
-                if (typeof requireRole === 'undefined' || !requireRole('admin')) {
-                    alert('Only administrators can access Settings.');
-                    if (window.parent && window.parent !== window) {
-                        window.parent.location.href = 'dashboard.html';
-                    } else {
-                        window.location.href = 'dashboard.html';
-                    }
-                    return;
-                }
-            } catch (error) {
-                console.error('Authentication check failed:', error);
-                alert('Authentication check failed. Redirecting to login.');
+                // If we have auth data but no user, show error instead of redirecting
+                document.body.innerHTML = '<div style="padding: 20px; text-align: center;"><h2>Error</h2><p>Unable to load user information. Please try refreshing the page.</p></div>';
+                return;
+            }
+            
+            // Check admin role
+            if (user.role !== 'admin') {
+                alert('Only administrators can access Settings.');
                 if (window.parent && window.parent !== window) {
-                    window.parent.location.href = 'login.html';
+                    window.parent.location.href = 'dashboard.html';
                 } else {
-                    window.location.href = 'login.html';
+                    window.location.href = 'dashboard.html';
                 }
                 return;
             }

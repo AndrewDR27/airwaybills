@@ -77,6 +77,48 @@
             margin-bottom: -2px;
             z-index: 1;
         }
+        
+        .contacts-subtabs {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #808080;
+        }
+        
+        .subtab-button {
+            padding: 4px 12px;
+            background: #D4D4D4;
+            border: 2px solid #808080;
+            border-bottom: none;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: normal;
+            color: #000000;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .subtab-button:hover {
+            background: #E8E8E8;
+        }
+        
+        .subtab-button.active {
+            background: #B0B0B0;
+            border: 2px solid #808080;
+            border-bottom: 2px solid #B0B0B0;
+            margin-bottom: -2px;
+            z-index: 1;
+        }
+        
+        .subtab-content {
+            display: none;
+        }
+        
+        .subtab-content.active {
+            display: block;
+        }
         .tab-content {
             display: none;
         }
@@ -304,53 +346,91 @@
         
         <div class="contacts-content">
             <div class="contacts-tabs">
-                <button class="tab-button active" data-tab="all">All <span class="tab-count" id="all-count">(0)</span></button>
-                <button class="tab-button" data-tab="shippers">Shipper AutoFills <span class="tab-count" id="shippers-count">(0)</span></button>
-                <button class="tab-button" data-tab="consignees">Consignee AutoFills <span class="tab-count" id="consignees-count">(0)</span></button>
-                <button class="tab-button" data-tab="profile">My Autofills</button>
+                <button class="tab-button active" data-tab="contacts">Contacts</button>
+                <button class="tab-button" data-tab="routing">Routing</button>
+                <button class="tab-button" data-tab="descriptions">Descriptions</button>
+                <button class="tab-button" data-tab="billing">Billing</button>
             </div>
             
-            <!-- All Tab -->
-            <div id="all-tab" class="tab-content active">
-                <div class="contacts-actions">
-                    <h2>All AWB AutoFills</h2>
+            <!-- Contacts Tab -->
+            <div id="contacts-tab" class="tab-content active">
+                <div class="contacts-subtabs">
+                    <button class="subtab-button active" data-subtab="shippers">Shipper AutoFills <span class="tab-count" id="shippers-count">(0)</span></button>
+                    <button class="subtab-button" data-subtab="consignees">Consignee AutoFills <span class="tab-count" id="consignees-count">(0)</span></button>
+                    <button class="subtab-button" data-subtab="profile-info">Profile Info</button>
                 </div>
-                <div id="all-list" class="contacts-list">
-                    <!-- All contacts will be loaded here -->
-                </div>
-            </div>
-            
-            <!-- Shippers Tab -->
-            <div id="shippers-tab" class="tab-content">
-                <div class="contacts-actions">
-                    <h2>Shipper AutoFills</h2>
-                    <button class="btn-add" onclick="openContactModal('Shipper', null)">+ Add Shipper</button>
-                </div>
-                <div id="shippers-list" class="contacts-list">
-                    <!-- Shippers will be loaded here -->
-                </div>
-            </div>
-            
-            <!-- Consignees Tab -->
-            <div id="consignees-tab" class="tab-content">
-                <div class="contacts-actions">
-                    <h2>Consignee AutoFills</h2>
-                    <button class="btn-add" onclick="openContactModal('Consignee', null)">+ Add Consignee</button>
-                </div>
-                <div id="consignees-list" class="contacts-list">
-                    <!-- Consignees will be loaded here -->
-                </div>
-            </div>
-            
-            <!-- User Profile Tab -->
-            <div id="profile-tab" class="tab-content">
-                <div class="user-profile-section">
-                    <div class="user-profile-header">
-                        <h2>My Autofills</h2>
-                        <button class="btn-add" onclick="openUserProfileModal()">Edit Autofills</button>
+                
+                <!-- Shippers Sub-tab -->
+                <div id="shippers-subtab" class="subtab-content active">
+                    <div class="contacts-actions">
+                        <h2>Shipper AutoFills</h2>
+                        <button class="btn-add" onclick="openContactModal('Shipper', null)">+ Add Shipper</button>
                     </div>
-                    <div id="user-profile-display" class="user-profile-info">
-                        <!-- User profile will be displayed here -->
+                    <div id="shippers-list" class="contacts-list">
+                        <!-- Shippers will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Consignees Sub-tab -->
+                <div id="consignees-subtab" class="subtab-content">
+                    <div class="contacts-actions">
+                        <h2>Consignee AutoFills</h2>
+                        <button class="btn-add" onclick="openContactModal('Consignee', null)">+ Add Consignee</button>
+                    </div>
+                    <div id="consignees-list" class="contacts-list">
+                        <!-- Consignees will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Profile Info Sub-tab -->
+                <div id="profile-info-subtab" class="subtab-content">
+                    <div class="account-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <h2>Contacts Autofills</h2>
+                            <button class="btn-add" onclick="openContactsEditModal()">Edit</button>
+                        </div>
+                        <div id="contacts-autofills-display" class="user-profile-info">
+                            <!-- Contacts autofills will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Routing Tab -->
+            <div id="routing-tab" class="tab-content">
+                <div class="account-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h2>Routing Autofills</h2>
+                        <button class="btn-add" onclick="openRoutingEditModal()">Edit</button>
+                    </div>
+                    <div id="routing-autofills-display" class="user-profile-info">
+                        <!-- Routing autofills will be displayed here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Descriptions Tab -->
+            <div id="descriptions-tab" class="tab-content">
+                <div class="account-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h2>Descriptions Autofills</h2>
+                        <button class="btn-add" onclick="openDescriptionsEditModal()">Edit</button>
+                    </div>
+                    <div id="descriptions-autofills-display" class="user-profile-info">
+                        <!-- Descriptions autofills will be displayed here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Billing Tab -->
+            <div id="billing-tab" class="tab-content">
+                <div class="account-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h2>Billing Autofills</h2>
+                        <button class="btn-add" onclick="openBillingEditModal()">Edit</button>
+                    </div>
+                    <div id="billing-autofills-display" class="user-profile-info">
+                        <!-- Billing autofills will be displayed here -->
                     </div>
                 </div>
             </div>
@@ -407,12 +487,12 @@
                     </div>
                     
                     <div class="form-group" id="contactField33Group" style="display: none;">
-                        <label>Commodity name Autofill Text <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 33</span></label>
+                        <label>Commodity Autofills <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Fields 33, 41</span></label>
                         <div id="commodityList" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
                             <!-- Commodity entries will be added here -->
                         </div>
                         <button type="button" id="addCommodityBtn" style="padding: 4px 8px; margin-bottom: 8px; border: 2px outset var(--win98-button-face); cursor: pointer; background: var(--win98-button-face); font-size: 11px;">+ Add Commodity</button>
-                        <small>Add commodity entries with name, autofill text, and HTS code. These will be available in a dropdown in the Description tab.</small>
+                        <small>Add commodity entries: Column 1 = Commodity (dropdown), Column 2 = Field 33 (autofill text), Column 3 = Field 41. These will be available in a dropdown in the Description tab.</small>
                     </div>
                     
                     <div class="form-group" id="contactSignatureIssuingCarrierGroup" style="display: none;">
@@ -618,7 +698,11 @@
         function saveUserProfile(profile) {
             try {
                 localStorage.setItem('awbUserProfile', JSON.stringify(profile));
-                loadUserProfile();
+                // Refresh all autofill displays after saving
+                loadContactsAutofills();
+                loadRoutingAutofills();
+                loadDescriptionsAutofills();
+                loadBillingAutofills();
                 return true;
             } catch (error) {
                 console.warn('Could not save user profile to localStorage:', error);
@@ -640,7 +724,6 @@
             console.log('Filtered contacts:', { userContacts, shippers, consignees });
             
             // Update tab counts (excluding airlines)
-            document.getElementById('all-count').textContent = `(${userContacts.length})`;
             document.getElementById('shippers-count').textContent = `(${shippers.length})`;
             document.getElementById('consignees-count').textContent = `(${consignees.length})`;
             
@@ -654,26 +737,6 @@
                 }
             } catch (error) {
                 console.warn('Error getting current user:', error);
-            }
-            
-            // Sort all contacts by type, then by company name
-            const allContacts = [...userContacts].sort((a, b) => {
-                // First sort by type
-                const typeOrder = { 'Shipper': 1, 'Consignee': 2 };
-                const typeDiff = (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99);
-                if (typeDiff !== 0) return typeDiff;
-                // Then sort by company name
-                const nameA = (a.companyName || '').toLowerCase();
-                const nameB = (b.companyName || '').toLowerCase();
-                return nameA.localeCompare(nameB);
-            });
-            
-            // Load all contacts
-            const allList = document.getElementById('all-list');
-            if (allContacts.length === 0) {
-                allList.innerHTML = '<div class="empty-state"><h3>No Contacts</h3><p>Click "+ Add" buttons in the individual tabs to create your first contacts.</p></div>';
-            } else {
-                allList.innerHTML = createContactsTable(allContacts, true); // true = show type badge
             }
             
             // Load shippers
@@ -906,7 +969,7 @@
                             commodityList.innerHTML = '';
                             if (profile.field33 && Array.isArray(profile.field33) && profile.field33.length > 0) {
                                 profile.field33.forEach((item, index) => {
-                                    addCommodityEntry(item.commodity || '', item.autofillText || '', item.htsCode || '', index);
+                                    addCommodityEntry(item.commodity || '', item.autofillText || '', item.field41 || '', index);
                                 });
                             }
                         }
@@ -1032,37 +1095,62 @@
                 const origin = contactOriginElement ? contactOriginElement.value.trim() : '';
                 const aoDEP = contactAoDEPElement ? contactAoDEPElement.value.trim() : '';
                 
-                // Collect commodity list
-                const field33 = [];
-                const commodityEntries = document.querySelectorAll('.commodity-entry');
-                commodityEntries.forEach(entry => {
-                    const commodityInput = entry.querySelector('.commodity-name-input');
-                    const autofillInput = entry.querySelector('.commodity-autofill-input');
-                    const htsInput = entry.querySelector('.commodity-hts-input');
-                    if (commodityInput && autofillInput && htsInput) {
-                        const commodity = commodityInput.value.trim();
-                        const autofillText = autofillInput.value.trim();
-                        const htsCode = htsInput.value.trim();
-                        if (commodity || autofillText || htsCode) {
-                            field33.push({ commodity, autofillText, htsCode });
-                        }
-                    }
-                });
+                // Get existing profile to preserve data not being edited
+                const existingProfile = getUserProfile() || {};
                 
+                // Check which fields are visible to determine what to update
+                const contactField33Group = document.getElementById('contactField33Group');
+                const contactHandlingInfoGroup = document.getElementById('contactHandlingInfoGroup');
+                const contactSignatureIssuingCarrierGroup = document.getElementById('contactSignatureIssuingCarrierGroup');
+                const contactSignatureShipperGroup = document.getElementById('contactSignatureShipperGroup');
+                const contactSignaturePlaceGroup = document.getElementById('contactSignaturePlaceGroup');
+                const contactField06Group = document.getElementById('contactField06Group');
+                const originInfoGroup = document.getElementById('originInfoGroup');
+                const aoDEPInfoGroup = document.getElementById('aoDEPInfoGroup');
+                const contactNameGroup = document.getElementById('contactNameGroup');
+                const contactPhoneGroup = document.getElementById('contactPhoneGroup');
+                const contactAddressGroup = document.getElementById('contactAddressGroup');
+                
+                // Collect commodity list (only if commodity entries are visible)
+                let field33 = existingProfile.field33 || []; // Preserve existing by default
+                const commodityList = document.getElementById('commodityList');
+                // Only collect commodity list if the field33 group is visible
+                if (commodityList && contactField33Group && contactField33Group.style.display !== 'none') {
+                    field33 = [];
+                    const commodityEntries = commodityList.querySelectorAll('.commodity-entry');
+                    commodityEntries.forEach(entry => {
+                        const commodityInput = entry.querySelector('.commodity-name-input');
+                        const autofillInput = entry.querySelector('.commodity-autofill-input');
+                        const field41Input = entry.querySelector('.commodity-field41-input');
+                        if (commodityInput && autofillInput && field41Input) {
+                            const commodity = commodityInput.value.trim();
+                            const autofillText = autofillInput.value.trim();
+                            const field41 = field41Input.value.trim();
+                            if (commodity || autofillText || field41) {
+                                field33.push({ commodity, autofillText, field41 });
+                            }
+                        }
+                    });
+                }
+                
+                // Only update fields that are visible in the current modal
+                // Merge with existing profile to preserve all data
                 const profile = {
+                    ...existingProfile, // Preserve all existing data first
                     companyName,
-                    contactName: contactNameValue,
                     email,
-                    phone,
-                    address,
-                    field06: field06,
-                    handlingInfo: handlingInfo,
-                    signatureIssuingCarrier: signatureIssuingCarrier,
-                    signatureShipper: signatureShipper,
-                    signaturePlace: signaturePlace,
-                    origin: origin,
-                    aoDEP: aoDEP,
-                    field33: field33
+                    // Only update these if their groups are visible
+                    ...(contactNameGroup && contactNameGroup.style.display !== 'none' ? { contactName: contactNameValue } : {}),
+                    ...(contactPhoneGroup && contactPhoneGroup.style.display !== 'none' ? { phone } : {}),
+                    ...(contactAddressGroup && contactAddressGroup.style.display !== 'none' ? { address } : {}),
+                    ...(contactField06Group && contactField06Group.style.display !== 'none' ? { field06: field06 } : {}),
+                    ...(contactHandlingInfoGroup && contactHandlingInfoGroup.style.display !== 'none' ? { handlingInfo: handlingInfo } : {}),
+                    ...(contactSignatureIssuingCarrierGroup && contactSignatureIssuingCarrierGroup.style.display !== 'none' ? { signatureIssuingCarrier: signatureIssuingCarrier } : {}),
+                    ...(contactSignatureShipperGroup && contactSignatureShipperGroup.style.display !== 'none' ? { signatureShipper: signatureShipper } : {}),
+                    ...(contactSignaturePlaceGroup && contactSignaturePlaceGroup.style.display !== 'none' ? { signaturePlace: signaturePlace } : {}),
+                    ...(originInfoGroup && originInfoGroup.style.display !== 'none' ? { origin: origin } : {}),
+                    ...(aoDEPInfoGroup && aoDEPInfoGroup.style.display !== 'none' ? { aoDEP: aoDEP } : {}),
+                    field33: field33 // Always update field33 if it was collected, otherwise preserve existing
                     // Note: formattedValue is not included - it's only for AWB form contacts, not user profiles
                 };
                 
@@ -1253,8 +1341,59 @@
                 // Update active tab content
                 document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
                 document.getElementById(`${tabName}-tab`).classList.add('active');
+                
+                // Load content for specific tabs
+                if (tabName === 'contacts') {
+                    // Show first subtab (shippers) by default
+                    switchSubtab('shippers');
+                } else if (tabName === 'routing') {
+                    loadRoutingAutofills();
+                } else if (tabName === 'descriptions') {
+                    loadDescriptionsAutofills();
+                } else if (tabName === 'billing') {
+                    loadBillingAutofills();
+                }
             });
         });
+        
+        // Subtab switching (within Contacts tab)
+        function switchSubtab(subtabName) {
+            // Update active subtab button
+            document.querySelectorAll('.subtab-button').forEach(btn => btn.classList.remove('active'));
+            const activeSubtabButton = document.querySelector(`.subtab-button[data-subtab="${subtabName}"]`);
+            if (activeSubtabButton) {
+                activeSubtabButton.classList.add('active');
+            }
+            
+            // Update active subtab content
+            document.querySelectorAll('.subtab-content').forEach(content => content.classList.remove('active'));
+            const activeSubtab = document.getElementById(`${subtabName}-subtab`);
+            if (activeSubtab) {
+                activeSubtab.classList.add('active');
+            }
+            
+            // Load content for specific subtabs
+            if (subtabName === 'profile-info') {
+                loadContactsAutofills();
+            }
+        }
+        
+        // Subtab button event listeners (set up after DOM is ready)
+        function setupSubtabListeners() {
+            document.querySelectorAll('.subtab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const subtabName = button.getAttribute('data-subtab');
+                    switchSubtab(subtabName);
+                });
+            });
+        }
+        
+        // Set up subtab listeners when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupSubtabListeners);
+        } else {
+            setupSubtabListeners();
+        }
 
         // Modal event handlers
         document.getElementById('contactForm').addEventListener('submit', handleSaveContact);
@@ -1267,16 +1406,16 @@
             }
         });
 
-        function loadUserProfile() {
+        function loadContactsAutofills() {
             const profile = getUserProfile();
-            const profileDisplay = document.getElementById('user-profile-display');
+            const display = document.getElementById('contacts-autofills-display');
             
-            if (!profileDisplay) return;
+            if (!display) return;
             
             if (!profile) {
-                profileDisplay.innerHTML = '<div class="empty-state"><h3>No Profile Set</h3><p>Click "Edit Profile" to set up your user information.</p></div>';
+                display.innerHTML = '<div class="empty-state"><h3>No Profile Set</h3><p>Click "Edit" to set up your contact information.</p></div>';
             } else {
-                profileDisplay.innerHTML = `
+                display.innerHTML = `
                     <div class="user-info-item">
                         <strong>Company Name</strong>
                         <span>${escapeHtml(profile.companyName || 'Not set')}</span>
@@ -1297,6 +1436,20 @@
                         <strong>Address</strong>
                         <span style="white-space: pre-line;">${escapeHtml(profile.address || 'Not set')}</span>
                     </div>
+                `;
+            }
+        }
+
+        function loadRoutingAutofills() {
+            const profile = getUserProfile();
+            const display = document.getElementById('routing-autofills-display');
+            
+            if (!display) return;
+            
+            if (!profile) {
+                display.innerHTML = '<div class="empty-state"><h3>No Profile Set</h3><p>Click "Edit" to set up your routing information.</p></div>';
+            } else {
+                display.innerHTML = `
                     <div class="user-info-item" style="grid-column: 1 / -1;">
                         <strong>AWB form Autofill 06 <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 06</span></strong>
                         <span style="white-space: pre-line;">${escapeHtml(profile.field06 || profile.formattedValue || 'Not set')}</span>
@@ -1309,13 +1462,29 @@
                         <strong>AoDEP <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 08</span></strong>
                         <span>${escapeHtml(profile.aoDEP || 'Not set')}</span>
                     </div>
+                `;
+            }
+        }
+
+        function loadDescriptionsAutofills() {
+            const profile = getUserProfile();
+            const display = document.getElementById('descriptions-autofills-display');
+            
+            if (!display) return;
+            
+            if (!profile) {
+                display.innerHTML = '<div class="empty-state"><h3>No Profile Set</h3><p>Click "Edit" to set up your description information.</p></div>';
+            } else {
+                display.innerHTML = `
                     <div class="user-info-item" style="grid-column: 1 / -1;">
                         <strong>Commodity name Autofill Text <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 33</span></strong>
                         <div style="display: flex; flex-direction: column; gap: 4px;">
                             ${profile.field33 && Array.isArray(profile.field33) && profile.field33.length > 0 
                                 ? profile.field33.map(item => 
                                     `<div style="padding: 4px; background: #f0f0f0; border: 1px solid #ccc;">
-                                        <strong>${escapeHtml(item.commodity || '')}</strong>: ${escapeHtml(item.autofillText || '')}${item.htsCode ? ' (HTS: ' + escapeHtml(item.htsCode) + ')' : ''}
+                                        <strong>${escapeHtml(item.commodity || '')}</strong><br>
+                                        <span style="font-size: 10px; color: #666;">Field 33: ${escapeHtml(item.autofillText || 'Not set')}</span><br>
+                                        <span style="font-size: 10px; color: #666;">Field 41: ${escapeHtml(item.field41 || 'Not set')}</span>
                                     </div>`
                                   ).join('')
                                 : '<span>Not set</span>'
@@ -1326,6 +1495,20 @@
                         <strong>Handling info <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 22</span></strong>
                         <span style="white-space: pre-line;">${escapeHtml(profile.handlingInfo || 'Not set')}</span>
                     </div>
+                `;
+            }
+        }
+
+        function loadBillingAutofills() {
+            const profile = getUserProfile();
+            const display = document.getElementById('billing-autofills-display');
+            
+            if (!display) return;
+            
+            if (!profile) {
+                display.innerHTML = '<div class="empty-state"><h3>No Profile Set</h3><p>Click "Edit" to set up your billing information.</p></div>';
+            } else {
+                display.innerHTML = `
                     <div class="user-info-item">
                         <strong>Signature of Issuing Carrier or his Agent <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 59</span></strong>
                         <span>${escapeHtml(profile.signatureIssuingCarrier || 'Not set')}</span>
@@ -1342,61 +1525,40 @@
             }
         }
 
-        function openUserProfileModal() {
+        // Helper function to show/hide all field groups
+        function setFieldGroupVisibility(groups, visible) {
+            groups.forEach(groupId => {
+                const group = document.getElementById(groupId);
+                if (group) {
+                    group.style.display = visible ? 'block' : 'none';
+                }
+            });
+        }
+
+        function openContactsEditModal() {
             const modal = document.getElementById('contactModal');
             const form = document.getElementById('contactForm');
             const profile = getUserProfile();
-            const accountInfoGroup = document.getElementById('accountInfoGroup');
-            const formattedValueGroup = document.getElementById('formattedValueGroup');
             
             document.getElementById('contactType').value = 'User';
             document.getElementById('contactId').value = 'user';
-            document.getElementById('modalTitle').textContent = 'Edit My Autofills';
+            document.getElementById('modalTitle').textContent = 'Edit Contacts Autofills';
             
-            // Hide account info for user profile
-            if (accountInfoGroup) {
-                accountInfoGroup.style.display = 'none';
-            }
+            // Hide all groups first
+            const allGroups = [
+                'accountInfoGroup', 'formattedValueGroup', 'agentCustomFieldsGroup',
+                'contactNameGroup', 'contactPhoneGroup', 'contactAddressGroup',
+                'contactField06Group', 'contactHandlingInfoGroup',
+                'contactSignatureIssuingCarrierGroup', 'contactSignatureShipperGroup',
+                'contactSignaturePlaceGroup', 'originInfoGroup', 'aoDEPInfoGroup',
+                'contactField33Group'
+            ];
+            setFieldGroupVisibility(allGroups, false);
             
-            // Hide formatted value field for user profile (not needed for user profiles)
-            // This field is only used for AWB form contacts (Shipper/Consignee), not for user profiles
-            if (formattedValueGroup) {
-                formattedValueGroup.style.display = 'none';
-            }
+            // Show only Contacts fields
+            setFieldGroupVisibility(['contactNameGroup', 'contactPhoneGroup', 'contactAddressGroup'], true);
             
-            // Hide agent custom fields
-            const agentCustomFieldsGroup = document.getElementById('agentCustomFieldsGroup');
-            if (agentCustomFieldsGroup) {
-                agentCustomFieldsGroup.style.display = 'none';
-            }
-            
-            // Show user profile specific fields
-            const contactNameGroup = document.getElementById('contactNameGroup');
-            const contactPhoneGroup = document.getElementById('contactPhoneGroup');
-            const contactAddressGroup = document.getElementById('contactAddressGroup');
-            const contactField06Group = document.getElementById('contactField06Group');
-            const contactHandlingInfoGroup = document.getElementById('contactHandlingInfoGroup');
-            const contactSignatureIssuingCarrierGroup = document.getElementById('contactSignatureIssuingCarrierGroup');
-            const contactSignatureShipperGroup = document.getElementById('contactSignatureShipperGroup');
-            const contactSignaturePlaceGroup = document.getElementById('contactSignaturePlaceGroup');
-            const originInfoGroup = document.getElementById('originInfoGroup');
-            const aoDEPInfoGroup = document.getElementById('aoDEPInfoGroup');
-            const contactField33Group = document.getElementById('contactField33Group');
-            if (contactNameGroup) contactNameGroup.style.display = 'block';
-            if (contactPhoneGroup) contactPhoneGroup.style.display = 'block';
-            if (contactAddressGroup) contactAddressGroup.style.display = 'block';
-            if (contactField06Group) contactField06Group.style.display = 'block';
-            if (contactHandlingInfoGroup) contactHandlingInfoGroup.style.display = 'block';
-            if (contactSignatureIssuingCarrierGroup) contactSignatureIssuingCarrierGroup.style.display = 'block';
-            if (contactSignatureShipperGroup) contactSignatureShipperGroup.style.display = 'block';
-            if (contactSignaturePlaceGroup) contactSignaturePlaceGroup.style.display = 'block';
-            if (originInfoGroup) originInfoGroup.style.display = 'block';
-            if (aoDEPInfoGroup) aoDEPInfoGroup.style.display = 'block';
-            if (contactField33Group) {
-                contactField33Group.style.display = 'block';
-                contactField33Group.style.visibility = 'visible';
-            }
-            
+            // Populate form
             if (profile) {
                 document.getElementById('contactCompanyName').value = profile.companyName || '';
                 const contactNameEl = document.getElementById('contactName');
@@ -1406,34 +1568,97 @@
                 if (contactPhoneEl) contactPhoneEl.value = profile.phone || '';
                 const contactAddressEl = document.getElementById('contactAddress');
                 if (contactAddressEl) contactAddressEl.value = profile.address || '';
+            } else {
+                form.reset();
+                document.getElementById('contactId').value = 'user';
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        function openRoutingEditModal() {
+            const modal = document.getElementById('contactModal');
+            const form = document.getElementById('contactForm');
+            const profile = getUserProfile();
+            
+            document.getElementById('contactType').value = 'User';
+            document.getElementById('contactId').value = 'user';
+            document.getElementById('modalTitle').textContent = 'Edit Routing Autofills';
+            
+            // Hide all groups first
+            const allGroups = [
+                'accountInfoGroup', 'formattedValueGroup', 'agentCustomFieldsGroup',
+                'contactNameGroup', 'contactPhoneGroup', 'contactAddressGroup',
+                'contactField06Group', 'contactHandlingInfoGroup',
+                'contactSignatureIssuingCarrierGroup', 'contactSignatureShipperGroup',
+                'contactSignaturePlaceGroup', 'originInfoGroup', 'aoDEPInfoGroup',
+                'contactField33Group'
+            ];
+            setFieldGroupVisibility(allGroups, false);
+            
+            // Show only Routing fields
+            setFieldGroupVisibility(['contactField06Group', 'originInfoGroup', 'aoDEPInfoGroup'], true);
+            
+            // Populate form
+            if (profile) {
                 const contactField06El = document.getElementById('contactField06');
                 if (contactField06El) contactField06El.value = profile.field06 || profile.formattedValue || '';
-                const contactHandlingInfoEl = document.getElementById('contactHandlingInfo');
-                if (contactHandlingInfoEl) contactHandlingInfoEl.value = profile.handlingInfo || '';
-                const contactSignatureIssuingCarrierEl = document.getElementById('contactSignatureIssuingCarrier');
-                if (contactSignatureIssuingCarrierEl) contactSignatureIssuingCarrierEl.value = profile.signatureIssuingCarrier || '';
-                const contactSignatureShipperEl = document.getElementById('contactSignatureShipper');
-                if (contactSignatureShipperEl) contactSignatureShipperEl.value = profile.signatureShipper || '';
-                const contactSignaturePlaceEl = document.getElementById('contactSignaturePlace');
-                if (contactSignaturePlaceEl) contactSignaturePlaceEl.value = profile.signaturePlace || '';
                 const contactOriginEl = document.getElementById('contactOrigin');
                 if (contactOriginEl) contactOriginEl.value = profile.origin || '';
                 const contactAoDEPEl = document.getElementById('contactAoDEP');
                 if (contactAoDEPEl) contactAoDEPEl.value = profile.aoDEP || '';
+            } else {
+                form.reset();
+                document.getElementById('contactId').value = 'user';
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        function openDescriptionsEditModal() {
+            const modal = document.getElementById('contactModal');
+            const form = document.getElementById('contactForm');
+            const profile = getUserProfile();
+            
+            document.getElementById('contactType').value = 'User';
+            document.getElementById('contactId').value = 'user';
+            document.getElementById('modalTitle').textContent = 'Edit Descriptions Autofills';
+            
+            // Hide all groups first
+            const allGroups = [
+                'accountInfoGroup', 'formattedValueGroup', 'agentCustomFieldsGroup',
+                'contactNameGroup', 'contactPhoneGroup', 'contactAddressGroup',
+                'contactField06Group', 'contactHandlingInfoGroup',
+                'contactSignatureIssuingCarrierGroup', 'contactSignatureShipperGroup',
+                'contactSignaturePlaceGroup', 'originInfoGroup', 'aoDEPInfoGroup',
+                'contactField33Group'
+            ];
+            setFieldGroupVisibility(allGroups, false);
+            
+            // Show only Descriptions fields
+            setFieldGroupVisibility(['contactHandlingInfoGroup', 'contactField33Group'], true);
+            const contactField33Group = document.getElementById('contactField33Group');
+            if (contactField33Group) {
+                contactField33Group.style.visibility = 'visible';
+            }
+            
+            // Populate form
+            if (profile) {
+                const contactHandlingInfoEl = document.getElementById('contactHandlingInfo');
+                if (contactHandlingInfoEl) contactHandlingInfoEl.value = profile.handlingInfo || '';
                 // Load commodity list
                 const commodityList = document.getElementById('commodityList');
                 if (commodityList) {
                     commodityList.innerHTML = '';
                     if (profile.field33 && Array.isArray(profile.field33) && profile.field33.length > 0) {
                         profile.field33.forEach((item, index) => {
-                            addCommodityEntry(item.commodity || '', item.autofillText || '', item.htsCode || '', index);
+                            addCommodityEntry(item.commodity || '', item.autofillText || '', item.field41 || '', index);
                         });
                     }
                 }
             } else {
                 form.reset();
                 document.getElementById('contactId').value = 'user';
-                // Initialize empty commodity list
                 const commodityList = document.getElementById('commodityList');
                 if (commodityList) {
                     commodityList.innerHTML = '';
@@ -1443,31 +1668,59 @@
             // Set up add commodity button event listener
             const addCommodityBtn = document.getElementById('addCommodityBtn');
             if (addCommodityBtn) {
-                // Remove any existing listeners by cloning the button
-                const newBtn = addCommodityBtn.cloneNode(true);
-                addCommodityBtn.parentNode.replaceChild(newBtn, addCommodityBtn);
-                newBtn.addEventListener('click', () => {
+                addCommodityBtn.addEventListener('click', () => {
                     addCommodityEntry();
                 });
             }
             
-            // Force show Field 33 group one more time after a short delay to ensure it's visible
-            setTimeout(() => {
-                const contactField33GroupFinal = document.getElementById('contactField33Group');
-                if (contactField33GroupFinal) {
-                    contactField33GroupFinal.style.display = 'block';
-                    contactField33GroupFinal.style.visibility = 'visible';
-                    console.log('Field 33 group should be visible now');
-                } else {
-                    console.error('contactField33Group element not found!');
-                }
-            }, 100);
-            
-            modal.style.display = 'flex';
+            modal.style.display = 'block';
         }
-        
+
+        function openBillingEditModal() {
+            const modal = document.getElementById('contactModal');
+            const form = document.getElementById('contactForm');
+            const profile = getUserProfile();
+            
+            document.getElementById('contactType').value = 'User';
+            document.getElementById('contactId').value = 'user';
+            document.getElementById('modalTitle').textContent = 'Edit Billing Autofills';
+            
+            // Hide all groups first
+            const allGroups = [
+                'accountInfoGroup', 'formattedValueGroup', 'agentCustomFieldsGroup',
+                'contactNameGroup', 'contactPhoneGroup', 'contactAddressGroup',
+                'contactField06Group', 'contactHandlingInfoGroup',
+                'contactSignatureIssuingCarrierGroup', 'contactSignatureShipperGroup',
+                'contactSignaturePlaceGroup', 'originInfoGroup', 'aoDEPInfoGroup',
+                'contactField33Group'
+            ];
+            setFieldGroupVisibility(allGroups, false);
+            
+            // Show only Billing fields
+            setFieldGroupVisibility([
+                'contactSignatureIssuingCarrierGroup',
+                'contactSignatureShipperGroup',
+                'contactSignaturePlaceGroup'
+            ], true);
+            
+            // Populate form
+            if (profile) {
+                const contactSignatureIssuingCarrierEl = document.getElementById('contactSignatureIssuingCarrier');
+                if (contactSignatureIssuingCarrierEl) contactSignatureIssuingCarrierEl.value = profile.signatureIssuingCarrier || '';
+                const contactSignatureShipperEl = document.getElementById('contactSignatureShipper');
+                if (contactSignatureShipperEl) contactSignatureShipperEl.value = profile.signatureShipper || '';
+                const contactSignaturePlaceEl = document.getElementById('contactSignaturePlace');
+                if (contactSignaturePlaceEl) contactSignaturePlaceEl.value = profile.signaturePlace || '';
+            } else {
+                form.reset();
+                document.getElementById('contactId').value = 'user';
+            }
+            
+            modal.style.display = 'block';
+        }
+
         // Function to add a commodity entry
-        function addCommodityEntry(commodity = '', autofillText = '', htsCode = '', index = null) {
+        function addCommodityEntry(commodity = '', autofillText = '', field41 = '', index = null) {
             const commodityList = document.getElementById('commodityList');
             if (!commodityList) return;
             
@@ -1477,9 +1730,9 @@
             entry.style.cssText = 'display: flex; gap: 8px; align-items: center; padding: 4px; background: #f0f0f0; border: 1px solid #ccc;';
             
             entry.innerHTML = `
-                <input type="text" class="commodity-name-input" placeholder="Commodity" value="${escapeHtml(commodity)}" style="flex: 1; padding: 2px 4px; border: 2px inset var(--win98-button-face); font-size: 11px;">
-                <input type="text" class="commodity-autofill-input" placeholder="Autofills Text" value="${escapeHtml(autofillText)}" style="flex: 1; padding: 2px 4px; border: 2px inset var(--win98-button-face); font-size: 11px;">
-                <input type="text" class="commodity-hts-input" placeholder="HTS Code" value="${escapeHtml(htsCode)}" style="flex: 1; padding: 2px 4px; border: 2px inset var(--win98-button-face); font-size: 11px;">
+                <input type="text" class="commodity-name-input" placeholder="Commodity (Field 1)" value="${escapeHtml(commodity)}" style="flex: 1; padding: 2px 4px; border: 2px inset var(--win98-button-face); font-size: 11px;">
+                <input type="text" class="commodity-autofill-input" placeholder="Field 33" value="${escapeHtml(autofillText)}" style="flex: 1; padding: 2px 4px; border: 2px inset var(--win98-button-face); font-size: 11px;">
+                <input type="text" class="commodity-field41-input" placeholder="Field 41" value="${escapeHtml(field41)}" style="flex: 1; padding: 2px 4px; border: 2px inset var(--win98-button-face); font-size: 11px;">
                 <button type="button" class="remove-commodity-btn" style="padding: 2px 8px; border: 2px outset var(--win98-button-face); cursor: pointer; background: var(--win98-button-face); font-size: 11px;">Remove</button>
             `;
             
@@ -1504,16 +1757,24 @@
         });
         
         // Make functions available globally for onclick handlers
-        window.openUserProfileModal = openUserProfileModal;
         window.openContactModal = openContactModal;
         window.deleteContact = deleteContact;
         window.addCommodityEntry = addCommodityEntry;
+        window.openContactsEditModal = openContactsEditModal;
+        window.openRoutingEditModal = openRoutingEditModal;
+        window.openDescriptionsEditModal = openDescriptionsEditModal;
+        window.openBillingEditModal = openBillingEditModal;
 
         // Load contacts and profile on page load
         // Initialize on page load
         (async () => {
             await loadContacts();
-            loadUserProfile();
+            // Load autofills for the active tab
+            loadContactsAutofills();
+            loadRoutingAutofills();
+            loadDescriptionsAutofills();
+            loadBillingAutofills();
+            setupSubtabListeners();
         })();
     </script>
 </body>

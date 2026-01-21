@@ -27,6 +27,7 @@ const PERMISSIONS = {
         canAddFees: true,
         canApprovePayment: false,
         canInviteUsers: true,
+        canEditLocations: false,
         allowedInviteRoles: [ROLES.CONSIGNEE, ROLES.CUSTOMS_BROKER, ROLES.COURIER]
     },
     [ROLES.ISSUING_CARRIER_AGENT]: {
@@ -37,6 +38,7 @@ const PERMISSIONS = {
         canAddFees: true,
         canApprovePayment: false,
         canInviteUsers: true,
+        canEditLocations: true, // TEMPORARY: For development
         allowedInviteRoles: [ROLES.SHIPPER, ROLES.CONSIGNEE, ROLES.CUSTOMS_BROKER, ROLES.COURIER]
     },
     [ROLES.CONSIGNEE]: {
@@ -47,6 +49,7 @@ const PERMISSIONS = {
         canAddFees: false,
         canApprovePayment: true, // Can approve and pay fees
         canInviteUsers: false,
+        canEditLocations: false,
         allowedInviteRoles: []
     },
     [ROLES.CUSTOMS_BROKER]: {
@@ -57,6 +60,7 @@ const PERMISSIONS = {
         canAddFees: true,
         canApprovePayment: false,
         canInviteUsers: false,
+        canEditLocations: false,
         allowedInviteRoles: []
     },
     [ROLES.COURIER]: {
@@ -67,6 +71,7 @@ const PERMISSIONS = {
         canAddFees: true,
         canApprovePayment: false,
         canInviteUsers: false,
+        canEditLocations: false,
         allowedInviteRoles: []
     },
     [ROLES.ADMIN]: {
@@ -80,9 +85,48 @@ const PERMISSIONS = {
         canViewAllUsers: true,
         canViewAllShipments: true,
         canManageUsers: true,
+        canEditLocations: true, // Admins can edit locations
         allowedInviteRoles: [ROLES.SHIPPER, ROLES.ISSUING_CARRIER_AGENT, ROLES.CONSIGNEE, ROLES.CUSTOMS_BROKER, ROLES.COURIER, ROLES.ADMIN]
     }
 };
+
+// Load custom permissions from storage
+function loadCustomPermissions() {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+        return null;
+    }
+    try {
+        const customPermsJson = localStorage.getItem('awb_custom_permissions');
+        return customPermsJson ? JSON.parse(customPermsJson) : null;
+    } catch (error) {
+        console.warn('Error loading custom permissions:', error);
+        return null;
+    }
+}
+
+// Get effective permissions (custom overrides default)
+function getEffectivePermissions() {
+    const defaultPerms = PERMISSIONS;
+    const customPerms = loadCustomPermissions();
+    
+    if (!customPerms) {
+        return defaultPerms;
+    }
+    
+    // Merge custom permissions with defaults
+    const effective = {};
+    for (const [role, defaultPerm] of Object.entries(defaultPerms)) {
+        effective[role] = {
+            ...defaultPerm,
+            ...(customPerms[role] || {})
+        };
+        // Preserve allowedInviteRoles array if overridden
+        if (customPerms[role] && customPerms[role].allowedInviteRoles) {
+            effective[role].allowedInviteRoles = customPerms[role].allowedInviteRoles;
+        }
+    }
+    return effective;
+}
 
 // Check if user has permission
 function hasPermission(userRole, permission) {
@@ -95,10 +139,13 @@ function hasPermission(userRole, permission) {
         return true;
     }
     
-    if (!PERMISSIONS[userRole]) {
+    // Get effective permissions (includes custom overrides)
+    const effectivePerms = getEffectivePermissions();
+    
+    if (!effectivePerms[userRole]) {
         return false;
     }
-    return PERMISSIONS[userRole][permission] === true;
+    return effectivePerms[userRole][permission] === true;
 }
 
 // Get role label
@@ -118,10 +165,17 @@ function getAllRolesIncludingAdmin() {
 
 // Get roles that can be invited by a specific role
 function getAllowedInviteRoles(userRole) {
-    if (!userRole || !PERMISSIONS[userRole]) {
+    if (!userRole) {
         return [];
     }
-    return PERMISSIONS[userRole].allowedInviteRoles || [];
+    
+    // Get effective permissions (includes custom overrides)
+    const effectivePerms = getEffectivePermissions();
+    
+    if (!effectivePerms[userRole]) {
+        return [];
+    }
+    return effectivePerms[userRole].allowedInviteRoles || [];
 }
 
 // Export for use in other files
@@ -134,4 +188,6 @@ if (typeof window !== 'undefined') {
     window.getAllRoles = getAllRoles;
     window.getAllRolesIncludingAdmin = getAllRolesIncludingAdmin;
     window.getAllowedInviteRoles = getAllowedInviteRoles;
+    window.loadCustomPermissions = loadCustomPermissions;
+    window.getEffectivePermissions = getEffectivePermissions;
 }

@@ -6,6 +6,7 @@
     <title>Terminals List - Airway Bills</title>
     <link rel="stylesheet" href="styles.css">
     <script type="module" src="js/themes.js"></script>
+    <script src="js/roles.js"></script>
     <style>
         body {
             margin: 0;
@@ -291,6 +292,20 @@
             const user = getCurrentUser();
             return user && user.role === 'admin';
         }
+        
+        // Check if user can manage locations based on permissions
+        function canManageLocations() {
+            const user = getCurrentUser();
+            if (!user) return false;
+            
+            // Check permission using hasPermission if available
+            if (typeof hasPermission === 'function') {
+                return hasPermission(user.role, 'canEditLocations');
+            }
+            
+            // Fallback: admin and issuing-carrier-agent (TEMPORARY for development)
+            return user.role === 'admin' || user.role === 'issuing-carrier-agent';
+        }
 
         async function renderTerminals() {
             try {
@@ -302,11 +317,12 @@
                     return;
                 }
 
-                const isUserAdmin = isAdmin();
-                const actionsColumn = '<th>Actions</th>';
-                const tableRows = terminals.map(terminal => {
-                    const escapedId = (terminal.id || '').replace(/'/g, "\\'");
-                    const deleteButton = isUserAdmin ? `<button class="btn-delete" onclick="deleteTerminal('${escapedId}')">Delete</button>` : '';
+            // TEMPORARY: Allow issuing carrier agents during development
+            const canManage = canManageLocations();
+            const actionsColumn = '<th>Actions</th>';
+            const tableRows = terminals.map(terminal => {
+                const escapedId = (terminal.id || '').replace(/'/g, "\\'");
+                const deleteButton = canManage ? `<button class="btn-delete" onclick="deleteTerminal('${escapedId}')">Delete</button>` : '';
                     const actionsCell = `
                         <td>
                             <div class="terminal-actions">
@@ -353,8 +369,9 @@
 
         async function openTerminalModal(terminalId) {
             // Only check admin for adding new terminals
-            if (!terminalId && !isAdmin()) {
-                alert('Only administrators can add new terminals.');
+            // TEMPORARY: Allow issuing carrier agents during development
+            if (!terminalId && !canManageLocations()) {
+                alert('Only administrators and issuing carrier agents can add new terminals.');
                 return;
             }
 
@@ -393,8 +410,9 @@
         }
 
         async function deleteTerminal(terminalId) {
-            if (!isAdmin()) {
-                alert('Only administrators can delete terminals.');
+            // TEMPORARY: Allow issuing carrier agents during development
+            if (!canManageLocations()) {
+                alert('Only administrators and issuing carrier agents can delete terminals.');
                 return;
             }
 
@@ -442,8 +460,9 @@
                     await terminalsAPI.update(terminal);
                 } else {
                     // Creating new terminal - only admins
-                    if (!isAdmin()) {
-                        alert('Only administrators can add new terminals.');
+                    // TEMPORARY: Allow issuing carrier agents during development
+                    if (!canManageLocations()) {
+                        alert('Only administrators and issuing carrier agents can add new terminals.');
                         return;
                     }
                     // Check if code already exists
@@ -530,8 +549,9 @@
                     return;
                 }
                 
-                const isUserAdmin = user && user.role === 'admin';
-                if (isUserAdmin) {
+                // TEMPORARY: Allow issuing carrier agents during development
+                const canManage = user && (user.role === 'admin' || user.role === 'issuing-carrier-agent');
+                if (canManage) {
                     addBtn.style.display = 'block';
                     console.log('✓ Admin user detected - showing Add Terminal button');
                 } else {

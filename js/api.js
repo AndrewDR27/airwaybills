@@ -123,6 +123,67 @@ export const destinationsAPI = {
     }
 };
 
+// Origins API
+export const originsAPI = {
+    async getAll() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/origins`);
+            if (!response.ok) throw new Error('Failed to fetch origins');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching origins:', error);
+            // Database required - no localStorage fallback
+            throw error;
+        }
+    },
+
+    async create(origin) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/origins`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(origin)
+            });
+            if (!response.ok) throw new Error('Failed to create origin');
+            return await response.json();
+        } catch (error) {
+            console.error('Error creating origin:', error);
+            // Database required - no localStorage fallback
+            throw error;
+        }
+    },
+
+    async update(origin) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/origins`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(origin)
+            });
+            if (!response.ok) throw new Error('Failed to update origin');
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating origin:', error);
+            // Database required - no localStorage fallback
+            throw error;
+        }
+    },
+
+    async delete(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/origins?id=${id}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Failed to delete origin');
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting origin:', error);
+            // Database required - no localStorage fallback
+            throw error;
+        }
+    }
+};
+
 // Terminals API
 export const terminalsAPI = {
     async getAll() {
@@ -538,6 +599,7 @@ if (typeof window !== 'undefined') {
     window.contactsAPI = contactsAPI;
     window.airlinesAPI = airlinesAPI;
     window.destinationsAPI = destinationsAPI;
+    window.originsAPI = originsAPI;
     window.terminalsAPI = terminalsAPI;
     
     console.log('🔧 api.js: APIs exposed. usersAPI available:', !!window.usersAPI);

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Information - Airway Bills</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/themes.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 2px;
+            font-family: 'MS Sans Serif', 'Arial', sans-serif;
+            background: #008080;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
+            min-height: 100vh;
+        }
+        .account-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #C0C0C0;
+            border: 2px outset #C0C0C0;
+            overflow: hidden;
+        }
+        .account-header {
+            background: linear-gradient(to bottom, #000080 0%, #000080 100%);
+            color: white;
+            padding: 4px 8px;
+            text-align: center;
+            border-bottom: 2px solid #000000;
+        }
+        .account-header h1 {
+            font-size: 16px;
+            margin-bottom: 2px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .account-content {
+            padding: 8px;
+        }
+        .account-section {
+            background: white;
+            border: 2px inset #C0C0C0;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+        .account-section h2 {
+            margin: 0 0 8px 0;
+            color: #000000;
+            font-size: 12px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            text-transform: uppercase;
+            border-bottom: 1px solid #C0C0C0;
+            padding-bottom: 4px;
+        }
+        .account-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 8px;
+        }
+        .account-info-item {
+            display: flex;
+            flex-direction: column;
+            padding: 4px;
+        }
+        .account-info-item label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #000000;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .account-info-item .value {
+            font-size: 11px;
+            color: #000000;
+            padding: 2px 4px;
+            background: #F0F0F0;
+            border: 1px inset #C0C0C0;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .btn-edit {
+            padding: 4px 12px;
+            background: #D4D4D4;
+            color: #000000;
+            border: 2px solid #808080;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            margin-top: 8px;
+        }
+        .btn-edit:hover {
+            background: #E8E8E8;
+        }
+        .btn-edit:active {
+            border: 2px solid #606060;
+            background: #B0B0B0;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #000000;
+        }
+        .error {
+            background: #FFE0E0;
+            color: #800000;
+            padding: 8px;
+            margin: 8px;
+            border: 2px inset #C0C0C0;
+        }
+    </style>
+</head>
+<body>
+    <div class="account-container">
+        <div class="account-header">
+            <h1>👤 Account Information</h1>
+            <p>View and manage your account details</p>
+        </div>
+        
+        <div class="account-content">
+            <div id="loading" class="loading">
+                <p>Loading account information...</p>
+            </div>
+            
+            <div id="error" class="error" style="display: none;"></div>
+            
+            <div id="accountInfo" style="display: none;">
+                <div class="account-section">
+                    <h2>Personal Information</h2>
+                    <div class="account-info-grid" id="personalInfo">
+                        <!-- Personal info will be loaded here -->
+                    </div>
+                </div>
+                
+                <div class="account-section">
+                    <h2>Account Details</h2>
+                    <div class="account-info-grid" id="accountDetails">
+                        <!-- Account details will be loaded here -->
+                    </div>
+                </div>
+                
+                <button class="btn-edit" onclick="editAccount()">Edit Account</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/api.js"></script>
+    <script src="models/user.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/roles.js"></script>
+
+    <script>
+        // Wait for auth functions to be available
+        (async function() {
+            let attempts = 0;
+            while ((typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined' || typeof getCurrentUserAsync === 'undefined') && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            if (typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined') {
+                document.getElementById('error').textContent = 'Authentication system not available. Please refresh the page.';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
+                return;
+            }
+            
+            // Get current user - try multiple methods
+            let user = getCurrentUser();
+            
+            // If no user from sync method, try async
+            if (!user && typeof getCurrentUserAsync !== 'undefined') {
+                try {
+                    user = await getCurrentUserAsync();
+                } catch (error) {
+                    console.warn('Error getting user from async method:', error);
+                }
+            }
+            
+            // If still no user, check localStorage for auth data
+            if (!user) {
+                const authData = localStorage.getItem('awb_auth');
+                if (authData) {
+                    try {
+                        const auth = JSON.parse(authData);
+                        if (auth.isAuthenticated && auth.userId) {
+                            // Try to get user from cache or localStorage
+                            const cachedUser = getCurrentUser();
+                            if (cachedUser && cachedUser.id === auth.userId) {
+                                user = cachedUser;
+                            } else {
+                                // Try to get from localStorage users
+                                const usersJson = localStorage.getItem('awb_users');
+                                if (usersJson) {
+                                    try {
+                                        const users = JSON.parse(usersJson);
+                                        const foundUser = users.find(u => u && u.id === auth.userId);
+                                        if (foundUser) {
+                                            user = foundUser;
+                                        }
+                                    } catch (e) {
+                                        console.warn('Error parsing users from localStorage:', e);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing auth data:', e);
+                    }
+                }
+            }
+            
+            // Only redirect if we truly have no user and no auth data
+            if (!user) {
+                const authData = localStorage.getItem('awb_auth');
+                if (!authData) {
+                    console.log('No authentication data found, redirecting to login');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                // If we have auth data but no user, show error instead of redirecting
+                document.getElementById('error').textContent = 'Unable to load user information. Please try refreshing the page.';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
+                return;
+            }
+            
+            // Load account information
+            loadAccountInfo(user);
+        })();
+        
+        function loadAccountInfo(user) {
+            const personalInfo = document.getElementById('personalInfo');
+            const accountDetails = document.getElementById('accountDetails');
+            
+            // Personal Information
+            personalInfo.innerHTML = `
+                <div class="account-info-item">
+                    <label>Name</label>
+                    <div class="value">${escapeHtml(user.name || 'Not set')}</div>
+                </div>
+                <div class="account-info-item">
+                    <label>Email</label>
+                    <div class="value">${escapeHtml(user.email || 'Not set')}</div>
+                </div>
+                <div class="account-info-item">
+                    <label>Company</label>
+                    <div class="value">${escapeHtml(user.company || 'Not set')}</div>
+                </div>
+                <div class="account-info-item">
+                    <label>Phone</label>
+                    <div class="value">${escapeHtml(user.phone || 'Not set')}</div>
+                </div>
+            `;
+            
+            // Account Details
+            const roleLabel = (typeof getRoleLabel === 'function') ? getRoleLabel(user.role) : (user.role || 'Unknown');
+            accountDetails.innerHTML = `
+                <div class="account-info-item">
+                    <label>Role</label>
+                    <div class="value">${escapeHtml(roleLabel)}</div>
+                </div>
+                <div class="account-info-item">
+                    <label>User ID</label>
+                    <div class="value">${escapeHtml(user.id || 'Not set')}</div>
+                </div>
+                <div class="account-info-item">
+                    <label>Account Status</label>
+                    <div class="value">${user.isActive !== false ? 'Active' : 'Inactive'}</div>
+                </div>
+                ${user.createdAt ? `
+                <div class="account-info-item">
+                    <label>Account Created</label>
+                    <div class="value">${new Date(user.createdAt).toLocaleDateString()}</div>
+                </div>
+                ` : ''}
+            `;
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('accountInfo').style.display = 'block';
+        }
+        
+        function editAccount() {
+            // Redirect to users page to edit account
+            if (window.parent && window.parent !== window) {
+                // In iframe - tell parent to navigate
+                window.parent.document.getElementById('contentFrame').src = 'users.html';
+            } else {
+                // Not in iframe - direct navigation
+                window.location.href = 'users.html';
+            }
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

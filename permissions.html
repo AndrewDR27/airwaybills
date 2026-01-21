@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permissions - Airway Bills</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/themes.js"></script>
+    <script src="js/roles.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <style>
+        body {
+            font-family: 'MS Sans Serif', 'Arial', sans-serif;
+            background: #008080;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
+            padding: 2px;
+        }
+        .permissions-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #C0C0C0;
+            border: 2px outset #C0C0C0;
+            padding: 8px;
+        }
+        .permissions-header {
+            background: linear-gradient(to bottom, #000080 0%, #000080 100%);
+            color: white;
+            padding: 4px 8px;
+            border-bottom: 2px solid #000000;
+            margin: -8px -8px 8px -8px;
+        }
+        .permissions-header h1 {
+            font-size: 14px;
+            font-weight: bold;
+            margin: 0;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .permissions-section {
+            margin-bottom: 16px;
+            border: 2px inset #C0C0C0;
+            padding: 8px;
+            background: white;
+        }
+        .permissions-section h2 {
+            font-size: 12px;
+            font-weight: bold;
+            margin: 0 0 8px 0;
+            color: #000000;
+            border-bottom: 1px solid #C0C0C0;
+            padding-bottom: 4px;
+        }
+        .permissions-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        .permissions-table thead {
+            background: #C0C0C0;
+            border-bottom: 2px inset #C0C0C0;
+        }
+        .permissions-table th {
+            padding: 4px 8px;
+            text-align: left;
+            font-weight: bold;
+            color: #000000;
+            font-size: 11px;
+            text-transform: uppercase;
+            border-right: 1px solid #808080;
+        }
+        .permissions-table th:first-child {
+            min-width: 150px;
+        }
+        .permissions-table th:last-child {
+            border-right: none;
+        }
+        .permissions-table td {
+            padding: 4px 8px;
+            border-bottom: 1px solid #C0C0C0;
+            border-right: 1px solid #C0C0C0;
+            color: #000000;
+            font-size: 11px;
+        }
+        .permissions-table td:last-child {
+            border-right: none;
+        }
+        .permissions-table tbody tr {
+            background: white;
+        }
+        .permissions-table tbody tr:hover {
+            background: #E8E8E8;
+        }
+        .permissions-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .permission-yes {
+            color: #006400;
+            font-weight: bold;
+        }
+        .permission-no {
+            color: #800000;
+        }
+        .role-name {
+            font-weight: bold;
+            color: #000080;
+        }
+        .info-text {
+            font-size: 10px;
+            color: #000000;
+            margin: 8px 0;
+            padding: 4px;
+            background: #F0F0F0;
+            border: 1px inset #C0C0C0;
+        }
+        .permission-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .btn-save {
+            padding: 4px 16px;
+            border: 2px outset #C0C0C0;
+            background: #C0C0C0;
+            color: #000000;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            margin-top: 8px;
+        }
+        .btn-save:hover {
+            background: #E8E8E8;
+        }
+        .btn-save:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
+        }
+        .btn-reset {
+            padding: 4px 16px;
+            border: 2px outset #C0C0C0;
+            background: #C0C0C0;
+            color: #000000;
+            font-size: 11px;
+            font-weight: normal;
+            cursor: pointer;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            margin-top: 8px;
+            margin-left: 4px;
+        }
+        .btn-reset:hover {
+            background: #E8E8E8;
+        }
+        .btn-reset:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
+        }
+        .invite-roles-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px;
+        }
+        .invite-role-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            font-size: 10px;
+        }
+        .invite-role-checkbox input {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="permissions-container">
+        <div class="permissions-header">
+            <h1>🔐 Permissions</h1>
+            <p>Role-based permissions overview</p>
+        </div>
+        
+        <div class="permissions-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h2>Role Permissions Matrix</h2>
+                <div>
+                    <button class="btn-save" id="savePermissionsBtn">Save Permissions</button>
+                    <button class="btn-reset" id="resetPermissionsBtn">Reset to Default</button>
+                </div>
+            </div>
+            <div class="info-text">
+                This table shows what each role can do in the system. Check/uncheck boxes to modify permissions, then click "Save Permissions". Changes take effect immediately.
+            </div>
+            <table class="permissions-table" id="permissionsTable">
+                <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>Create Shipment</th>
+                        <th>View Shipments</th>
+                        <th>Edit Shipment</th>
+                        <th>Create AWB</th>
+                        <th>Add Fees</th>
+                        <th>Approve Payment</th>
+                        <th>Invite Users</th>
+                        <th>Edit Locations</th>
+                        <th>Manage Users</th>
+                        <th>View All Users</th>
+                        <th>View All Shipments</th>
+                    </tr>
+                </thead>
+                <tbody id="permissionsBody">
+                    <!-- Permissions will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="permissions-section">
+            <h2>Invitation Permissions</h2>
+            <div class="info-text">
+                Shows which roles each role can invite to the system.
+            </div>
+            <table class="permissions-table" id="invitationsTable">
+                <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>Can Invite</th>
+                    </tr>
+                </thead>
+                <tbody id="invitationsBody">
+                    <!-- Invitation permissions will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="permissions-section">
+            <h2>Special Notes</h2>
+            <div class="info-text">
+                <strong>Administrator Role:</strong> Has all permissions and can manage all users and shipments.<br>
+                <strong>Issuing Carrier Agent:</strong> Only role that can create Air Waybills (AWBs).<br>
+                <strong>Temporary Development Access:</strong> Issuing Carrier Agents can currently add/edit locations (Airlines, Origins, Destinations, Terminals) for development purposes.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for auth and roles to be available
+        (async function() {
+            let attempts = 0;
+            while ((typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined' || typeof PERMISSIONS === 'undefined') && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            // Get current user - try multiple methods
+            let user = getCurrentUser();
+            
+            // If no user from sync method, try async
+            if (!user && typeof getCurrentUserAsync !== 'undefined') {
+                try {
+                    user = await getCurrentUserAsync();
+                } catch (error) {
+                    console.warn('Error getting user from async method:', error);
+                }
+            }
+            
+            // If still no user, check localStorage for auth data
+            if (!user) {
+                const authData = localStorage.getItem('awb_auth');
+                if (authData) {
+                    try {
+                        const auth = JSON.parse(authData);
+                        if (auth.isAuthenticated && auth.userId) {
+                            // Try to get user from cache or localStorage
+                            const cachedUser = getCurrentUser();
+                            if (cachedUser && cachedUser.id === auth.userId) {
+                                user = cachedUser;
+                            } else {
+                                // Try to get from localStorage users
+                                const usersJson = localStorage.getItem('awb_users');
+                                if (usersJson) {
+                                    try {
+                                        const users = JSON.parse(usersJson);
+                                        const foundUser = users.find(u => u && u.id === auth.userId);
+                                        if (foundUser) {
+                                            user = foundUser;
+                                        }
+                                    } catch (e) {
+                                        console.warn('Error parsing users from localStorage:', e);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing auth data:', e);
+                    }
+                }
+            }
+            
+            // Only redirect if we truly have no user and no auth data
+            if (!user) {
+                const authData = localStorage.getItem('awb_auth');
+                if (!authData) {
+                    console.log('No authentication data found, redirecting to login');
+                    if (window.parent && window.parent !== window) {
+                        window.parent.location.href = 'login.html';
+                    } else {
+                        window.location.href = 'login.html';
+                    }
+                    return;
+                }
+                // If we have auth data but no user, show error instead of redirecting
+                document.body.innerHTML = '<div style="padding: 20px; text-align: center;"><h2>Error</h2><p>Unable to load user information. Please try refreshing the page.</p></div>';
+                return;
+            }
+            
+            // Check admin role
+            if (user.role !== 'admin') {
+                alert('Only administrators can access Permissions.');
+                if (window.parent && window.parent !== window) {
+                    window.parent.location.href = 'dashboard.html';
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
+                return;
+            }
+            
+            // Load permissions
+            loadPermissions();
+        })();
+        
+        // Load custom permissions from storage
+        function loadCustomPermissions() {
+            try {
+                const customPermsJson = localStorage.getItem('awb_custom_permissions');
+                return customPermsJson ? JSON.parse(customPermsJson) : null;
+            } catch (error) {
+                console.warn('Error loading custom permissions:', error);
+                return null;
+            }
+        }
+        
+        // Save custom permissions to storage
+        function saveCustomPermissions(customPerms) {
+            try {
+                localStorage.setItem('awb_custom_permissions', JSON.stringify(customPerms));
+                return true;
+            } catch (error) {
+                console.error('Error saving custom permissions:', error);
+                alert('Error saving permissions. Storage may be full.');
+                return false;
+            }
+        }
+        
+        // Get effective permissions (custom overrides default)
+        function getEffectivePermissions() {
+            const defaultPerms = PERMISSIONS;
+            const customPerms = loadCustomPermissions();
+            
+            if (!customPerms) {
+                return defaultPerms;
+            }
+            
+            // Merge custom permissions with defaults
+            const effective = {};
+            for (const [role, defaultPerm] of Object.entries(defaultPerms)) {
+                effective[role] = {
+                    ...defaultPerm,
+                    ...(customPerms[role] || {})
+                };
+                // Preserve allowedInviteRoles array if not overridden
+                if (customPerms[role] && customPerms[role].allowedInviteRoles) {
+                    effective[role].allowedInviteRoles = customPerms[role].allowedInviteRoles;
+                }
+            }
+            return effective;
+        }
+        
+        function loadPermissions() {
+            if (typeof PERMISSIONS === 'undefined' || typeof ROLE_LABELS === 'undefined') {
+                console.error('Roles and permissions not loaded');
+                return;
+            }
+            
+            const permissionsBody = document.getElementById('permissionsBody');
+            const invitationsBody = document.getElementById('invitationsBody');
+            
+            // Get effective permissions (custom + default)
+            const effectivePerms = getEffectivePermissions();
+            const customPerms = loadCustomPermissions();
+            
+            // Build permissions table with checkboxes
+            let permissionsHTML = '';
+            const permissionFields = [
+                'canCreateShipment',
+                'canViewShipments',
+                'canEditShipment',
+                'canCreateAWB',
+                'canAddFees',
+                'canApprovePayment',
+                'canInviteUsers',
+                'canEditLocations',
+                'canManageUsers',
+                'canViewAllUsers',
+                'canViewAllShipments'
+            ];
+            
+            for (const [role, permissions] of Object.entries(effectivePerms)) {
+                const roleLabel = ROLE_LABELS[role] || role;
+                const hasCustom = customPerms && customPerms[role];
+                const rowStyle = hasCustom ? 'background: #FFFFE0;' : '';
+                
+                permissionsHTML += `
+                    <tr style="${rowStyle}">
+                        <td class="role-name">${escapeHtml(roleLabel)}${hasCustom ? ' <span style="font-size: 9px; color: #666;">(Modified)</span>' : ''}</td>
+                `;
+                
+                permissionFields.forEach(field => {
+                    const checked = permissions[field] ? 'checked' : '';
+                    permissionsHTML += `
+                        <td>
+                            <input type="checkbox" class="permission-checkbox" 
+                                   data-role="${escapeHtml(role)}" 
+                                   data-permission="${field}" 
+                                   ${checked}
+                                   ${role === 'admin' ? 'disabled title="Admin always has all permissions"' : ''}>
+                        </td>
+                    `;
+                });
+                
+                permissionsHTML += `</tr>`;
+            }
+            permissionsBody.innerHTML = permissionsHTML;
+            
+            // Build invitations table with checkboxes
+            let invitationsHTML = '';
+            for (const [role, permissions] of Object.entries(effectivePerms)) {
+                const roleLabel = ROLE_LABELS[role] || role;
+                const allowedRoles = permissions.allowedInviteRoles || [];
+                const hasCustom = customPerms && customPerms[role] && customPerms[role].allowedInviteRoles;
+                const rowStyle = hasCustom ? 'background: #FFFFE0;' : '';
+                
+                // Create checkboxes for each role
+                const allRoles = Object.values(ROLES).filter(r => r !== role); // Can't invite yourself
+                const inviteCheckboxes = allRoles.map(r => {
+                    const checked = allowedRoles.includes(r) ? 'checked' : '';
+                    const roleLabelForCheckbox = ROLE_LABELS[r] || r;
+                    return `
+                        <div class="invite-role-checkbox">
+                            <input type="checkbox" 
+                                   data-role="${escapeHtml(role)}" 
+                                   data-invite-role="${escapeHtml(r)}" 
+                                   ${checked}
+                                   ${role === 'admin' ? '' : ''}>
+                            <label>${escapeHtml(roleLabelForCheckbox)}</label>
+                        </div>
+                    `;
+                }).join('');
+                
+                invitationsHTML += `
+                    <tr style="${rowStyle}">
+                        <td class="role-name">${escapeHtml(roleLabel)}${hasCustom ? ' <span style="font-size: 9px; color: #666;">(Modified)</span>' : ''}</td>
+                        <td>
+                            <div class="invite-roles-container">
+                                ${inviteCheckboxes}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+            invitationsBody.innerHTML = invitationsHTML;
+        }
+        
+        // Save permissions
+        function savePermissions() {
+            if (!confirm('Are you sure you want to save these permission changes? This will affect all users with these roles.')) {
+                return;
+            }
+            
+            const customPerms = {};
+            
+            // Collect permission checkboxes
+            document.querySelectorAll('.permission-checkbox').forEach(checkbox => {
+                if (checkbox.disabled) return; // Skip admin
+                
+                const role = checkbox.getAttribute('data-role');
+                const permission = checkbox.getAttribute('data-permission');
+                const checked = checkbox.checked;
+                
+                if (!customPerms[role]) {
+                    customPerms[role] = {};
+                }
+                
+                // Only save if different from default
+                if (PERMISSIONS[role] && PERMISSIONS[role][permission] !== checked) {
+                    customPerms[role][permission] = checked;
+                }
+            });
+            
+            // Collect invitation role checkboxes
+            const inviteRolesByRole = {};
+            document.querySelectorAll('input[data-invite-role]').forEach(checkbox => {
+                const role = checkbox.getAttribute('data-role');
+                const inviteRole = checkbox.getAttribute('data-invite-role');
+                const checked = checkbox.checked;
+                
+                if (!inviteRolesByRole[role]) {
+                    inviteRolesByRole[role] = [];
+                }
+                
+                if (checked) {
+                    inviteRolesByRole[role].push(inviteRole);
+                }
+            });
+            
+            // Compare with defaults and save if different
+            for (const [role, inviteRoles] of Object.entries(inviteRolesByRole)) {
+                const defaultInvite = PERMISSIONS[role]?.allowedInviteRoles || [];
+                const sortedDefault = [...defaultInvite].sort();
+                const sortedCustom = [...inviteRoles].sort();
+                
+                if (JSON.stringify(sortedDefault) !== JSON.stringify(sortedCustom)) {
+                    if (!customPerms[role]) {
+                        customPerms[role] = {};
+                    }
+                    customPerms[role].allowedInviteRoles = inviteRoles;
+                }
+            }
+            
+            // Remove roles with no customizations
+            for (const role in customPerms) {
+                const defaultPerms = PERMISSIONS[role] || {};
+                const customPerm = customPerms[role];
+                let hasChanges = false;
+                
+                // Check boolean permissions
+                for (const key in customPerm) {
+                    if (key !== 'allowedInviteRoles' && defaultPerms[key] !== customPerm[key]) {
+                        hasChanges = true;
+                        break;
+                    }
+                }
+                
+                // Check allowedInviteRoles
+                if (customPerm.allowedInviteRoles) {
+                    const defaultInvite = defaultPerms.allowedInviteRoles || [];
+                    if (JSON.stringify(defaultInvite.sort()) !== JSON.stringify(customPerm.allowedInviteRoles.sort())) {
+                        hasChanges = true;
+                    } else {
+                        delete customPerm.allowedInviteRoles;
+                    }
+                }
+                
+                if (!hasChanges) {
+                    delete customPerms[role];
+                }
+            }
+            
+            // Save
+            if (Object.keys(customPerms).length === 0) {
+                // No customizations, remove saved permissions
+                localStorage.removeItem('awb_custom_permissions');
+                alert('Permissions reset to default.');
+            } else {
+                if (saveCustomPermissions(customPerms)) {
+                    alert('Permissions saved successfully! Changes will take effect immediately.');
+                }
+            }
+            
+            // Reload to show updated state
+            loadPermissions();
+            
+            // Update global PERMISSIONS object
+            updateGlobalPermissions();
+        }
+        
+        // Reset to default
+        function resetPermissions() {
+            if (!confirm('Are you sure you want to reset all permissions to default? This will remove all customizations.')) {
+                return;
+            }
+            
+            localStorage.removeItem('awb_custom_permissions');
+            alert('Permissions reset to default.');
+            loadPermissions();
+            updateGlobalPermissions();
+        }
+        
+        // Update global PERMISSIONS object so hasPermission() uses custom permissions
+        function updateGlobalPermissions() {
+            if (typeof window === 'undefined' || typeof PERMISSIONS === 'undefined') {
+                return;
+            }
+            
+            const customPerms = loadCustomPermissions();
+            if (customPerms) {
+                // Merge custom permissions into global PERMISSIONS
+                for (const [role, customPerm] of Object.entries(customPerms)) {
+                    if (PERMISSIONS[role]) {
+                        // Merge boolean permissions
+                        for (const [key, value] of Object.entries(customPerm)) {
+                            if (key !== 'allowedInviteRoles') {
+                                PERMISSIONS[role][key] = value;
+                            }
+                        }
+                        // Update allowedInviteRoles if present
+                        if (customPerm.allowedInviteRoles) {
+                            PERMISSIONS[role].allowedInviteRoles = customPerm.allowedInviteRoles;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Wait for DOM to be ready, then set up event listeners
+        function initializePermissionsPage() {
+            const saveBtn = document.getElementById('savePermissionsBtn');
+            const resetBtn = document.getElementById('resetPermissionsBtn');
+            
+            if (saveBtn) {
+                saveBtn.addEventListener('click', savePermissions);
+            }
+            if (resetBtn) {
+                resetBtn.addEventListener('click', resetPermissions);
+            }
+            
+            // Update global permissions on load
+            updateGlobalPermissions();
+        }
+        
+        // Initialize when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePermissionsPage);
+        } else {
+            initializePermissionsPage();
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

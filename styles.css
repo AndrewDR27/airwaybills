@@ -264,6 +264,14 @@ header p {
     gap: 8px;
 }
 
+#contactFieldsForm,
+#dimensionsFieldsForm,
+#billingFieldsForm {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
 .form-group {
     display: flex;
     flex-direction: column;

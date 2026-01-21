@@ -6,6 +6,7 @@
     <title>Airlines - Airway Bills</title>
     <link rel="stylesheet" href="styles.css">
     <script type="module" src="js/themes.js"></script>
+    <script src="js/roles.js"></script>
     <style>
         body {
             margin: 0;
@@ -471,6 +472,20 @@
             const user = getCurrentUser();
             return user && user.role === 'admin';
         }
+        
+        // Check if user can manage locations based on permissions
+        function canManageLocations() {
+            const user = getCurrentUser();
+            if (!user) return false;
+            
+            // Check permission using hasPermission if available
+            if (typeof hasPermission === 'function') {
+                return hasPermission(user.role, 'canEditLocations');
+            }
+            
+            // Fallback: admin and issuing-carrier-agent (TEMPORARY for development)
+            return user.role === 'admin' || user.role === 'issuing-carrier-agent';
+        }
 
         // Load airlines from API
         async function loadAirlines() {
@@ -503,7 +518,8 @@
         }
 
         function createAirlinesTable(airlines) {
-            const isUserAdmin = isAdmin();
+            // TEMPORARY: Allow issuing carrier agents during development
+            const canManage = canManageLocations();
             let tableHTML = `
                 <table class="airlines-table">
                     <thead>
@@ -537,7 +553,7 @@
                         <td>
                             <div class="airline-actions">
                                 <button class="btn-edit" onclick="openAirlineModal('${airline.id}')">Edit</button>
-                                ${isUserAdmin ? `<button class="btn-delete" onclick="deleteAirline('${airline.id}')">Delete</button>` : ''}
+                                ${canManage ? `<button class="btn-delete" onclick="deleteAirline('${airline.id}')">Delete</button>` : ''}
                             </div>
                         </td>
                     </tr>
@@ -554,8 +570,9 @@
 
         async function deleteAirline(airlineId) {
             // Check if user is admin
-            if (!isAdmin()) {
-                alert('Only administrators can delete airlines.');
+            // TEMPORARY: Allow issuing carrier agents during development
+            if (!canManageLocations()) {
+                alert('Only administrators and issuing carrier agents can delete airlines.');
                 return;
             }
             
@@ -580,10 +597,11 @@
             if (!airlineIdToEdit) {
                 try {
                     const user = getCurrentUser();
-                    const isUserAdmin = user && user.role === 'admin';
-                    if (!isUserAdmin) {
-                        alert('Only administrators can add new airlines.');
-                        console.log('✗ Add blocked - user is not admin');
+                    // TEMPORARY: Allow issuing carrier agents during development
+                    const canManage = user && (user.role === 'admin' || user.role === 'issuing-carrier-agent');
+                    if (!canManage) {
+                        alert('Only administrators and issuing carrier agents can add new airlines.');
+                        console.log('✗ Add blocked - user cannot manage locations');
                         return;
                     }
                     console.log('✓ Add allowed - user is admin');
@@ -788,16 +806,18 @@
                         await airlinesAPI.update(airline);
                     } else {
                         // Creating new airline - only admins
-                        if (!isAdmin()) {
-                            alert('Only administrators can add new airlines.');
+                        // TEMPORARY: Allow issuing carrier agents during development
+                        if (!canManageLocations()) {
+                            alert('Only administrators and issuing carrier agents can add new airlines.');
                             return;
                         }
                         await airlinesAPI.create(airline);
                     }
                 } else {
                     // New airline - only admins
-                    if (!isAdmin()) {
-                        alert('Only administrators can add new airlines.');
+                    // TEMPORARY: Allow issuing carrier agents during development
+                    if (!canManageLocations()) {
+                        alert('Only administrators and issuing carrier agents can add new airlines.');
                         return;
                     }
                     await airlinesAPI.create(airline);
@@ -926,9 +946,10 @@
             if (!user) {
                 console.warn('⚠ No user logged in, but button is visible. Admin check will happen when clicked.');
             } else {
-                const isUserAdmin = user && user.role === 'admin';
-                if (isUserAdmin) {
-                    console.log('✓ Admin user detected');
+                // TEMPORARY: Allow issuing carrier agents during development
+                const canManage = user && (user.role === 'admin' || user.role === 'issuing-carrier-agent');
+                if (canManage) {
+                    console.log('✓ User can manage locations (admin or issuing-carrier-agent)');
                 } else {
                     console.log('✗ Non-admin user. User:', user.email, 'Role:', user.role);
                     console.log('  (Button still visible - admin check on click)');

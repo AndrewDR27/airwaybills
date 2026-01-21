@@ -414,11 +414,20 @@
             { href: 'create-awb.html', icon: '📝', text: 'Create AWB', roles: ['all'] },
             { href: 'shipments/list.html', icon: '📦', text: 'My Shipments', roles: ['all'] },
             { 
+                text: 'AutoFills', 
+                icon: '📋', 
+                roles: ['all'],
+                submenu: [
+                    { href: 'contacts.html', icon: '📄', text: 'Air Waybills' }
+                ]
+            },
+            { 
                 text: 'Locations', 
                 icon: '📍', 
                 roles: ['all'],
                 submenu: [
                     { href: 'airlines.html', icon: '✈️', text: 'Airlines' },
+                    { href: 'origins.html', icon: '🛫', text: 'Origins' },
                     { href: 'destinations.html', icon: '🌍', text: 'Destinations' },
                     { href: 'terminals.html', icon: '🌐', text: 'Terminals' }
                 ]
@@ -428,16 +437,17 @@
                 icon: '👥', 
                 roles: ['all'],
                 submenu: [
-                    { href: 'contacts.html', icon: '📋', text: 'AWB AutoFills' },
                     { href: 'users.html', icon: '👤', text: 'Users', roles: ['all'] }
                 ]
             },
+            { href: 'account.html', icon: '👤', text: 'Account Information', roles: ['all'] },
             { 
                 text: 'Settings', 
                 icon: '⚙️', 
                 roles: ['admin'],
                 submenu: [
-                    { href: 'ui-settings.html', icon: '🎨', text: 'UI Theme Settings' }
+                    { href: 'ui-settings.html', icon: '🎨', text: 'UI Theme Settings' },
+                    { href: 'permissions.html', icon: '🔐', text: 'Permissions' }
                 ]
             }
         ];

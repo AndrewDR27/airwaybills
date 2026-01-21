@@ -431,6 +431,88 @@ app.delete('/api/destinations', async (req, res) => {
     }
 });
 
+// Origins API
+const ORIGINS_KEY = 'awb_origins';
+
+app.get('/api/origins', async (req, res) => {
+    console.log('=== Origins API GET called ===');
+    try {
+        if (!redis) {
+            console.error('Origins API: Redis not configured');
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        console.log('Origins API: Redis is configured, fetching from key:', ORIGINS_KEY);
+        const origins = await redis.get(ORIGINS_KEY);
+        console.log('Origins API: Raw result from Redis:', typeof origins, origins === null ? 'null' : origins === undefined ? 'undefined' : Array.isArray(origins) ? `array with ${origins.length} items` : 'not an array');
+        const result = Array.isArray(origins) ? origins : (origins || []);
+        console.log('Origins API: Returning', result.length, 'origins');
+        res.json(result);
+    } catch (error) {
+        console.error('Origins API ERROR:', error.message);
+        console.error('Origins API ERROR stack:', error.stack);
+        res.status(500).json({ error: 'Internal server error', message: error.message, stack: process.env.NODE_ENV === 'development' ? error.stack : undefined });
+    }
+});
+
+app.post('/api/origins', async (req, res) => {
+    try {
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        const origins = (await redis.get(ORIGINS_KEY)) || [];
+        const newOrigin = {
+            id: req.body.id || `orig_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            ...req.body,
+            created_at: new Date().toISOString()
+        };
+        origins.push(newOrigin);
+        await redis.set(ORIGINS_KEY, origins);
+        res.status(201).json(newOrigin);
+    } catch (error) {
+        console.error('Origins API error:', error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+});
+
+app.put('/api/origins', async (req, res) => {
+    try {
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        const origins = (await redis.get(ORIGINS_KEY)) || [];
+        const index = origins.findIndex(o => o.id === req.body.id);
+        if (index >= 0) {
+            origins[index] = { ...origins[index], ...req.body };
+            await redis.set(ORIGINS_KEY, origins);
+            res.json(origins[index]);
+        } else {
+            res.status(404).json({ error: 'Origin not found' });
+        }
+    } catch (error) {
+        console.error('Origins API error:', error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+});
+
+app.delete('/api/origins', async (req, res) => {
+    try {
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env file' });
+            return;
+        }
+        const origins = (await redis.get(ORIGINS_KEY)) || [];
+        const filtered = origins.filter(o => o.id !== req.query.id);
+        await redis.set(ORIGINS_KEY, filtered);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Origins API error:', error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+});
+
 // Terminals API
 const TERMINALS_KEY = 'awb_terminals';
 
