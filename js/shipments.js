@@ -645,7 +645,9 @@ function uncancelShipment(spaceId) {
 // Delete shipment (by Agent or Admin only)
 async function deleteShipment(spaceId) {
     const user = getCurrentUser();
+    console.log('deleteShipment - user:', user, 'role:', user?.role);
     if (!user || (user.role !== 'issuing-carrier-agent' && user.role !== 'admin')) {
+        console.log('deleteShipment - Access denied. User role:', user?.role);
         return { success: false, message: 'Only Issuing Carrier Agents or Administrators can delete shipments' };
     }
     
@@ -663,21 +665,50 @@ async function deleteShipment(spaceId) {
         return { success: false, message: 'Cannot delete shipments that are in-transit' };
     }
     
-    // Delete via API
-    if (shipmentsAPI) {
-        try {
-            await shipmentsAPI.delete(spaceId, user.id);
-            return { success: true };
-        } catch (error) {
-            console.error('Error deleting shipment via API:', error);
-            // Database required - no localStorage fallback
-            throw error; // Require database in production
-        }
+    // Ensure shipmentsAPI is available
+    let apiToUse = shipmentsAPI || (typeof window !== 'undefined' && window.shipmentsAPI);
+    if (!apiToUse) {
+        // Wait for API to be available
+        await new Promise((resolve) => {
+            if (window.shipmentsAPI) {
+                apiToUse = window.shipmentsAPI;
+                resolve();
+                return;
+            }
+            window.addEventListener('apiReady', () => {
+                if (window.shipmentsAPI) {
+                    apiToUse = window.shipmentsAPI;
+                    resolve();
+                }
+            }, { once: true });
+            let checks = 0;
+            const checkInterval = setInterval(() => {
+                checks++;
+                if (window.shipmentsAPI) {
+                    apiToUse = window.shipmentsAPI;
+                    clearInterval(checkInterval);
+                    resolve();
+                } else if (checks >= 50) {
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 100);
+        });
     }
     
-    // Database required - no localStorage fallback
+    if (!apiToUse) {
+        throw new Error('Database API not available. Please ensure the database is configured.');
+    }
     
-    throw new Error('Database API not available. Please ensure the database is configured.');
+    // Delete via API
+    try {
+        await apiToUse.delete(spaceId, user.id);
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting shipment via API:', error);
+        // Database required - no localStorage fallback
+        throw error; // Require database in production
+    }
 }
 
 // Mark shipment as shared
