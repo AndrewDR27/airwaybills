@@ -350,8 +350,9 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="airlineAddress">Address</label>
+                        <label for="airlineAddress">Address <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 98</span></label>
                         <textarea id="airlineAddress" rows="3"></textarea>
+                        <small>This will be used to auto-fill field 98 when this airline is selected.</small>
                     </div>
                     
                     <div class="form-group">
@@ -361,21 +362,22 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="airlineAWBP">AWBP (01. AWBP)</label>
+                        <label for="airlineAWBP">AWBP <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 01</span></label>
                         <input type="text" id="airlineAWBP" placeholder="Enter AWBP (Air Waybill Prefix)">
                         <small>This will be used to auto-fill field 01. AWBP when this airline is selected.</small>
                     </div>
                     
                     <div class="form-group">
-                        <label for="airlineAbbreviation">Airline Abbreviation</label>
+                        <label for="airlineAbbreviation">Airline Abbreviation <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 10</span></label>
                         <input type="text" id="airlineAbbreviation" placeholder="Enter Airline Abbreviation">
+                        <small>This will be used to auto-fill field 10 when this airline is selected.</small>
                         <small>This abbreviation will be stored with the airline contact.</small>
                     </div>
                     
                     <div class="form-group">
-                        <label for="airlineImage">Airline Logo/Image</label>
+                        <label for="airlineImage">Airline Logo/Image <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 99</span></label>
                         <input type="file" id="airlineImage" accept="image/*">
-                        <small>Upload an image/logo for this airline (JPG, PNG, etc.)</small>
+                        <small>This will be used to auto-fill field 99 when this airline is selected. Upload an image/logo for this airline (JPG, PNG, etc.)</small>
                         <div id="airlineImagePreview" style="margin-top: 10px; display: none;">
                             <img id="airlineImagePreviewImg" src="" alt="Preview" style="max-width: 200px; max-height: 100px; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
                             <button type="button" id="removeAirlineImageBtn" style="margin-left: 10px; padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove Image</button>

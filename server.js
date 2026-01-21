@@ -568,16 +568,52 @@ app.post('/api/shipments', async (req, res) => {
         const shipments = (await redis.get(SHIPMENTS_KEY)) || [];
         const shipmentsArray = Array.isArray(shipments) ? shipments : [];
         
+        // Clean the shipment data - remove any functions or non-serializable data
+        let cleanShipment;
+        try {
+            cleanShipment = JSON.parse(JSON.stringify(req.body));
+        } catch (parseError) {
+            console.error('Error parsing shipment data:', parseError);
+            return res.status(400).json({ 
+                error: 'Invalid shipment data', 
+                message: parseError.message 
+            });
+        }
+        
         const newShipment = {
-            ...req.body,
-            createdAt: req.body.createdAt || new Date().toISOString()
+            ...cleanShipment,
+            createdAt: cleanShipment.createdAt || new Date().toISOString()
         };
+        
+        // Ensure required fields
+        if (!newShipment.spaceId) {
+            console.error('Missing spaceId in shipment data:', Object.keys(newShipment));
+            return res.status(400).json({ error: 'spaceId is required' });
+        }
+        if (!newShipment.createdBy) {
+            console.error('Missing createdBy in shipment data:', Object.keys(newShipment));
+            return res.status(400).json({ error: 'createdBy is required' });
+        }
+        
+        // Remove any undefined values to ensure clean JSON
+        Object.keys(newShipment).forEach(key => {
+            if (newShipment[key] === undefined) {
+                delete newShipment[key];
+            }
+        });
+        
         shipmentsArray.push(newShipment);
         await redis.set(SHIPMENTS_KEY, shipmentsArray);
         res.status(201).json(newShipment);
     } catch (error) {
         console.error('Shipments API error:', error);
-        res.status(500).json({ error: 'Internal server error', message: error.message });
+        console.error('Error stack:', error.stack);
+        console.error('Request body:', JSON.stringify(req.body, null, 2));
+        res.status(500).json({ 
+            error: 'Internal server error', 
+            message: error.message,
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 

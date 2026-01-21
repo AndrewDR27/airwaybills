@@ -365,27 +365,39 @@
         }
 
         // Handle adding participants
-        document.getElementById('shipperSelect').addEventListener('change', function() {
+        document.getElementById('shipperSelect').addEventListener('change', async function() {
             const userId = this.value;
             if (userId) {
-                const user = getUserById(userId);
-                if (user && user.role === 'shipper') {
-                    addParticipant(user.id, 'shipper', user.name || user.email);
-                } else {
-                    alert('Invalid user selected.');
+                try {
+                    const user = await getUserById(userId);
+                    if (user && user.role === 'shipper') {
+                        addParticipant(user.id, 'shipper', user.name || user.email);
+                    } else {
+                        alert('Invalid user selected.');
+                        this.value = '';
+                    }
+                } catch (error) {
+                    console.error('Error getting user:', error);
+                    alert('Error loading user. Please try again.');
                     this.value = '';
                 }
             }
         });
 
-        document.getElementById('consigneeSelect').addEventListener('change', function() {
+        document.getElementById('consigneeSelect').addEventListener('change', async function() {
             const userId = this.value;
             if (userId) {
-                const user = getUserById(userId);
-                if (user && user.role === 'consignee') {
-                    addParticipant(user.id, 'consignee', user.name || user.email);
-                } else {
-                    alert('Invalid user selected.');
+                try {
+                    const user = await getUserById(userId);
+                    if (user && user.role === 'consignee') {
+                        addParticipant(user.id, 'consignee', user.name || user.email);
+                    } else {
+                        alert('Invalid user selected.');
+                        this.value = '';
+                    }
+                } catch (error) {
+                    console.error('Error getting user:', error);
+                    alert('Error loading user. Please try again.');
                     this.value = '';
                 }
             }

@@ -378,35 +378,60 @@
                     </div>
                     
                     <div class="form-group" id="contactField06Group" style="display: none;">
-                        <label for="contactField06">AWB form Autofill 06</label>
+                        <label for="contactField06">AWB form Autofill 06 <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 06</span></label>
                         <textarea id="contactField06" rows="4" placeholder="Enter agent name and address information. Use line breaks to format."></textarea>
                         <small>This will be used to auto-fill field 06. AGENT NAME when the form loads. Format: Company Name\nContact Name\nEmail\nPhone\nAddress</small>
                     </div>
                     
                     <div class="form-group" id="contactHandlingInfoGroup" style="display: none;">
-                        <label for="contactHandlingInfo">Handling info</label>
+                        <label for="contactHandlingInfo">Handling info <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 22</span></label>
                         <textarea id="contactHandlingInfo" rows="4" placeholder="Enter handling information"></textarea>
+                        <small>This will be used to auto-fill field 22. HANDLING INFO when the form loads.</small>
+                    </div>
+                    
+                    <div class="form-group" id="contactField33Group" style="display: none;">
+                        <label>Commodity name Autofill Text <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 33</span></label>
+                        <div id="commodityList" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
+                            <!-- Commodity entries will be added here -->
+                        </div>
+                        <button type="button" id="addCommodityBtn" style="padding: 4px 8px; margin-bottom: 8px; border: 2px outset var(--win98-button-face); cursor: pointer; background: var(--win98-button-face); font-size: 11px;">+ Add Commodity</button>
+                        <small>Add commodity entries with name and autofill text. These will be available in a dropdown in the Description tab.</small>
                     </div>
                     
                     <div class="form-group" id="contactSignatureIssuingCarrierGroup" style="display: none;">
-                        <label for="contactSignatureIssuingCarrier">Signature of Issuing Carrier or his Agent</label>
+                        <label for="contactSignatureIssuingCarrier">Signature of Issuing Carrier or his Agent <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 59</span></label>
                         <input type="text" id="contactSignatureIssuingCarrier" placeholder="Enter signature name">
+                        <small>This will be used to auto-fill field 59 when the form loads.</small>
                     </div>
                     
                     <div class="form-group" id="contactSignatureShipperGroup" style="display: none;">
-                        <label for="contactSignatureShipper">Signature of Shipper or His Agent</label>
+                        <label for="contactSignatureShipper">Signature of Shipper or His Agent <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 56</span></label>
                         <input type="text" id="contactSignatureShipper" placeholder="Enter signature name">
+                        <small>This will be used to auto-fill field 56 when the form loads.</small>
                     </div>
                     
                     <div class="form-group" id="contactSignaturePlaceGroup" style="display: none;">
-                        <label for="contactSignaturePlace">At (Place)</label>
+                        <label for="contactSignaturePlace">At (Place) <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 58</span></label>
                         <input type="text" id="contactSignaturePlace" placeholder="Enter place">
+                        <small>This will be used to auto-fill field 58 when the form loads.</small>
                     </div>
                     
                     <div class="form-group" id="formattedValueGroup">
                         <label for="contactFormattedValue" id="formattedValueLabel">Formatted Field Value</label>
                         <textarea id="contactFormattedValue" rows="4" placeholder="Enter name and address information"></textarea>
                         <small>This value will be used to fill the form field. Use line breaks (\n) to format.</small>
+                    </div>
+                    
+                    <div class="form-group" id="originInfoGroup" style="display: none;">
+                        <label for="contactOrigin">Origin <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 02</span></label>
+                        <input type="text" id="contactOrigin" placeholder="Enter origin information">
+                        <small>This will be used to auto-fill field 02. ORIGIN when the form loads.</small>
+                    </div>
+                    
+                    <div class="form-group" id="aoDEPInfoGroup" style="display: none;">
+                        <label for="contactAoDEP">AoDEP <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 08</span></label>
+                        <input type="text" id="contactAoDEP" placeholder="Enter AoDEP information">
+                        <small>This will be used to auto-fill field 08. AoDEP when the form loads.</small>
                     </div>
                     
                     <div class="form-group" id="accountInfoGroup" style="display: none;">
@@ -807,6 +832,13 @@
                 console.warn('Error getting current user for agent check:', error);
             }
             
+            // Show Field 33 (Commodity) for User, UserAccount, or when current user is an agent
+            const contactField33Group = document.getElementById('contactField33Group');
+            const showField33 = (type === 'User' || type === 'UserAccount' || isAgent);
+            if (contactField33Group) {
+                contactField33Group.style.display = showField33 ? 'block' : 'none';
+            }
+            
             // Show signature fields for User, UserAccount, or when current user is an agent
             const showSignatureFields = (type === 'User' || type === 'UserAccount' || isAgent);
             if (contactSignatureIssuingCarrierGroup) {
@@ -850,6 +882,17 @@
                         if (contactSignatureShipperEl) contactSignatureShipperEl.value = profile.signatureShipper || '';
                         const contactSignaturePlaceEl = document.getElementById('contactSignaturePlace');
                         if (contactSignaturePlaceEl) contactSignaturePlaceEl.value = profile.signaturePlace || '';
+                        
+                        // Load commodity list
+                        const commodityList = document.getElementById('commodityList');
+                        if (commodityList) {
+                            commodityList.innerHTML = '';
+                            if (profile.field33 && Array.isArray(profile.field33) && profile.field33.length > 0) {
+                                profile.field33.forEach((item, index) => {
+                                    addCommodityEntry(item.commodity || '', item.autofillText || '', index);
+                                });
+                            }
+                        }
                     }
                 } else {
                     const contacts = await getContacts();
@@ -952,7 +995,7 @@
             // UserAccount type has its own validation
             
             if (type === 'User') {
-                // For User profile, get phone, address, field 06, and handling info if they exist
+                // For User profile, get phone, address, field 06, handling info, origin, and aoDEP if they exist
                 const contactPhoneElement = document.getElementById('contactPhone');
                 const contactAddressElement = document.getElementById('contactAddress');
                 const contactField06Element = document.getElementById('contactField06');
@@ -960,6 +1003,8 @@
                 const contactSignatureIssuingCarrierElement = document.getElementById('contactSignatureIssuingCarrier');
                 const contactSignatureShipperElement = document.getElementById('contactSignatureShipper');
                 const contactSignaturePlaceElement = document.getElementById('contactSignaturePlace');
+                const contactOriginElement = document.getElementById('contactOrigin');
+                const contactAoDEPElement = document.getElementById('contactAoDEP');
                 const phone = contactPhoneElement ? contactPhoneElement.value.trim() : '';
                 const address = contactAddressElement ? contactAddressElement.value.trim() : '';
                 const field06 = contactField06Element ? contactField06Element.value.trim() : '';
@@ -967,6 +1012,23 @@
                 const signatureIssuingCarrier = contactSignatureIssuingCarrierElement ? contactSignatureIssuingCarrierElement.value.trim() : '';
                 const signatureShipper = contactSignatureShipperElement ? contactSignatureShipperElement.value.trim() : '';
                 const signaturePlace = contactSignaturePlaceElement ? contactSignaturePlaceElement.value.trim() : '';
+                const origin = contactOriginElement ? contactOriginElement.value.trim() : '';
+                const aoDEP = contactAoDEPElement ? contactAoDEPElement.value.trim() : '';
+                
+                // Collect commodity list
+                const field33 = [];
+                const commodityEntries = document.querySelectorAll('.commodity-entry');
+                commodityEntries.forEach(entry => {
+                    const commodityInput = entry.querySelector('.commodity-name-input');
+                    const autofillInput = entry.querySelector('.commodity-autofill-input');
+                    if (commodityInput && autofillInput) {
+                        const commodity = commodityInput.value.trim();
+                        const autofillText = autofillInput.value.trim();
+                        if (commodity || autofillText) {
+                            field33.push({ commodity, autofillText });
+                        }
+                    }
+                });
                 
                 const profile = {
                     companyName,
@@ -978,7 +1040,10 @@
                     handlingInfo: handlingInfo,
                     signatureIssuingCarrier: signatureIssuingCarrier,
                     signatureShipper: signatureShipper,
-                    signaturePlace: signaturePlace
+                    signaturePlace: signaturePlace,
+                    origin: origin,
+                    aoDEP: aoDEP,
+                    field33: field33
                     // Note: formattedValue is not included - it's only for AWB form contacts, not user profiles
                 };
                 
@@ -1217,18 +1282,27 @@
                         <strong>AWB form Autofill 06 <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 06</span></strong>
                         <span style="white-space: pre-line;">${escapeHtml(profile.field06 || profile.formattedValue || 'Not set')}</span>
                     </div>
-                    ${profile.origin ? `
                     <div class="user-info-item">
                         <strong>Origin <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 02</span></strong>
                         <span>${escapeHtml(profile.origin || 'Not set')}</span>
                     </div>
-                    ` : ''}
-                    ${profile.aoDEP ? `
                     <div class="user-info-item">
                         <strong>AoDEP <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 08</span></strong>
                         <span>${escapeHtml(profile.aoDEP || 'Not set')}</span>
                     </div>
-                    ` : ''}
+                    <div class="user-info-item" style="grid-column: 1 / -1;">
+                        <strong>Commodity name Autofill Text <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 33</span></strong>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            ${profile.field33 && Array.isArray(profile.field33) && profile.field33.length > 0 
+                                ? profile.field33.map(item => 
+                                    `<div style="padding: 4px; background: #f0f0f0; border: 1px solid #ccc;">
+                                        <strong>${escapeHtml(item.commodity || '')}</strong>: ${escapeHtml(item.autofillText || '')}
+                                    </div>`
+                                  ).join('')
+                                : '<span>Not set</span>'
+                            }
+                        </div>
+                    </div>
                     <div class="user-info-item" style="grid-column: 1 / -1;">
                         <strong>Handling info <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 22</span></strong>
                         <span style="white-space: pre-line;">${escapeHtml(profile.handlingInfo || 'Not set')}</span>
@@ -1286,6 +1360,9 @@
             const contactSignatureIssuingCarrierGroup = document.getElementById('contactSignatureIssuingCarrierGroup');
             const contactSignatureShipperGroup = document.getElementById('contactSignatureShipperGroup');
             const contactSignaturePlaceGroup = document.getElementById('contactSignaturePlaceGroup');
+            const originInfoGroup = document.getElementById('originInfoGroup');
+            const aoDEPInfoGroup = document.getElementById('aoDEPInfoGroup');
+            const contactField33Group = document.getElementById('contactField33Group');
             if (contactNameGroup) contactNameGroup.style.display = 'block';
             if (contactPhoneGroup) contactPhoneGroup.style.display = 'block';
             if (contactAddressGroup) contactAddressGroup.style.display = 'block';
@@ -1294,6 +1371,12 @@
             if (contactSignatureIssuingCarrierGroup) contactSignatureIssuingCarrierGroup.style.display = 'block';
             if (contactSignatureShipperGroup) contactSignatureShipperGroup.style.display = 'block';
             if (contactSignaturePlaceGroup) contactSignaturePlaceGroup.style.display = 'block';
+            if (originInfoGroup) originInfoGroup.style.display = 'block';
+            if (aoDEPInfoGroup) aoDEPInfoGroup.style.display = 'block';
+            if (contactField33Group) {
+                contactField33Group.style.display = 'block';
+                contactField33Group.style.visibility = 'visible';
+            }
             
             if (profile) {
                 document.getElementById('contactCompanyName').value = profile.companyName || '';
@@ -1314,18 +1397,97 @@
                 if (contactSignatureShipperEl) contactSignatureShipperEl.value = profile.signatureShipper || '';
                 const contactSignaturePlaceEl = document.getElementById('contactSignaturePlace');
                 if (contactSignaturePlaceEl) contactSignaturePlaceEl.value = profile.signaturePlace || '';
+                const contactOriginEl = document.getElementById('contactOrigin');
+                if (contactOriginEl) contactOriginEl.value = profile.origin || '';
+                const contactAoDEPEl = document.getElementById('contactAoDEP');
+                if (contactAoDEPEl) contactAoDEPEl.value = profile.aoDEP || '';
+                // Load commodity list
+                const commodityList = document.getElementById('commodityList');
+                if (commodityList) {
+                    commodityList.innerHTML = '';
+                    if (profile.field33 && Array.isArray(profile.field33) && profile.field33.length > 0) {
+                        profile.field33.forEach((item, index) => {
+                            addCommodityEntry(item.commodity || '', item.autofillText || '', index);
+                        });
+                    }
+                }
             } else {
                 form.reset();
                 document.getElementById('contactId').value = 'user';
+                // Initialize empty commodity list
+                const commodityList = document.getElementById('commodityList');
+                if (commodityList) {
+                    commodityList.innerHTML = '';
+                }
             }
+            
+            // Set up add commodity button event listener
+            const addCommodityBtn = document.getElementById('addCommodityBtn');
+            if (addCommodityBtn) {
+                // Remove any existing listeners by cloning the button
+                const newBtn = addCommodityBtn.cloneNode(true);
+                addCommodityBtn.parentNode.replaceChild(newBtn, addCommodityBtn);
+                newBtn.addEventListener('click', () => {
+                    addCommodityEntry();
+                });
+            }
+            
+            // Force show Field 33 group one more time after a short delay to ensure it's visible
+            setTimeout(() => {
+                const contactField33GroupFinal = document.getElementById('contactField33Group');
+                if (contactField33GroupFinal) {
+                    contactField33GroupFinal.style.display = 'block';
+                    contactField33GroupFinal.style.visibility = 'visible';
+                    console.log('Field 33 group should be visible now');
+                } else {
+                    console.error('contactField33Group element not found!');
+                }
+            }, 100);
             
             modal.style.display = 'flex';
         }
+        
+        // Function to add a commodity entry
+        function addCommodityEntry(commodity = '', autofillText = '', index = null) {
+            const commodityList = document.getElementById('commodityList');
+            if (!commodityList) return;
+            
+            const entryIndex = index !== null ? index : commodityList.children.length;
+            const entry = document.createElement('div');
+            entry.className = 'commodity-entry';
+            entry.style.cssText = 'display: flex; gap: 8px; align-items: center; padding: 4px; background: #f0f0f0; border: 1px solid #ccc;';
+            
+            entry.innerHTML = `
+                <input type="text" class="commodity-name-input" placeholder="Commodity" value="${escapeHtml(commodity)}" style="flex: 1; padding: 2px 4px; border: 2px inset var(--win98-button-face); font-size: 11px;">
+                <input type="text" class="commodity-autofill-input" placeholder="Autofills Text" value="${escapeHtml(autofillText)}" style="flex: 1; padding: 2px 4px; border: 2px inset var(--win98-button-face); font-size: 11px;">
+                <button type="button" class="remove-commodity-btn" style="padding: 2px 8px; border: 2px outset var(--win98-button-face); cursor: pointer; background: var(--win98-button-face); font-size: 11px;">Remove</button>
+            `;
+            
+            const removeBtn = entry.querySelector('.remove-commodity-btn');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', () => {
+                    entry.remove();
+                });
+            }
+            
+            commodityList.appendChild(entry);
+        }
+        
+        // Set up add commodity button
+        document.addEventListener('DOMContentLoaded', () => {
+            const addCommodityBtn = document.getElementById('addCommodityBtn');
+            if (addCommodityBtn) {
+                addCommodityBtn.addEventListener('click', () => {
+                    addCommodityEntry();
+                });
+            }
+        });
         
         // Make functions available globally for onclick handlers
         window.openUserProfileModal = openUserProfileModal;
         window.openContactModal = openContactModal;
         window.deleteContact = deleteContact;
+        window.addCommodityEntry = addCommodityEntry;
 
         // Load contacts and profile on page load
         // Initialize on page load

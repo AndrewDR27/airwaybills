@@ -482,6 +482,21 @@ function initializeApp() {
         }, 100);
     }
     
+    // Commodity dropdown handler
+    const commoditySelect = document.getElementById('commoditySelect');
+    if (commoditySelect) {
+        // Populate commodity dropdown from user profile
+        populateCommodityDropdown();
+        
+        // Handle commodity selection
+        commoditySelect.addEventListener('change', (e) => {
+            const selectedCommodity = e.target.value;
+            if (selectedCommodity) {
+                fillField33FromCommodity(selectedCommodity);
+            }
+        });
+    }
+    
     if (shipperSelect) {
         shipperSelect.addEventListener('change', (e) => {
             const value = e.target.value;
@@ -1250,6 +1265,44 @@ function generateForm() {
         });
     }
     
+    const billingRow9FieldPrefixes = ['57', '56', '58', '59'];
+    const billingFieldsToRow9 = {};
+    billingRow9FieldPrefixes.forEach(prefix => {
+        const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
+        if (matchingField) {
+            billingFieldsToRow9[prefix] = matchingField;
+        }
+    });
+    
+    // Create row container for billing fields 57, 56, 58, 59 (create if at least one exists)
+    // Note: Order is intentional (57, 56, 58, 59)
+    let billingRowContainer9 = null;
+    const hasAnyBillingRow9Fields = billingRow9FieldPrefixes.some(prefix => billingFieldsToRow9[prefix]);
+    if (hasAnyBillingRow9Fields && billingFieldsForm) {
+        billingRowContainer9 = document.createElement('div');
+        billingRowContainer9.className = 'form-row';
+        
+        // Add row fields in correct order (57, 56, 58, 59)
+        billingRow9FieldPrefixes.forEach(prefix => {
+            const fieldName = billingFieldsToRow9[prefix];
+            if (fieldName) {
+                const fieldsWithSameName = fieldsByName.get(fieldName);
+                const primaryField = fieldsWithSameName[0];
+                
+                primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
+                primaryField.duplicateCount = fieldsWithSameName.length;
+                
+                if (fieldsWithSameName.length > 1) {
+                    console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
+                        fieldsWithSameName.map(f => f.pdfFieldName));
+                }
+                
+                const formGroup = createFormField(primaryField);
+                billingRowContainer9.appendChild(formGroup);
+            }
+        });
+    }
+    
     // Process remaining fields
     sortedFieldNames.forEach(fieldName => {
         // Skip fields that are already in the first row (01, 03, 19, 20)
@@ -1304,6 +1357,12 @@ function generateForm() {
         // Skip fields that are already in the billing row 8 (50, 51, 52, 53, 54, 55)
         const isBillingRowField8 = Object.values(billingFieldsToRow8).includes(fieldName);
         if (isBillingRowField8) {
+            return;
+        }
+        
+        // Skip fields that are already in the billing row 9 (57, 56, 58, 59)
+        const isBillingRowField9 = Object.values(billingFieldsToRow9).includes(fieldName);
+        if (isBillingRowField9) {
             return;
         }
         
@@ -1418,6 +1477,11 @@ function generateForm() {
             if (fieldPrefix === '49' && billingRowContainer8 && !billingRowContainer8.parentNode) {
                 billingFieldsForm.appendChild(billingRowContainer8);
             }
+            
+            // If this is field 55, append the 57-59 row after it (fields 57, 56, 58, 59 are skipped from individual processing)
+            if (fieldPrefix === '55' && billingRowContainer9 && !billingRowContainer9.parentNode) {
+                billingFieldsForm.appendChild(billingRowContainer9);
+            }
         } else {
             // Append to main form in Routing tab
             generatedForm.appendChild(formGroup);
@@ -1445,6 +1509,9 @@ function generateForm() {
         }
         if (billingRowContainer8 && !billingRowContainer8.parentNode) {
             billingFieldsForm.appendChild(billingRowContainer8);
+        }
+        if (billingRowContainer9 && !billingRowContainer9.parentNode) {
+            billingFieldsForm.appendChild(billingRowContainer9);
         }
     }
     
@@ -4806,6 +4873,61 @@ async function fillAirlineField(airlineId) {
         console.warn('Airline has no airlineAbbreviation value');
     }
     
+    // Fill field 98 with Airline Address - search in all forms and all elements
+    let field98Filled = false;
+    if (airline.address) {
+        console.log('Attempting to fill field 98 with airline address:', airline.address);
+        for (const form of formsToCheck) {
+            if (!form) continue;
+            
+            // Try form.elements first
+            const formElements = form.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name.startsWith('98')) {
+                    element.value = airline.address;
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
+                    console.log(`✓ Filled field ${element.name} with Airline Address: ${airline.address}`);
+                    field98Filled = true;
+                    break;
+                }
+            }
+            
+            // Also try querySelector as fallback
+            if (!field98Filled) {
+                const field98Elements = form.querySelectorAll('input[name^="98"], textarea[name^="98"], select[name^="98"]');
+                field98Elements.forEach(element => {
+                    if (element.name && element.name.startsWith('98')) {
+                        element.value = airline.address;
+                        element.dispatchEvent(new Event('input', { bubbles: true }));
+                        console.log(`✓ Filled field ${element.name} with Airline Address (via querySelector): ${airline.address}`);
+                        field98Filled = true;
+                    }
+                });
+            }
+            
+            if (field98Filled) break;
+        }
+        if (!field98Filled) {
+            console.warn('Field 98 (Airline Address) not found in any form. Searched forms:', formsToCheck.map(f => f ? f.id : 'null'));
+            // Try searching in the entire document as last resort
+            const allField98 = document.querySelectorAll('input[name^="98"], textarea[name^="98"], select[name^="98"]');
+            if (allField98.length > 0) {
+                console.log('Found field 98 elements in document:', allField98.length);
+                allField98.forEach(element => {
+                    if (element.name && element.name.startsWith('98')) {
+                        element.value = airline.address;
+                        element.dispatchEvent(new Event('input', { bubbles: true }));
+                        console.log(`✓ Filled field ${element.name} with Airline Address (document search): ${airline.address}`);
+                        field98Filled = true;
+                    }
+                });
+            }
+        }
+    } else {
+        console.warn('Airline has no address value');
+    }
+    
     // Store airline image for PDF filling into field 99
     if (airline.image) {
         currentAirlineImage = airline.image;
@@ -5367,6 +5489,14 @@ function fillContactField(fieldPrefix, contactIdOrUser) {
         return;
     }
     
+    // For user profile, handle field 33 (field33 - Commodity name Autofill Text)
+    // Note: Field 33 is now filled via commodity dropdown selection, not auto-filled on load
+    // This handler is kept for backward compatibility but field 33 should be filled via commoditySelect change event
+    if (contactIdOrUser === 'user' && fieldPrefix === '33') {
+        // Field 33 is handled by commodity dropdown, not auto-filled
+        return;
+    }
+    
     // For user profile, handle field 56 (signatureShipper)
     if (contactIdOrUser === 'user' && fieldPrefix === '56') {
         if (!contactData || !contactData.signatureShipper) {
@@ -5628,6 +5758,7 @@ function autoFillUserProfile() {
             if (profile.aoDEP) {
                 fillContactField('08', 'user');
             }
+            // Field 33 is now handled by commodity dropdown selection, not auto-filled on load
             if (profile.handlingInfo) {
                 fillContactField('22', 'user');
             }
@@ -5640,6 +5771,9 @@ function autoFillUserProfile() {
             if (profile.signatureIssuingCarrier) {
                 fillContactField('59', 'user');
             }
+            
+            // Populate commodity dropdown after profile is loaded
+            populateCommodityDropdown();
         }, 500);
     }
 }
@@ -5775,6 +5909,20 @@ function handleDirectFlightChange(isDirectFlight) {
         }
     }
     
+    // Update Interline Shipment label color based on Direct Flight selection
+    // Reuse interlineShipmentSelect from above (already declared at line 5745)
+    const interlineShipmentLabel = interlineShipmentSelect ? interlineShipmentSelect.closest('.contact-select-group')?.querySelector('label') : null;
+    
+    if (interlineShipmentLabel) {
+        if (isDirectFlight || (interlineShipmentSelect && interlineShipmentSelect.value && interlineShipmentSelect.value !== '')) {
+            // Remove red color when Direct Flight is Yes or when Interline Shipment is selected
+            interlineShipmentLabel.style.color = '';
+        } else {
+            // Keep red color when not selected (and Direct Flight is not Yes)
+            interlineShipmentLabel.style.color = 'red';
+        }
+    }
+    
     // Update validation indicators
     setTimeout(() => {
         updateTabValidationIndicators();
@@ -5812,6 +5960,22 @@ function handleInterlineShipmentChange(isInterlineYes) {
         }
         if (addInterlineCarrier2BtnGroup) {
             addInterlineCarrier2BtnGroup.style.display = 'none';
+        }
+    }
+    
+    // Update Interline Shipment label color based on selection
+    const interlineShipmentSelect = document.getElementById('interlineShipmentSelect');
+    const interlineShipmentLabel = interlineShipmentSelect ? interlineShipmentSelect.closest('.contact-select-group')?.querySelector('label') : null;
+    const directFlightSelect = document.getElementById('directFlightSelect');
+    const isDirectFlight = directFlightSelect && directFlightSelect.value === 'Yes';
+    
+    if (interlineShipmentLabel) {
+        if (isDirectFlight || (interlineShipmentSelect && interlineShipmentSelect.value && interlineShipmentSelect.value !== '')) {
+            // Remove red color when selected or when Direct Flight is Yes
+            interlineShipmentLabel.style.color = '';
+        } else {
+            // Keep red color when not selected (and Direct Flight is not Yes)
+            interlineShipmentLabel.style.color = 'red';
         }
     }
     
@@ -5978,6 +6142,19 @@ function handleDangerousGoodsChange(isDangerousGoods) {
                 }
                 // If No or empty, field can be filled normally (no action needed)
             }
+        }
+    }
+    
+    // Update Dangerous Goods label color based on selection
+    const dangerousGoodsSelect = document.getElementById('dangerousGoodsSelect');
+    const dangerousGoodsLabel = dangerousGoodsSelect ? dangerousGoodsSelect.closest('.contact-select-group')?.querySelector('label') : null;
+    if (dangerousGoodsLabel) {
+        if (dangerousGoodsSelect && dangerousGoodsSelect.value && dangerousGoodsSelect.value !== '') {
+            // Remove red color when selected
+            dangerousGoodsLabel.style.color = '';
+        } else {
+            // Keep red color when not selected
+            dangerousGoodsLabel.style.color = 'red';
         }
     }
     
@@ -6832,13 +7009,31 @@ function updateTabValidationIndicators() {
     const dangerousGoodsLabel = dangerousGoodsSelect ? dangerousGoodsSelect.closest('.contact-select-group')?.querySelector('label') : null;
     if (dangerousGoodsSelect && (!dangerousGoodsSelect.value || dangerousGoodsSelect.value === '')) {
         routingMissing++;
-        // Dangerous Goods label is already red, but ensure it stays red
+        // Dangerous Goods label should be red when not selected
         if (dangerousGoodsLabel) {
             dangerousGoodsLabel.style.color = 'red';
         }
     } else if (dangerousGoodsLabel) {
-        // Dangerous Goods is selected, but label should stay red since it's required
-        dangerousGoodsLabel.style.color = 'red';
+        // Dangerous Goods is selected, remove red color
+        dangerousGoodsLabel.style.color = '';
+    }
+    
+    // Check Interline Shipment dropdown (required, but only if Direct Flight is not Yes)
+    const directFlightSelect = document.getElementById('directFlightSelect');
+    const isDirectFlight = directFlightSelect && directFlightSelect.value === 'Yes';
+    const interlineShipmentSelect = document.getElementById('interlineShipmentSelect');
+    const interlineShipmentLabel = interlineShipmentSelect ? interlineShipmentSelect.closest('.contact-select-group')?.querySelector('label') : null;
+    if (interlineShipmentSelect && !isDirectFlight && (!interlineShipmentSelect.value || interlineShipmentSelect.value === '')) {
+        routingMissing++;
+        // Interline Shipment label should be red when not selected (and Direct Flight is not Yes)
+        if (interlineShipmentLabel) {
+            interlineShipmentLabel.style.color = 'red';
+        }
+    } else if (interlineShipmentLabel) {
+        // Interline Shipment is selected or Direct Flight is Yes, remove red color
+        if (isDirectFlight || (interlineShipmentSelect && interlineShipmentSelect.value && interlineShipmentSelect.value !== '')) {
+            interlineShipmentLabel.style.color = '';
+        }
     }
     
     updateTabIndicator('routing', routingMissing);
@@ -6887,6 +7082,15 @@ function getMissingFieldNames() {
     if (dangerousGoodsSelect && (!dangerousGoodsSelect.value || dangerousGoodsSelect.value === '')) {
         const label = dangerousGoodsSelect.closest('.contact-select-group')?.querySelector('label');
         missingFields.push(label ? label.textContent.trim() : 'Dangerous Goods');
+    }
+    
+    // Check Interline Shipment dropdown (required, but only if Direct Flight is not Yes)
+    const directFlightSelect = document.getElementById('directFlightSelect');
+    const isDirectFlight = directFlightSelect && directFlightSelect.value === 'Yes';
+    const interlineShipmentSelect = document.getElementById('interlineShipmentSelect');
+    if (interlineShipmentSelect && !isDirectFlight && (!interlineShipmentSelect.value || interlineShipmentSelect.value === '')) {
+        const label = interlineShipmentSelect.closest('.contact-select-group')?.querySelector('label');
+        missingFields.push(label ? label.textContent.trim() : 'Interline Shipment');
     }
     
     // Check form fields
@@ -7395,6 +7599,69 @@ function showMissingFieldsModal(missingFields) {
         missingFieldsModal.style.display = 'flex';
     });
 }
+// ==================== Commodity Functions ====================
+
+// Populate commodity dropdown from user profile
+function populateCommodityDropdown() {
+    const commoditySelect = document.getElementById('commoditySelect');
+    if (!commoditySelect) return;
+    
+    // Clear existing options except the first one
+    commoditySelect.innerHTML = '<option value="">-- Select Commodity --</option>';
+    
+    const profile = getUserProfile();
+    if (profile && profile.field33 && Array.isArray(profile.field33) && profile.field33.length > 0) {
+        profile.field33.forEach((item) => {
+            if (item.commodity) {
+                const option = document.createElement('option');
+                option.value = item.commodity;
+                option.textContent = item.commodity;
+                commoditySelect.appendChild(option);
+            }
+        });
+    }
+}
+
+// Fill field 33 with autofill text from selected commodity
+function fillField33FromCommodity(commodityName) {
+    const profile = getUserProfile();
+    if (!profile || !profile.field33 || !Array.isArray(profile.field33)) {
+        console.warn('Commodity data not found in user profile');
+        return;
+    }
+    
+    const commodity = profile.field33.find(item => item.commodity === commodityName);
+    if (!commodity || !commodity.autofillText) {
+        console.warn(`Autofill text not found for commodity: ${commodityName}`);
+        return;
+    }
+    
+    const billingFieldsForm = document.getElementById('billingFieldsForm');
+    const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+    const formsToCheck = [generatedForm];
+    if (billingFieldsForm) {
+        formsToCheck.push(billingFieldsForm);
+    }
+    if (dimensionsFieldsForm) {
+        formsToCheck.push(dimensionsFieldsForm);
+    }
+    
+    for (const form of formsToCheck) {
+        if (!form) continue;
+        const formElements = form.elements;
+        for (let i = 0; i < formElements.length; i++) {
+            const element = formElements[i];
+            if (element.name && element.name.startsWith('33')) {
+                element.value = commodity.autofillText;
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+                console.log(`Filled field ${element.name} with autofill text for commodity: ${commodityName}`);
+                setTimeout(() => updateTabValidationIndicators(), 50);
+                return;
+            }
+        }
+    }
+}
+
 // ==================== Dimensions Functions ====================
 
 // Add a new dimensions row

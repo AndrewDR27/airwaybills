@@ -65,7 +65,7 @@
                         <span class="tab-validation-indicator" id="routing-validation-indicator"></span>
                     </button>
                     <button class="awb-tab-button" data-tab="dimensions">
-                        Dimensions
+                        Description
                         <span class="tab-validation-indicator" id="dimensions-validation-indicator"></span>
                     </button>
                     <button class="awb-tab-button" data-tab="billing">
@@ -212,10 +212,16 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="contact-select-group">
+                                <label for="commoditySelect">Commodity:</label>
+                                <select id="commoditySelect" class="contact-select">
+                                    <option value="">-- Select Commodity --</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div class="form-header">
-                        <h2>Dimensions</h2>
+                        <h2>Description</h2>
                     </div>
                     <form id="dimensionsFieldsForm">
                         <!-- Dynamically generated dimensions fields will appear here -->
@@ -319,45 +325,45 @@
                     </div>
                     
                     <div class="form-group" id="originInfoGroup" style="display: none;">
-                        <label for="contactOrigin">Origin (02. ORIGIN)</label>
+                        <label for="contactOrigin">Origin <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 02</span></label>
                         <input type="text" id="contactOrigin" placeholder="Enter origin information">
                         <small>This will be used to auto-fill field 02. ORIGIN when the form loads.</small>
                     </div>
                     
                     <div class="form-group" id="aoDEPInfoGroup" style="display: none;">
-                        <label for="contactAoDEP">AoDEP (08. AoDEP)</label>
+                        <label for="contactAoDEP">AoDEP <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 08</span></label>
                         <input type="text" id="contactAoDEP" placeholder="Enter AoDEP information">
                         <small>This will be used to auto-fill field 08. AoDEP when the form loads.</small>
                     </div>
                     
                     <div class="form-group" id="handlingInfoGroup" style="display: none;">
-                        <label for="contactHandlingInfo">Handling Info (22. HANDLING INFO)</label>
+                        <label for="contactHandlingInfo">Handling Info <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 22</span></label>
                         <textarea id="contactHandlingInfo" placeholder="Enter handling information" rows="4"></textarea>
                         <small>This will be used to auto-fill field 22. HANDLING INFO when the form loads.</small>
                     </div>
                     
                     <div class="form-group" id="contactField06Group" style="display: none;">
-                        <label for="contactField06">AWB form Autofill 06</label>
+                        <label for="contactField06">AWB form Autofill 06 <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 06</span></label>
                         <textarea id="contactField06" rows="4" placeholder="Enter agent name and address information. Use line breaks to format."></textarea>
                         <small>This will be used to auto-fill field 06. AGENT NAME when the form loads. Format: Company Name\nContact Name\nEmail\nPhone\nAddress</small>
                     </div>
                     
                     <div class="form-group" id="awbpInfoGroup" style="display: none;">
-                        <label for="contactAWBP">AWBP (01. AWBP)</label>
+                        <label for="contactAWBP">AWBP <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 01</span></label>
                         <input type="text" id="contactAWBP" placeholder="Enter AWBP (Air Waybill Prefix)">
                         <small>This will be used to auto-fill field 01. AWBP when this airline is selected.</small>
                     </div>
                     
                     <div class="form-group" id="airlineAbbreviationGroup" style="display: none;">
-                        <label for="contactAirlineAbbreviation">Airline Abbreviation</label>
+                        <label for="contactAirlineAbbreviation">Airline Abbreviation <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 10</span></label>
                         <input type="text" id="contactAirlineAbbreviation" placeholder="Enter Airline Abbreviation">
-                        <small>This abbreviation will be stored with the airline contact.</small>
+                        <small>This will be used to auto-fill field 10 when this airline is selected.</small>
                     </div>
                     
                     <div class="form-group" id="airlineImageGroup" style="display: none;">
-                        <label for="contactAirlineImage">Airline Logo/Image</label>
+                        <label for="contactAirlineImage">Airline Logo/Image <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 99</span></label>
                         <input type="file" id="contactAirlineImage" accept="image/*">
-                        <small>Upload an image/logo for this airline (JPG, PNG, etc.)</small>
+                        <small>This will be used to auto-fill field 99 when this airline is selected. Upload an image/logo for this airline (JPG, PNG, etc.)</small>
                         <div id="airlineImagePreview" style="margin-top: 10px; display: none;">
                             <img id="airlineImagePreviewImg" src="" alt="Preview" style="max-width: 200px; max-height: 100px; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
                             <button type="button" id="removeAirlineImageBtn" style="margin-left: 10px; padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove Image</button>

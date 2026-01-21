@@ -136,11 +136,14 @@ async function getUserShipments(userId = null) {
             }, 100);
         });
         
+        // After waiting, check again - API might have become available
+        apiAvailable = shipmentsAPI || (typeof window !== 'undefined' && window.shipmentsAPI);
+        
         if (!apiAvailable) {
             throw new Error('Database API not available. Please ensure the database is configured.');
         }
+        
         // Update shipmentsAPI if window.shipmentsAPI is available
-
         if (window.shipmentsAPI && !shipmentsAPI) {
             shipmentsAPI = window.shipmentsAPI;
         }
@@ -148,6 +151,11 @@ async function getUserShipments(userId = null) {
     
     // Use window.shipmentsAPI directly if module-level isn't set
     const apiToUse = shipmentsAPI || window.shipmentsAPI;
+    
+    // Final check - if still not available, throw error
+    if (!apiToUse) {
+        throw new Error('Database API not available. Please ensure the database is configured.');
+    }
     
     try {
         const shipments = await apiToUse.getByUser(userId);
@@ -336,7 +344,8 @@ async function createShipmentSpace(participants = []) {
                 }
             },
             toJSON: function() {
-                return {
+                // Return a clean object without functions
+                const json = {
                     spaceId: this.spaceId,
                     awbNumber: this.awbNumber,
                     createdBy: this.createdBy,
@@ -346,21 +355,28 @@ async function createShipmentSpace(participants = []) {
                     isConfirmed: this.isConfirmed,
                     confirmedAt: this.confirmedAt,
                     confirmedBy: this.confirmedBy,
-                    participants: this.participants,
-                    formData: this.formData,
-                    fees: this.fees,
-                    totalFees: this.totalFees,
+                    participants: Array.isArray(this.participants) ? this.participants : [],
+                    formData: this.formData || {},
+                    fees: Array.isArray(this.fees) ? this.fees : [],
+                    totalFees: this.totalFees || 0,
                     paidBy: this.paidBy,
                     paidAt: this.paidAt,
-                    notes: this.notes,
+                    notes: this.notes || '',
                     pdfBase64: this.pdfBase64,
                     pdfCreatedAt: this.pdfCreatedAt,
-                    isShared: this.isShared,
+                    isShared: this.isShared || false,
                     sharedAt: this.sharedAt,
                     factoryInvoice: this.factoryInvoice,
                     factoryInvoiceUploadedAt: this.factoryInvoiceUploadedAt,
                     factoryInvoiceUploadedBy: this.factoryInvoiceUploadedBy
                 };
+                // Remove any undefined values to ensure clean JSON
+                Object.keys(json).forEach(key => {
+                    if (json[key] === undefined) {
+                        delete json[key];
+                    }
+                });
+                return json;
             }
         };
         
@@ -375,9 +391,51 @@ async function createShipmentSpace(participants = []) {
         // Save shipment
         const shipmentData = newShipment.toJSON();
         
-        if (shipmentsAPI) {
+        // Ensure shipmentsAPI is available
+        let apiToUse = shipmentsAPI || (typeof window !== 'undefined' && window.shipmentsAPI);
+        if (!apiToUse) {
+            // Wait for API to be available
+            await new Promise((resolve) => {
+                if (window.shipmentsAPI) {
+                    apiToUse = window.shipmentsAPI;
+                    resolve();
+                    return;
+                }
+                window.addEventListener('apiReady', () => {
+                    if (window.shipmentsAPI) {
+                        apiToUse = window.shipmentsAPI;
+                        resolve();
+                    }
+                }, { once: true });
+                let checks = 0;
+                const checkInterval = setInterval(() => {
+                    checks++;
+                    if (window.shipmentsAPI) {
+                        apiToUse = window.shipmentsAPI;
+                        clearInterval(checkInterval);
+                        resolve();
+                    } else if (checks >= 50) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 100);
+            });
+        }
+        
+        if (!apiToUse) {
+            throw new Error('Database API not available. Please ensure the database is configured.');
+        }
+        
+        if (apiToUse) {
             try {
-                const saved = await shipmentsAPI.create(shipmentData);
+                // Log the data being sent for debugging
+                console.log('Creating shipment with data (fallback):', JSON.stringify(shipmentData, null, 2));
+                console.log('Shipment data keys (fallback):', Object.keys(shipmentData));
+                console.log('Has spaceId (fallback):', !!shipmentData.spaceId, shipmentData.spaceId);
+                console.log('Has createdBy (fallback):', !!shipmentData.createdBy, shipmentData.createdBy);
+                console.log('Participants (fallback):', shipmentData.participants);
+                
+                const saved = await apiToUse.create(shipmentData);
                 // Use the saved shipment from API (it might have additional fields or different structure)
                 if (saved && saved.spaceId) {
                     // Update newShipment with saved data to ensure consistency
@@ -429,41 +487,77 @@ async function createShipmentSpace(participants = []) {
     // Save shipment
     const shipmentData = newShipment.toJSON();
     
-    if (shipmentsAPI) {
-        try {
-            const saved = await shipmentsAPI.create(shipmentData);
-            // Use the saved shipment from API (it might have additional fields or different structure)
-            if (saved && saved.spaceId) {
-                // Update newShipment with saved data to ensure consistency
-                if (newShipment.spaceId !== saved.spaceId) {
-                    newShipment.spaceId = saved.spaceId;
-                }
-                // Also update localStorage cache for immediate access (optional caching)
-                try {
-                    const shipments = JSON.parse(localStorage.getItem(SHIPMENTS_STORAGE_KEY) || '[]');
-                    const existingIndex = shipments.findIndex(s => s.spaceId === saved.spaceId);
-                    if (existingIndex >= 0) {
-                        shipments[existingIndex] = saved;
-                    } else {
-                        shipments.push(saved);
-                    }
-                    localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
-                } catch (e) {
-                    console.warn('Could not update localStorage cache:', e);
-                }
-                return { success: true, shipment: saved };
+    // Ensure shipmentsAPI is available
+    let apiToUse = shipmentsAPI || (typeof window !== 'undefined' && window.shipmentsAPI);
+    if (!apiToUse) {
+        // Wait for API to be available
+        await new Promise((resolve) => {
+            if (window.shipmentsAPI) {
+                apiToUse = window.shipmentsAPI;
+                resolve();
+                return;
             }
-            return { success: true, shipment: newShipment };
-        } catch (error) {
-            console.error('Error creating shipment via API:', error);
-            // Database required - no localStorage fallback
-            throw error;
-        }
+            window.addEventListener('apiReady', () => {
+                if (window.shipmentsAPI) {
+                    apiToUse = window.shipmentsAPI;
+                    resolve();
+                }
+            }, { once: true });
+            let checks = 0;
+            const checkInterval = setInterval(() => {
+                checks++;
+                if (window.shipmentsAPI) {
+                    apiToUse = window.shipmentsAPI;
+                    clearInterval(checkInterval);
+                    resolve();
+                } else if (checks >= 50) {
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 100);
+        });
     }
     
-    // Database required - no localStorage fallback
+    if (!apiToUse) {
+        throw new Error('Database API not available. Please ensure the database is configured.');
+    }
     
-    throw new Error('Database API not available. Please ensure the database is configured.');
+    try {
+        // Log the data being sent for debugging
+        console.log('Creating shipment with data:', JSON.stringify(shipmentData, null, 2));
+        console.log('Shipment data keys:', Object.keys(shipmentData));
+        console.log('Has spaceId:', !!shipmentData.spaceId, shipmentData.spaceId);
+        console.log('Has createdBy:', !!shipmentData.createdBy, shipmentData.createdBy);
+        console.log('Participants:', shipmentData.participants);
+        
+        const saved = await apiToUse.create(shipmentData);
+        // Use the saved shipment from API (it might have additional fields or different structure)
+        if (saved && saved.spaceId) {
+            // Update newShipment with saved data to ensure consistency
+            if (newShipment.spaceId !== saved.spaceId) {
+                newShipment.spaceId = saved.spaceId;
+            }
+            // Also update localStorage cache for immediate access (optional caching)
+            try {
+                const shipments = JSON.parse(localStorage.getItem(SHIPMENTS_STORAGE_KEY) || '[]');
+                const existingIndex = shipments.findIndex(s => s.spaceId === saved.spaceId);
+                if (existingIndex >= 0) {
+                    shipments[existingIndex] = saved;
+                } else {
+                    shipments.push(saved);
+                }
+                localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
+            } catch (e) {
+                console.warn('Could not update localStorage cache:', e);
+            }
+            return { success: true, shipment: saved };
+        }
+        return { success: true, shipment: newShipment };
+    } catch (error) {
+        console.error('Error creating shipment via API:', error);
+        // Database required - no localStorage fallback
+        throw error;
+    }
 }
 
 // Update shipment (by spaceId or awbNumber)

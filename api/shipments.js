@@ -50,9 +50,14 @@ export default async function handler(req, res) {
                 res.status(200).json(Array.isArray(shipments) ? shipments : []);
             } else if (action === 'user') {
                 // Get shipments for a specific user
+                if (!userId) {
+                    return res.status(400).json({ error: 'userId is required for user action' });
+                }
                 const userShipments = shipments.filter(s => 
-                    s.createdBy === userId || 
-                    s.participants?.some(p => p.userId === userId)
+                    s && (
+                        s.createdBy === userId || 
+                        (Array.isArray(s.participants) && s.participants.some(p => p && p.userId === userId))
+                    )
                 );
                 res.status(200).json(userShipments);
             } else if (spaceId) {
@@ -76,14 +81,36 @@ export default async function handler(req, res) {
             }
         } else if (req.method === 'POST') {
             // Create new shipment
-            const shipments = (await redis.get(SHIPMENTS_KEY)) || [];
-            const newShipment = {
-                ...req.body,
-                createdAt: req.body.createdAt || new Date().toISOString()
-            };
-            shipments.push(newShipment);
-            await redis.set(SHIPMENTS_KEY, shipments);
-            res.status(201).json(newShipment);
+            try {
+                const shipments = (await redis.get(SHIPMENTS_KEY)) || [];
+                
+                // Clean the shipment data - remove any functions or non-serializable data
+                const cleanShipment = JSON.parse(JSON.stringify(req.body));
+                
+                const newShipment = {
+                    ...cleanShipment,
+                    createdAt: cleanShipment.createdAt || new Date().toISOString()
+                };
+                
+                // Ensure required fields
+                if (!newShipment.spaceId) {
+                    return res.status(400).json({ error: 'spaceId is required' });
+                }
+                if (!newShipment.createdBy) {
+                    return res.status(400).json({ error: 'createdBy is required' });
+                }
+                
+                shipments.push(newShipment);
+                await redis.set(SHIPMENTS_KEY, shipments);
+                res.status(201).json(newShipment);
+            } catch (error) {
+                console.error('Error creating shipment:', error);
+                res.status(500).json({ 
+                    error: 'Internal server error', 
+                    message: error.message,
+                    details: error.stack 
+                });
+            }
         } else if (req.method === 'PUT') {
             // Update existing shipment
             const shipments = (await redis.get(SHIPMENTS_KEY)) || [];
