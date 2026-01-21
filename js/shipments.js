@@ -642,7 +642,7 @@ function uncancelShipment(spaceId) {
     return updateShipment(spaceId, shipment.toJSON ? shipment.toJSON() : shipment);
 }
 
-// Delete shipment (only cancelled ones, by Agent only)
+// Delete shipment (by Agent or Admin only)
 async function deleteShipment(spaceId) {
     const user = getCurrentUser();
     if (!user || (user.role !== 'issuing-carrier-agent' && user.role !== 'admin')) {
@@ -654,8 +654,13 @@ async function deleteShipment(spaceId) {
         return { success: false, message: 'Shipment not found' };
     }
     
-    if (shipment.status !== 'cancelled') {
-        return { success: false, message: 'Only cancelled shipments can be deleted' };
+    // Allow deletion of any space that is not already deleted or in-transit
+    if (shipment.status === 'deleted') {
+        return { success: false, message: 'This shipment has already been deleted' };
+    }
+    
+    if (shipment.status === 'in-transit') {
+        return { success: false, message: 'Cannot delete shipments that are in-transit' };
     }
     
     // Delete via API

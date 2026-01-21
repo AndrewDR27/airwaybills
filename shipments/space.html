@@ -457,12 +457,19 @@
                     document.getElementById('shareAWBBtn').style.display = 'none';
                 }
                 
-                // Show delete button only for agents (not admins) and only if cancelled
-                if (isAgent && isCancelled) {
+                // Show delete button for agents and admins (except for deleted or in-transit shipments)
+                const canDelete = (isAgent || isAdmin) && 
+                                  currentShipment.status !== 'deleted' && 
+                                  currentShipment.status !== 'in-transit';
+                if (canDelete) {
                     document.getElementById('deleteBtn').style.display = 'block';
-                    document.getElementById('cancelBtn').textContent = 'Uncancel Shipment';
                 } else {
                     document.getElementById('deleteBtn').style.display = 'none';
+                }
+                
+                // Update cancel button text if cancelled
+                if (isCancelled && isAgent) {
+                    document.getElementById('cancelBtn').textContent = 'Uncancel Shipment';
                 }
                 
                 // Show cancel/uncancel button only for agents (not admins)
@@ -641,15 +648,20 @@
             }
         });
 
-        document.getElementById('deleteBtn').addEventListener('click', function() {
+        document.getElementById('deleteBtn').addEventListener('click', async function() {
             if (confirm('Are you sure you want to permanently delete this shipment space? This action cannot be undone.')) {
                 if (confirm('This is your final confirmation. The shipment will be permanently deleted.')) {
-                    const result = deleteShipment(spaceId);
-                    if (result.success) {
-                        alert('Shipment deleted successfully.');
-                        goBack();
-                    } else {
-                        alert('Error: ' + result.message);
+                    try {
+                        const result = await deleteShipment(spaceId);
+                        if (result.success) {
+                            alert('Shipment deleted successfully.');
+                            goBack();
+                        } else {
+                            alert('Error: ' + result.message);
+                        }
+                    } catch (error) {
+                        console.error('Error deleting shipment:', error);
+                        alert('Error deleting shipment: ' + (error.message || 'Unknown error'));
                     }
                 }
             }
