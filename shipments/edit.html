@@ -5,32 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Shipment - Airway Bills</title>
     <link rel="stylesheet" href="../styles.css">
+    <script type="module" src="../js/themes.js"></script>
     <style>
+        body {
+            margin: 0;
+            padding: 2px;
+            font-family: 'MS Sans Serif', 'Arial', sans-serif;
+            background: #008080;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #C0C0C0;
+            padding: 8px;
+            border: 2px outset #C0C0C0;
+        }
         .edit-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #eee;
+            border-bottom: 2px inset #C0C0C0;
         }
         .edit-header h1 {
             margin: 0;
-            color: #333;
+            color: #000000;
+            font-size: 16px;
+            font-weight: bold;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
         }
         .back-button {
-            padding: 10px 20px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 6px;
+            padding: 4px 12px;
+            background: #C0C0C0;
+            color: #000000;
+            border: 2px outset #C0C0C0;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 11px;
+            font-weight: normal;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
             text-decoration: none;
             display: inline-block;
         }
         .back-button:hover {
-            background: #5568d3;
+            background: #E8E8E8;
+        }
+        .back-button:active {
+            border: 2px inset #C0C0C0;
+            background: #808080;
         }
     </style>
 </head>
