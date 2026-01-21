@@ -602,6 +602,38 @@
                 loadShipments();
             }
             
+            // Delete shipment from list
+            async function deleteShipmentFromList(spaceId) {
+                if (confirm('Are you sure you want to permanently delete this shipment space? This action cannot be undone.')) {
+                    if (confirm('This is your final confirmation. The shipment will be permanently deleted.')) {
+                        try {
+                            // Wait for deleteShipment to be available
+                            let attempts = 0;
+                            while (typeof window.deleteShipment !== 'function' && attempts < 50) {
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                                attempts++;
+                            }
+                            
+                            if (typeof window.deleteShipment !== 'function') {
+                                alert('Delete function not available. Please refresh the page.');
+                                return;
+                            }
+                            
+                            const result = await window.deleteShipment(spaceId);
+                            if (result.success) {
+                                alert('Shipment deleted successfully.');
+                                loadShipments();
+                            } else {
+                                alert('Error: ' + result.message);
+                            }
+                        } catch (error) {
+                            console.error('Error deleting shipment:', error);
+                            alert('Error deleting shipment: ' + (error.message || 'Unknown error'));
+                        }
+                    }
+                }
+            }
+            
             // Expose functions to global scope for onclick handlers IMMEDIATELY
             window.switchTab = switchTab;
             window.viewShipmentSpace = viewShipmentSpace;
@@ -610,6 +642,7 @@
             window.downloadFactoryInvoice = downloadFactoryInvoice;
             window.uploadFactoryInvoiceFile = uploadFactoryInvoiceFile;
             window.downloadShipmentPDF = downloadShipmentPDF;
+            window.deleteShipmentFromList = deleteShipmentFromList;
 
             // Load and display shipments
             async function loadShipments() {
@@ -743,6 +776,14 @@
                 let buttons = '';
                 let statusActions = '';
                 let factoryInvoiceSection = '';
+                
+                // Add delete button for agents/admins (except for deleted or in-transit shipments)
+                const canDelete = (isAgent || isAdmin) && 
+                                  shipment.status !== 'deleted' && 
+                                  shipment.status !== 'in-transit';
+                if (canDelete) {
+                    buttons += `<button class="btn-danger" onclick="deleteShipmentFromList('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">Delete</button>`;
+                }
             
                 // Pending tab actions
                 if (currentTab === 'pending') {

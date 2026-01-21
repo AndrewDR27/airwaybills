@@ -644,10 +644,20 @@ function uncancelShipment(spaceId) {
 
 // Delete shipment (by Agent or Admin only)
 async function deleteShipment(spaceId) {
-    const user = getCurrentUser();
+    // Try to get user - use async version to ensure we have the latest user data
+    let user = getCurrentUser();
+    if (!user && typeof window !== 'undefined' && typeof window.getCurrentUserAsync === 'function') {
+        try {
+            user = await window.getCurrentUserAsync();
+        } catch (error) {
+            console.warn('getCurrentUserAsync failed, trying sync version:', error);
+            user = getCurrentUser();
+        }
+    }
+    
     console.log('deleteShipment - user:', user, 'role:', user?.role);
     if (!user || (user.role !== 'issuing-carrier-agent' && user.role !== 'admin')) {
-        console.log('deleteShipment - Access denied. User role:', user?.role);
+        console.log('deleteShipment - Access denied. User:', user ? `role=${user.role}` : 'null');
         return { success: false, message: 'Only Issuing Carrier Agents or Administrators can delete shipments' };
     }
     
@@ -709,6 +719,11 @@ async function deleteShipment(spaceId) {
         // Database required - no localStorage fallback
         throw error; // Require database in production
     }
+}
+
+// Expose deleteShipment to window for use in HTML pages
+if (typeof window !== 'undefined') {
+    window.deleteShipment = deleteShipment;
 }
 
 // Mark shipment as shared
