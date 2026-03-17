@@ -126,7 +126,8 @@ app.post('/api/users', async (req, res) => {
         }
 
         const { action } = req.query;
-        const users = (await redis.get(USERS_KEY)) || [];
+        let rawUsers = await redis.get(USERS_KEY);
+        const users = Array.isArray(rawUsers) ? rawUsers : [];
 
         if (action === 'register') {
             if (users.some(u => u.email === req.body.email)) {
@@ -154,12 +155,23 @@ app.post('/api/users', async (req, res) => {
             res.status(201).json(safeUser);
         } else if (action === 'login') {
             // Login - check credentials
-            const users = (await redis.get(USERS_KEY)) || [];
-            console.log('Login attempt for email:', req.body.email);
+            if (!req.body || typeof req.body !== 'object') {
+                res.status(400).json({ success: false, message: 'Invalid request body' });
+                return;
+            }
+            const email = req.body.email != null ? String(req.body.email).trim() : '';
+            const passwordInput = req.body.password != null ? String(req.body.password) : '';
+            if (!email || !passwordInput) {
+                res.status(400).json({ success: false, message: 'Email and password are required' });
+                return;
+            }
+            let loginUsers = await redis.get(USERS_KEY);
+            const users = Array.isArray(loginUsers) ? loginUsers : [];
+            console.log('Login attempt for email:', email);
             console.log('Total users in database:', users.length);
             
             // Case-insensitive email matching
-            const user = users.find(u => u.email && u.email.toLowerCase() === req.body.email.toLowerCase());
+            const user = users.find(u => u && u.email && String(u.email).toLowerCase() === email.toLowerCase());
             
             if (!user) {
                 console.log('User not found in database');
@@ -176,11 +188,11 @@ app.post('/api/users', async (req, res) => {
                 res.status(401).json({ success: false, message: 'Invalid email or password' });
                 return;
             }
-            
-            if (storedPassword !== req.body.password) {
+            const storedPasswordStr = String(storedPassword);
+            if (storedPasswordStr !== passwordInput) {
                 console.log('Password mismatch');
-                console.log('Stored password length:', storedPassword.length);
-                console.log('Provided password length:', req.body.password.length);
+                console.log('Stored password length:', storedPasswordStr.length);
+                console.log('Provided password length:', passwordInput.length);
                 res.status(401).json({ success: false, message: 'Invalid email or password' });
                 return;
             }
@@ -220,6 +232,16 @@ app.post('/api/users', async (req, res) => {
         }
     } catch (error) {
         console.error('Users API error:', error);
+        console.error('Users API error stack:', error.stack);
+        const isRedisUnreachable = error.cause?.code === 'ENOTFOUND' ||
+            (error.message && (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED')));
+        if (isRedisUnreachable) {
+            res.status(503).json({
+                error: 'Database unreachable',
+                message: 'Cannot reach Redis. Check your .env: use the current Upstash Redis URL and token from Vercel (Settings → Environment Variables).'
+            });
+            return;
+        }
         res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });

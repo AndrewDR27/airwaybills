@@ -606,6 +606,10 @@
                     if (contact.type === 'Consignee' && contact.accountInfo) {
                         migrated.accountInfo = contact.accountInfo;
                     }
+                    // Preserve field33 (commodity list) for Shipper, Consignee, User, etc.
+                    if (contact.field33 && Array.isArray(contact.field33)) {
+                        migrated.field33 = contact.field33;
+                    }
                     
                     return migrated;
                 }).filter(c => c !== null && c.id && c.type);
