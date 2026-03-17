@@ -91,6 +91,10 @@ export default async function handler(req, res) {
         if (req.method === 'GET') {
             if (action === 'all') {
                 // Get all users
+                if (!redis) {
+                    res.status(200).json([]);
+                    return;
+                }
                 const users = await redis.get(USERS_KEY) || [];
                 // Don't return passwords
                 const safeUsers = users.map(u => {
@@ -100,6 +104,10 @@ export default async function handler(req, res) {
                 res.status(200).json(Array.isArray(safeUsers) ? safeUsers : []);
             } else if (action === 'current') {
                 // Get current authenticated user using session token
+                if (!redis) {
+                    res.status(200).json(null);
+                    return;
+                }
                 const sessionToken = req.query.sessionToken || req.headers['x-session-token'];
                 
                 if (!sessionToken) {
@@ -143,6 +151,10 @@ export default async function handler(req, res) {
                 }
             } else if (userId) {
                 // Get user by ID
+                if (!redis) {
+                    res.status(404).json({ error: 'User not found' });
+                    return;
+                }
                 const users = await redis.get(USERS_KEY) || [];
                 const user = users.find(u => u.id === userId);
                 if (user) {
@@ -153,6 +165,10 @@ export default async function handler(req, res) {
                 }
             } else if (email) {
                 // Get user by email
+                if (!redis) {
+                    res.status(404).json({ error: 'User not found' });
+                    return;
+                }
                 const users = await redis.get(USERS_KEY) || [];
                 const user = users.find(u => u.email === email);
                 if (user) {
@@ -166,6 +182,19 @@ export default async function handler(req, res) {
             }
         } else if (req.method === 'POST') {
             if (action === 'register') {
+                // Check if redis is available
+                if (!redis) {
+                    res.status(503).json({ 
+                        error: 'Database not configured',
+                        message: 'Upstash Redis environment variables are missing or invalid.',
+                        details: {
+                            hasUrl: !!redisUrl,
+                            hasToken: !!redisToken
+                        }
+                    });
+                    return;
+                }
+
                 // Validate required fields
                 if (!req.body.email || !req.body.name || !req.body.password) {
                     res.status(400).json({ error: 'Missing required fields: email, name, and password are required' });
