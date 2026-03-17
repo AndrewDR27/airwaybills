@@ -3,9 +3,14 @@
 
 import { Redis } from '@upstash/redis';
 
-// Support both Vercel KV (old) and Upstash Redis (new) environment variable names
-const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+// Support multiple environment variable name formats
+// Priority: airwaybills_ prefix (new restored database) > standard names > Upstash names
+const redisUrl = process.env.airwaybills_KV_REST_API_URL || 
+                 process.env.KV_REST_API_URL ||
+                 process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.airwaybills_KV_REST_API_TOKEN || 
+                   process.env.KV_REST_API_TOKEN ||
+                   process.env.UPSTASH_REDIS_REST_TOKEN;
 
 // Debug logging (only in development or when explicitly enabled)
 const DEBUG_DB = process.env.DEBUG_DB === 'true';

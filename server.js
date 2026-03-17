@@ -11,8 +11,13 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
 // Connect to Upstash Redis database (same as production)
-const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+// Priority: airwaybills_ prefix (new restored database) > standard names > Upstash names
+const redisUrl = process.env.airwaybills_KV_REST_API_URL || 
+                 process.env.KV_REST_API_URL ||
+                 process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.airwaybills_KV_REST_API_TOKEN || 
+                   process.env.KV_REST_API_TOKEN ||
+                   process.env.UPSTASH_REDIS_REST_TOKEN;
 
 const redis = redisUrl && redisToken
     ? new Redis({
