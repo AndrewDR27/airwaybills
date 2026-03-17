@@ -680,9 +680,12 @@
                 return true;
             } catch (error) {
                 console.warn('Could not save user profile to API:', error);
-                const is404 = (error.message || '').toLowerCase().includes('404') || (error.message || '').toLowerCase().includes('not found');
+                const is404 = (error.message || '').includes('404') || (error.message || '').toLowerCase().includes('not found');
                 if (is404) {
-                    alert('User profile API not found (404). Open the app from the running server (e.g. http://localhost:3000/contacts.html) instead of opening the file directly.');
+                    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                    alert('User profile API not available (404). ' + (isLocalhost
+                        ? 'Run the app with the Node server (npm run dev) and use http://localhost:3000.'
+                        : 'Profile save requires the backend API to be deployed for this site.'));
                 } else {
                     alert('Error saving user profile. Please try again.');
                 }
