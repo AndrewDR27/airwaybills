@@ -190,6 +190,10 @@ function initializeApp() {
             }
         });
     }
+
+    if (typeof ensureUserProfileLoadedForForm === 'function') {
+        ensureUserProfileLoadedForForm();
+    }
     
     // Close modal when clicking outside
     if (missingFieldsModal) {
@@ -7582,6 +7586,7 @@ async function showContactSection() {
     if (contactControlsSection) {
         contactControlsSection.style.display = 'block';
         await updateContactDropdowns();
+        if (typeof ensureUserProfileLoadedForForm === 'function') ensureUserProfileLoadedForForm();
         autoFillUserProfile();
     }
     
