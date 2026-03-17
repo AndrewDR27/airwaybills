@@ -729,7 +729,7 @@ async function handlePDF(file) {
         // Contacts: wait for apiReady if api.js not loaded yet so shipper/consignee dropdowns get populated
         try {
             if (typeof loadTemplatesFromAPI === 'function') loadTemplatesFromAPI().catch(() => {});
-            if (typeof ensureUserProfileLoadedForForm === 'function') ensureUserProfileLoadedForForm();
+            if (typeof ensureUserProfileLoadedForForm === 'function') await ensureUserProfileLoadedForForm();
             if (typeof ensureContactsLoadedForForm === 'function') ensureContactsLoadedForForm();
             // Retry profile + contacts load after delay in case APIs or auth weren't ready yet
             setTimeout(() => {
@@ -4544,34 +4544,63 @@ function getUserProfile() {
     return profileCache;
 }
 
+async function resolveCurrentUserForProfile() {
+    const immediateUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (immediateUser && immediateUser.id) return immediateUser;
+
+    if (typeof getCurrentUserAsync === 'function') {
+        try {
+            const asyncUser = await getCurrentUserAsync();
+            if (asyncUser && asyncUser.id) return asyncUser;
+        } catch (e) {
+            console.warn('Could not resolve current user asynchronously:', e);
+        }
+    }
+
+    return new Promise((resolve) => {
+        let finished = false;
+        const finish = (user) => {
+            if (finished) return;
+            finished = true;
+            resolve(user || null);
+        };
+
+        const onReady = () => {
+            const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+            finish(user && user.id ? user : null);
+        };
+
+        window.addEventListener('apiReady', onReady, { once: true });
+        setTimeout(() => onReady(), 1500);
+    });
+}
+
 async function loadUserProfileFromAPI() {
-    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    if (!user || !user.id || !window.userProfileAPI) return;
+    const user = await resolveCurrentUserForProfile();
+    if (!user || !user.id || !window.userProfileAPI) return false;
     try {
         profileCache = await window.userProfileAPI.get(user.id);
         if (profileCache && typeof profileCache !== 'object') profileCache = null;
         // Fill field 06 (issuing agent) and other user profile fields once profile is loaded
         if (typeof autoFillUserProfile === 'function') autoFillUserProfile();
+        return true;
     } catch (e) {
         console.warn('Could not load user profile from API:', e);
+        return false;
     }
 }
 
 // Ensure the user profile is loaded for Create AWB, even if auth/API were not ready yet.
-function ensureUserProfileLoadedForForm() {
-    const doLoad = () => {
-        if (typeof loadUserProfileFromAPI === 'function') loadUserProfileFromAPI().catch(() => {});
-    };
-
-    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+async function ensureUserProfileLoadedForForm() {
+    const user = await resolveCurrentUserForProfile();
     if (user && user.id && window.userProfileAPI) {
-        doLoad();
+        await loadUserProfileFromAPI().catch(() => {});
         return;
     }
 
     const onReady = () => {
         window.removeEventListener('apiReady', onReady);
-        doLoad();
+        loadUserProfileFromAPI().catch(() => {});
     };
 
     window.addEventListener('apiReady', onReady);
@@ -4580,7 +4609,7 @@ function ensureUserProfileLoadedForForm() {
         const retryUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
         if (retryUser && retryUser.id && window.userProfileAPI) {
             window.removeEventListener('apiReady', onReady);
-            doLoad();
+            loadUserProfileFromAPI().catch(() => {});
         }
     }, 500);
 }
@@ -7586,7 +7615,7 @@ async function showContactSection() {
     if (contactControlsSection) {
         contactControlsSection.style.display = 'block';
         await updateContactDropdowns();
-        if (typeof ensureUserProfileLoadedForForm === 'function') ensureUserProfileLoadedForForm();
+        if (typeof ensureUserProfileLoadedForForm === 'function') await ensureUserProfileLoadedForForm();
         autoFillUserProfile();
     }
     
