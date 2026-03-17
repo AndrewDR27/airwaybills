@@ -572,6 +572,7 @@ function initializeApp() {
                 updateContactButtonText('Shipper', addShipperBtn, shipperSelect);
                 setTimeout(() => updatePromptIndicators(), 100);
             }
+            populateCommodityDropdown();
         });
     }
     
@@ -586,6 +587,7 @@ function initializeApp() {
                 updateContactButtonText('Consignee', addConsigneeBtn, consigneeSelect);
                 setTimeout(() => updatePromptIndicators(), 100);
             }
+            populateCommodityDropdown();
         });
     }
     
@@ -5282,6 +5284,30 @@ function handleSaveContact(e) {
             }
         }
         
+        // Preserve or collect field33 (commodity list) for Shipper/Consignee etc.
+        const contactField33GroupEl = document.getElementById('contactField33Group');
+        const commodityListEl = document.getElementById('commodityList');
+        if (commodityListEl && contactField33GroupEl && contactField33GroupEl.style.display !== 'none') {
+            const field33 = [];
+            const commodityEntries = commodityListEl.querySelectorAll('.commodity-entry');
+            commodityEntries.forEach(entry => {
+                const commodityInput = entry.querySelector('.commodity-name-input');
+                const autofillInput = entry.querySelector('.commodity-autofill-input');
+                const field41Input = entry.querySelector('.commodity-field41-input');
+                if (commodityInput && autofillInput && field41Input) {
+                    const commodity = commodityInput.value.trim();
+                    const autofillText = autofillInput.value.trim();
+                    const field41 = field41Input.value.trim();
+                    if (commodity || autofillText || field41) {
+                        field33.push({ commodity, autofillText, field41 });
+                    }
+                }
+            });
+            contact.field33 = field33;
+        } else if (contactIndex >= 0 && Array.isArray(contacts[contactIndex].field33)) {
+            contact.field33 = contacts[contactIndex].field33;
+        }
+        
         // Save contact (if image wasn't uploaded, this will be called directly)
         if (type !== 'Airline' || !document.getElementById('contactAirlineImage')?.files?.[0]) {
             if (contactIndex >= 0) {
@@ -9062,7 +9088,41 @@ function showMissingFieldsModal(missingFields) {
 }
 // ==================== Commodity Functions ====================
 
-// Populate commodity dropdown from user profile
+// Get combined field33 list from user profile and selected shipper (and consignee) for dropdown
+function getCommoditySourcesForDropdown() {
+    const combined = [];
+    const seen = new Set();
+    const add = (items) => {
+        if (!items || !Array.isArray(items)) return;
+        items.forEach((item) => {
+            if (item && item.commodity && !seen.has(item.commodity)) {
+                seen.add(item.commodity);
+                combined.push(item);
+            }
+        });
+    };
+    const profile = getUserProfile();
+    if (profile && profile.field33) {
+        add(profile.field33);
+    }
+    if (shipperSelect && shipperSelect.value) {
+        const contacts = getContacts();
+        const shipper = contacts.find(c => c.id === shipperSelect.value);
+        if (shipper && shipper.field33) {
+            add(shipper.field33);
+        }
+    }
+    if (consigneeSelect && consigneeSelect.value) {
+        const contacts = getContacts();
+        const consignee = contacts.find(c => c.id === consigneeSelect.value);
+        if (consignee && consignee.field33) {
+            add(consignee.field33);
+        }
+    }
+    return combined;
+}
+
+// Populate commodity dropdown from user profile and selected shipper/consignee
 function populateCommodityDropdown() {
     const commoditySelect = document.getElementById('commoditySelect');
     if (!commoditySelect) return;
@@ -9070,15 +9130,13 @@ function populateCommodityDropdown() {
     // Clear existing options except the first one
     commoditySelect.innerHTML = '<option value="">-- Select Commodity --</option>';
     
-    const profile = getUserProfile();
-    if (profile && profile.field33 && Array.isArray(profile.field33) && profile.field33.length > 0) {
-        profile.field33.forEach((item) => {
-            if (item.commodity) {
-                const option = document.createElement('option');
-                option.value = item.commodity;
-                option.textContent = item.commodity;
-                commoditySelect.appendChild(option);
-            }
+    const sources = getCommoditySourcesForDropdown();
+    if (sources.length > 0) {
+        sources.forEach((item) => {
+            const option = document.createElement('option');
+            option.value = item.commodity;
+            option.textContent = item.commodity;
+            commoditySelect.appendChild(option);
         });
     }
 }
@@ -9116,16 +9174,40 @@ function fillFieldByPrefix(fieldPrefix, value) {
     }
 }
 
+// Resolve commodity by name from user profile or selected shipper/consignee
+function findCommodityByName(commodityName) {
+    const profile = getUserProfile();
+    if (profile && profile.field33 && Array.isArray(profile.field33)) {
+        const found = profile.field33.find(item => item.commodity === commodityName);
+        if (found) return found;
+    }
+    if (shipperSelect && shipperSelect.value) {
+        const contacts = getContacts();
+        const shipper = contacts.find(c => c.id === shipperSelect.value);
+        if (shipper && shipper.field33 && Array.isArray(shipper.field33)) {
+            const found = shipper.field33.find(item => item.commodity === commodityName);
+            if (found) return found;
+        }
+    }
+    if (consigneeSelect && consigneeSelect.value) {
+        const contacts = getContacts();
+        const consignee = contacts.find(c => c.id === consigneeSelect.value);
+        if (consignee && consignee.field33 && Array.isArray(consignee.field33)) {
+            const found = consignee.field33.find(item => item.commodity === commodityName);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
 // Fill field 33 with autofill text from selected commodity
 function fillField33FromCommodity(commodityName) {
-    const profile = getUserProfile();
-    if (!profile || !profile.field33 || !Array.isArray(profile.field33)) {
-        console.warn('Commodity data not found in user profile');
+    const commodity = findCommodityByName(commodityName);
+    if (!commodity) {
+        console.warn(`Commodity not found: ${commodityName}`);
         return;
     }
-    
-    const commodity = profile.field33.find(item => item.commodity === commodityName);
-    if (!commodity || !commodity.autofillText) {
+    if (!commodity.autofillText) {
         console.warn(`Autofill text not found for commodity: ${commodityName}`);
         return;
     }

@@ -801,13 +801,16 @@
                 }
                 
                 const user = getCurrentUser();
+                
+                // Get spaceId from URL or sessionStorage (needed for both agents and admins)
+                const urlParams = new URLSearchParams(window.location.search);
+                const spaceId = urlParams.get('spaceId') || sessionStorage.getItem('currentSpaceId');
+                
                 // Only agents can create AWBs, admins can view/edit but not create
                 if (!user || user.role !== 'issuing-carrier-agent') {
                     // If admin, allow viewing/editing but prevent creation
                     if (user && user.role === 'admin') {
                         // Check if this is a new AWB creation (no spaceId means new)
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const spaceId = urlParams.get('spaceId') || sessionStorage.getItem('currentSpaceId');
                         if (!spaceId) {
                             alert('Administrators cannot create new AWBs. Please use an existing shipment space.');
                             if (window.parent && window.parent !== window) {
@@ -833,7 +836,9 @@
                 
                 try {
                     // Get the existing shipment space
-                    const shipment = getShipmentBySpaceId(spaceId);
+                    console.log('Getting shipment by spaceId:', spaceId);
+                    const shipment = await getShipmentBySpaceId(spaceId);
+                    console.log('Shipment retrieved:', shipment ? 'Found' : 'Not found');
                     if (!shipment) {
                         console.error('Shipment space not found:', spaceId);
                         // Hide loading on error
@@ -955,7 +960,9 @@
                     // Add participants if any
                     if (participantsToAdd.length > 0) {
                         // Get current shipment to add participants
-                        const currentShipment = getShipmentBySpaceId(spaceId);
+                        console.log('Getting shipment to add participants...');
+                        const currentShipment = await getShipmentBySpaceId(spaceId);
+                        console.log('Shipment for participants:', currentShipment ? 'Found' : 'Not found');
                         if (currentShipment) {
                             participantsToAdd.forEach(participant => {
                                 if (currentShipment.addParticipant) {

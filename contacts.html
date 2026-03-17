@@ -912,9 +912,9 @@
                 console.warn('Error getting current user for agent check:', error);
             }
             
-            // Show Field 33 (Commodity) for User, UserAccount, or when current user is an agent
+            // Show Field 33 (Commodity) for User, UserAccount, Shipper, Consignee, or when current user is an agent
             const contactField33Group = document.getElementById('contactField33Group');
-            const showField33 = (type === 'User' || type === 'UserAccount' || isAgent);
+            const showField33 = (type === 'User' || type === 'UserAccount' || type === 'Shipper' || type === 'Consignee' || isAgent);
             if (contactField33Group) {
                 contactField33Group.style.display = showField33 ? 'block' : 'none';
             }
@@ -984,6 +984,16 @@
                         if (contactFormattedValue) contactFormattedValue.value = contact.formattedValue || '';
                         if (document.getElementById('contactAccountInfo')) {
                             document.getElementById('contactAccountInfo').value = contact.accountInfo || '';
+                        }
+                        // Load commodity list (field33) for Shipper/Consignee/etc.
+                        const commodityList = document.getElementById('commodityList');
+                        if (commodityList) {
+                            commodityList.innerHTML = '';
+                            if (contact.field33 && Array.isArray(contact.field33) && contact.field33.length > 0) {
+                                contact.field33.forEach((item, index) => {
+                                    addCommodityEntry(item.commodity || '', item.autofillText || '', item.field41 || '', index);
+                                });
+                            }
                         }
                     }
                 }
@@ -1230,6 +1240,28 @@
                     };
                 }
                 
+                // Collect commodity list (field33) when Field 33 group is visible (Shipper, Consignee, etc.)
+                let field33 = existingContact && Array.isArray(existingContact.field33) ? existingContact.field33 : [];
+                const contactField33Group = document.getElementById('contactField33Group');
+                const commodityList = document.getElementById('commodityList');
+                if (commodityList && contactField33Group && contactField33Group.style.display !== 'none') {
+                    field33 = [];
+                    const commodityEntries = commodityList.querySelectorAll('.commodity-entry');
+                    commodityEntries.forEach(entry => {
+                        const commodityInput = entry.querySelector('.commodity-name-input');
+                        const autofillInput = entry.querySelector('.commodity-autofill-input');
+                        const field41Input = entry.querySelector('.commodity-field41-input');
+                        if (commodityInput && autofillInput && field41Input) {
+                            const commodity = commodityInput.value.trim();
+                            const autofillText = autofillInput.value.trim();
+                            const field41 = field41Input.value.trim();
+                            if (commodity || autofillText || field41) {
+                                field33.push({ commodity, autofillText, field41 });
+                            }
+                        }
+                    });
+                }
+                
                 const contact = {
                     id,
                     type,
@@ -1237,7 +1269,8 @@
                     email: email || '',
                     formattedValue: formattedValue || '',
                     linkedUserId: linkedUserId || (existingContact ? existingContact.linkedUserId : null),
-                    agentCustomFields: agentCustomFields
+                    agentCustomFields: agentCustomFields,
+                    field33: field33
                 };
                 
                 if (type === 'Consignee' && accountInfo) {

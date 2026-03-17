@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check LocalStorage Data</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .data-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        .data-section h2 {
+            margin-top: 0;
+            color: #667eea;
+            font-size: 18px;
+        }
+        .data-found {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .data-empty {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        button.export {
+            background: #28a745;
+        }
+        button.export:hover {
+            background: #218838;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .count {
+            font-weight: bold;
+            font-size: 18px;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Check LocalStorage Data</h1>
+        <p>This tool checks if you have any data stored in browser localStorage that can be recovered.</p>
+        
+        <button onclick="checkAllData()">Check All Data</button>
+        <button onclick="exportAllData()" class="export">Export All Data (if found)</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function checkAllData() {
+            const resultsDiv = document.getElementById('results');
+            let html = '';
+            
+            // Check Users
+            const users = JSON.parse(localStorage.getItem('awb_users') || '[]');
+            html += `<div class="data-section">
+                <h2>👤 Users</h2>
+                ${users.length > 0 
+                    ? `<div class="data-found">
+                        <span class="count">${users.length} user(s) found!</span>
+                        <pre>${JSON.stringify(users, null, 2)}</pre>
+                    </div>`
+                    : `<div class="data-empty">No users found in localStorage</div>`
+                }
+            </div>`;
+            
+            // Check Contacts
+            const contacts = JSON.parse(localStorage.getItem('awbContacts') || '[]');
+            html += `<div class="data-section">
+                <h2>📇 Contacts</h2>
+                ${contacts.length > 0 
+                    ? `<div class="data-found">
+                        <span class="count">${contacts.length} contact(s) found!</span>
+                        <pre>${JSON.stringify(contacts, null, 2)}</pre>
+                    </div>`
+                    : `<div class="data-empty">No contacts found in localStorage</div>`
+                }
+            </div>`;
+            
+            // Check User Profile
+            const profile = JSON.parse(localStorage.getItem('awbUserProfile') || 'null');
+            html += `<div class="data-section">
+                <h2>👤 User Profile</h2>
+                ${profile 
+                    ? `<div class="data-found">
+                        <span class="count">Profile data found!</span>
+                        <pre>${JSON.stringify(profile, null, 2)}</pre>
+                    </div>`
+                    : `<div class="data-empty">No user profile found in localStorage</div>`
+                }
+            </div>`;
+            
+            // Check Shipments
+            const shipments = JSON.parse(localStorage.getItem('awbShipments') || '[]');
+            html += `<div class="data-section">
+                <h2>📦 Shipments</h2>
+                ${shipments.length > 0 
+                    ? `<div class="data-found">
+                        <span class="count">${shipments.length} shipment(s) found!</span>
+                        <pre>${JSON.stringify(shipments, null, 2).substring(0, 1000)}...</pre>
+                    </div>`
+                    : `<div class="data-empty">No shipments found in localStorage</div>`
+                }
+            </div>`;
+            
+            // Check Airlines
+            const airlines = JSON.parse(localStorage.getItem('awb_airlines') || '[]');
+            html += `<div class="data-section">
+                <h2>✈️ Airlines</h2>
+                ${airlines.length > 0 
+                    ? `<div class="data-found">
+                        <span class="count">${airlines.length} airline(s) found!</span>
+                        <pre>${JSON.stringify(airlines, null, 2)}</pre>
+                    </div>`
+                    : `<div class="data-empty">No airlines found in localStorage</div>`
+                }
+            </div>`;
+            
+            // Check Destinations
+            const destinations = JSON.parse(localStorage.getItem('awb_destinations') || '[]');
+            html += `<div class="data-section">
+                <h2>🌍 Destinations</h2>
+                ${destinations.length > 0 
+                    ? `<div class="data-found">
+                        <span class="count">${destinations.length} destination(s) found!</span>
+                        <pre>${JSON.stringify(destinations, null, 2)}</pre>
+                    </div>`
+                    : `<div class="data-empty">No destinations found in localStorage</div>`
+                }
+            </div>`;
+            
+            // Check Terminals
+            const terminals = JSON.parse(localStorage.getItem('awb_terminals') || '[]');
+            html += `<div class="data-section">
+                <h2>🏢 Terminals</h2>
+                ${terminals.length > 0 
+                    ? `<div class="data-found">
+                        <span class="count">${terminals.length} terminal(s) found!</span>
+                        <pre>${JSON.stringify(terminals, null, 2)}</pre>
+                    </div>`
+                    : `<div class="data-empty">No terminals found in localStorage</div>`
+                }
+            </div>`;
+            
+            // Summary
+            const totalItems = users.length + contacts.length + (profile ? 1 : 0) + 
+                             shipments.length + airlines.length + destinations.length + terminals.length;
+            
+            html += `<div class="data-section">
+                <h2>📊 Summary</h2>
+                <div class="${totalItems > 0 ? 'data-found' : 'data-empty'}">
+                    <span class="count">Total items found: ${totalItems}</span>
+                    ${totalItems > 0 
+                        ? '<p>✅ You have data that can be recovered! Click "Export All Data" to save it.</p>'
+                        : '<p>❌ No data found in localStorage. All data was likely stored only in the database.</p>'
+                    }
+                </div>
+            </div>`;
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        function exportAllData() {
+            const data = {
+                users: JSON.parse(localStorage.getItem('awb_users') || '[]'),
+                contacts: JSON.parse(localStorage.getItem('awbContacts') || '[]'),
+                userProfile: JSON.parse(localStorage.getItem('awbUserProfile') || 'null'),
+                shipments: JSON.parse(localStorage.getItem('awbShipments') || '[]'),
+                airlines: JSON.parse(localStorage.getItem('awb_airlines') || '[]'),
+                destinations: JSON.parse(localStorage.getItem('awb_destinations') || '[]'),
+                terminals: JSON.parse(localStorage.getItem('awb_terminals') || '[]'),
+                exportedAt: new Date().toISOString()
+            };
+            
+            // Create download
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `airwaybills-backup-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert('✅ Data exported! Check your downloads folder.');
+            console.log('Exported data:', data);
+        }
+        
+        // Auto-check on load
+        window.addEventListener('load', () => {
+            setTimeout(checkAllData, 500);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Connection Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #667eea;
+            font-size: 18px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .result.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .result.loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status-connected {
+            background: #28a745;
+            color: white;
+        }
+        .status-disconnected {
+            background: #dc3545;
+            color: white;
+        }
+        .status-unknown {
+            background: #6c757d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Database Connection Test</h1>
+        <p>This tool tests if your Upstash Redis database is properly connected to your Vercel deployment.</p>
+        
+        <div class="test-section">
+            <h2>Quick Status Check</h2>
+            <button onclick="quickCheck()">Run Quick Test</button>
+            <div id="quickResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Detailed Tests</h2>
+            <button onclick="testUsersAPI()">Test Users API</button>
+            <button onclick="testContactsAPI()">Test Contacts API</button>
+            <button onclick="testAirlinesAPI()">Test Airlines API</button>
+            <button onclick="testAllAPIs()">Test All APIs</button>
+            <div id="detailedResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Environment Check</h2>
+            <button onclick="checkEnvironment()">Check Environment Variables</button>
+            <div id="envResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `result ${type}`;
+            element.textContent = message;
+        }
+
+        async function quickCheck() {
+            showResult('quickResult', 'Testing database connection...', 'loading');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/users?action=all`);
+                const status = response.status;
+                const data = await response.json();
+                
+                if (status === 200) {
+                    const userCount = Array.isArray(data) ? data.length : 'N/A';
+                    showResult('quickResult', 
+                        `✅ DATABASE CONNECTED!\n\n` +
+                        `Status: ${status}\n` +
+                        `Users in database: ${userCount}\n\n` +
+                        `Your Upstash Redis database is working correctly!`,
+                        'success'
+                    );
+                } else if (status === 503) {
+                    showResult('quickResult', 
+                        `❌ DATABASE NOT CONFIGURED\n\n` +
+                        `Status: ${status}\n` +
+                        `Error: ${data.error || data.message || 'Database not configured'}\n\n` +
+                        `Action Required:\n` +
+                        `1. Check Vercel environment variables:\n` +
+                        `   - KV_REST_API_URL or UPSTASH_REDIS_REST_URL\n` +
+                        `   - KV_REST_API_TOKEN or UPSTASH_REDIS_REST_TOKEN\n` +
+                        `2. Make sure variables are set for Production\n` +
+                        `3. Redeploy your project after updating variables`,
+                        'error'
+                    );
+                } else {
+                    showResult('quickResult', 
+                        `⚠️ UNEXPECTED STATUS\n\n` +
+                        `Status: ${status}\n` +
+                        `Response: ${JSON.stringify(data, null, 2)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('quickResult', 
+                    `❌ CONNECTION ERROR\n\n` +
+                    `Error: ${error.message}\n\n` +
+                    `Possible causes:\n` +
+                    `- API endpoint not found\n` +
+                    `- Network error\n` +
+                    `- CORS issue\n\n` +
+                    `Make sure you're testing on your production URL.`,
+                    'error'
+                );
+            }
+        }
+
+        async function testUsersAPI() {
+            showResult('detailedResult', 'Testing Users API...', 'loading');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/users?action=all`);
+                const status = response.status;
+                const data = await response.json();
+                
+                if (status === 200) {
+                    showResult('detailedResult', 
+                        `✅ Users API: WORKING\n\n` +
+                        `Status: ${status}\n` +
+                        `Users: ${Array.isArray(data) ? data.length : 'N/A'}\n` +
+                        `Response: ${JSON.stringify(data, null, 2).substring(0, 500)}...`,
+                        'success'
+                    );
+                } else {
+                    showResult('detailedResult', 
+                        `❌ Users API: FAILED\n\n` +
+                        `Status: ${status}\n` +
+                        `Response: ${JSON.stringify(data, null, 2)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('detailedResult', 
+                    `❌ Users API: ERROR\n\n` +
+                    `Error: ${error.message}`,
+                    'error'
+                );
+            }
+        }
+
+        async function testContactsAPI() {
+            showResult('detailedResult', 'Testing Contacts API...', 'loading');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/contacts`);
+                const status = response.status;
+                const data = await response.json();
+                
+                if (status === 200) {
+                    showResult('detailedResult', 
+                        `✅ Contacts API: WORKING\n\n` +
+                        `Status: ${status}\n` +
+                        `Contacts: ${Array.isArray(data) ? data.length : 'N/A'}\n` +
+                        `Response: ${JSON.stringify(data, null, 2).substring(0, 500)}...`,
+                        'success'
+                    );
+                } else {
+                    showResult('detailedResult', 
+                        `❌ Contacts API: FAILED\n\n` +
+                        `Status: ${status}\n` +
+                        `Response: ${JSON.stringify(data, null, 2)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('detailedResult', 
+                    `❌ Contacts API: ERROR\n\n` +
+                    `Error: ${error.message}`,
+                    'error'
+                );
+            }
+        }
+
+        async function testAirlinesAPI() {
+            showResult('detailedResult', 'Testing Airlines API...', 'loading');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/airlines`);
+                const status = response.status;
+                const data = await response.json();
+                
+                if (status === 200) {
+                    showResult('detailedResult', 
+                        `✅ Airlines API: WORKING\n\n` +
+                        `Status: ${status}\n` +
+                        `Airlines: ${Array.isArray(data) ? data.length : 'N/A'}\n` +
+                        `Response: ${JSON.stringify(data, null, 2).substring(0, 500)}...`,
+                        'success'
+                    );
+                } else {
+                    showResult('detailedResult', 
+                        `❌ Airlines API: FAILED\n\n` +
+                        `Status: ${status}\n` +
+                        `Response: ${JSON.stringify(data, null, 2)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('detailedResult', 
+                    `❌ Airlines API: ERROR\n\n` +
+                    `Error: ${error.message}`,
+                    'error'
+                );
+            }
+        }
+
+        async function testAllAPIs() {
+            showResult('detailedResult', 'Testing all APIs...', 'loading');
+            
+            const results = [];
+            
+            // Test Users API
+            try {
+                const r1 = await fetch(`${API_BASE}/api/users?action=all`);
+                results.push(`Users API: ${r1.status === 200 ? '✅ WORKING' : '❌ FAILED (Status ' + r1.status + ')'}`);
+            } catch (e) {
+                results.push(`Users API: ❌ ERROR (${e.message})`);
+            }
+            
+            // Test Contacts API
+            try {
+                const r2 = await fetch(`${API_BASE}/api/contacts`);
+                results.push(`Contacts API: ${r2.status === 200 ? '✅ WORKING' : '❌ FAILED (Status ' + r2.status + ')'}`);
+            } catch (e) {
+                results.push(`Contacts API: ❌ ERROR (${e.message})`);
+            }
+            
+            // Test Airlines API
+            try {
+                const r3 = await fetch(`${API_BASE}/api/airlines`);
+                results.push(`Airlines API: ${r3.status === 200 ? '✅ WORKING' : '❌ FAILED (Status ' + r3.status + ')'}`);
+            } catch (e) {
+                results.push(`Airlines API: ❌ ERROR (${e.message})`);
+            }
+            
+            const allWorking = results.every(r => r.includes('✅'));
+            
+            showResult('detailedResult', 
+                `Test Results:\n\n` +
+                results.join('\n') +
+                `\n\n` +
+                (allWorking 
+                    ? '✅ All APIs are working! Database is connected.' 
+                    : '⚠️ Some APIs failed. Check individual tests for details.'),
+                allWorking ? 'success' : 'error'
+            );
+        }
+
+        async function checkEnvironment() {
+            showResult('envResult', 'Checking environment configuration...', 'loading');
+            
+            try {
+                // Try to detect if we're in production
+                const isProduction = !window.location.hostname.includes('localhost') && 
+                                    !window.location.hostname.includes('127.0.0.1');
+                
+                let envInfo = `Environment Check:\n\n`;
+                envInfo += `Current URL: ${window.location.origin}\n`;
+                envInfo += `Hostname: ${window.location.hostname}\n`;
+                envInfo += `Environment: ${isProduction ? 'Production' : 'Local/Development'}\n\n`;
+                
+                // Test API to see what error we get
+                try {
+                    const response = await fetch(`${API_BASE}/api/users?action=all`);
+                    const status = response.status;
+                    const data = await response.json();
+                    
+                    if (status === 200) {
+                        envInfo += `✅ Database connection: WORKING\n`;
+                        envInfo += `Status: ${status}\n`;
+                    } else if (status === 503) {
+                        envInfo += `❌ Database connection: NOT CONFIGURED\n`;
+                        envInfo += `Status: ${status}\n`;
+                        envInfo += `Error: ${data.error || data.message || 'Unknown error'}\n\n`;
+                        envInfo += `Required Environment Variables:\n`;
+                        envInfo += `- KV_REST_API_URL or UPSTASH_REDIS_REST_URL\n`;
+                        envInfo += `- KV_REST_API_TOKEN or UPSTASH_REDIS_REST_TOKEN\n`;
+                    } else {
+                        envInfo += `⚠️ Unexpected status: ${status}\n`;
+                    }
+                } catch (error) {
+                    envInfo += `❌ Cannot reach API: ${error.message}\n`;
+                }
+                
+                showResult('envResult', envInfo, isProduction ? 'info' : 'info');
+            } catch (error) {
+                showResult('envResult', 
+                    `Error checking environment: ${error.message}`,
+                    'error'
+                );
+            }
+        }
+
+        // Auto-run quick check on load
+        window.addEventListener('load', () => {
+            setTimeout(quickCheck, 500);
+        });
+    </script>
+</body>
+</html>
