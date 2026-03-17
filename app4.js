@@ -725,10 +725,11 @@ async function handlePDF(file) {
         // Contacts: wait for apiReady if api.js not loaded yet so shipper/consignee dropdowns get populated
         try {
             if (typeof loadTemplatesFromAPI === 'function') loadTemplatesFromAPI().catch(() => {});
-            if (typeof loadUserProfileFromAPI === 'function') loadUserProfileFromAPI().catch(() => {});
+            if (typeof ensureUserProfileLoadedForForm === 'function') ensureUserProfileLoadedForForm();
             if (typeof ensureContactsLoadedForForm === 'function') ensureContactsLoadedForForm();
-            // Retry contacts load after delay in case API wasn't ready yet (e.g. when opened from space with default PDF)
+            // Retry profile + contacts load after delay in case APIs or auth weren't ready yet
             setTimeout(() => {
+                if (typeof ensureUserProfileLoadedForForm === 'function') ensureUserProfileLoadedForForm();
                 if (typeof ensureContactsLoadedForForm === 'function') ensureContactsLoadedForForm();
             }, 1500);
         } catch (e) {
@@ -4550,6 +4551,34 @@ async function loadUserProfileFromAPI() {
     } catch (e) {
         console.warn('Could not load user profile from API:', e);
     }
+}
+
+// Ensure the user profile is loaded for Create AWB, even if auth/API were not ready yet.
+function ensureUserProfileLoadedForForm() {
+    const doLoad = () => {
+        if (typeof loadUserProfileFromAPI === 'function') loadUserProfileFromAPI().catch(() => {});
+    };
+
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (user && user.id && window.userProfileAPI) {
+        doLoad();
+        return;
+    }
+
+    const onReady = () => {
+        window.removeEventListener('apiReady', onReady);
+        doLoad();
+    };
+
+    window.addEventListener('apiReady', onReady);
+    // Retry once after a short delay in case auth/user cache becomes available slightly later.
+    setTimeout(() => {
+        const retryUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+        if (retryUser && retryUser.id && window.userProfileAPI) {
+            window.removeEventListener('apiReady', onReady);
+            doLoad();
+        }
+    }, 500);
 }
 
 async function saveUserProfile(profile) {

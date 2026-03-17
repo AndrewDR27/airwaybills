@@ -572,6 +572,23 @@
         </div>
     </div>
 
+    <!-- Unsaved changes prompt -->
+    <div id="unsavedChangesModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header">
+                <h2>Unsaved Changes</h2>
+            </div>
+            <div class="modal-body">
+                <p id="unsavedChangesMessage" style="margin-top: 0;">You have unsaved autofill changes. What would you like to do?</p>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="unsavedChangesCancelBtn">Cancel</button>
+                <button type="button" class="btn-secondary" id="unsavedChangesDiscardBtn">Discard</button>
+                <button type="button" class="btn-primary" id="unsavedChangesSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
     <script src="models/user.js"></script>
     <script src="js/roles.js"></script>
     <script type="module" src="js/auth.js"></script>
@@ -650,14 +667,55 @@
         }
 
         let userProfileCache = null;
+
+        async function resolveCurrentUserForProfile() {
+            const immediateUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+            if (immediateUser && immediateUser.id) return immediateUser;
+
+            if (typeof getCurrentUserAsync === 'function') {
+                try {
+                    const asyncUser = await getCurrentUserAsync();
+                    if (asyncUser && asyncUser.id) return asyncUser;
+                } catch (e) {
+                    console.warn('Could not resolve current user asynchronously:', e);
+                }
+            }
+
+            return new Promise((resolve) => {
+                let finished = false;
+                const finish = (user) => {
+                    if (finished) return;
+                    finished = true;
+                    resolve(user || null);
+                };
+
+                if (window.usersAPI && typeof getCurrentUser === 'function') {
+                    const user = getCurrentUser();
+                    if (user && user.id) {
+                        finish(user);
+                        return;
+                    }
+                }
+
+                const onReady = () => {
+                    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+                    finish(user && user.id ? user : null);
+                };
+
+                window.addEventListener('apiReady', onReady, { once: true });
+                setTimeout(() => onReady(), 1200);
+            });
+        }
+
         async function loadUserProfileFromAPI() {
-            const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+            const user = await resolveCurrentUserForProfile();
             if (!user || !user.id || !window.userProfileAPI) return;
             try {
-                userProfileCache = await window.userProfileAPI.get(user.id);
-                if (userProfileCache && typeof userProfileCache !== 'object') userProfileCache = null;
+                const apiProfile = await window.userProfileAPI.get(user.id);
+                userProfileCache = apiProfile && typeof apiProfile === 'object' ? apiProfile : null;
             } catch (e) {
                 console.warn('Could not load user profile from API:', e);
+                userProfileCache = null;
             }
         }
         function getUserProfile() {
@@ -665,9 +723,9 @@
         }
 
         async function saveUserProfile(profile) {
-            const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+            const user = await resolveCurrentUserForProfile();
             if (!user || !user.id || !window.userProfileAPI) {
-                alert('Cannot save profile: not logged in or API not available.');
+                alert('Cannot save profile right now. Please log in again or refresh.');
                 return false;
             }
             try {
@@ -690,6 +748,218 @@
                     alert('Error saving user profile. Please try again.');
                 }
                 return false;
+            }
+        }
+
+        let userProfileDirty = false;
+        let userProfilePromptResolver = null;
+        let userProfilePromptOpen = false;
+
+        function collectUserProfileFromModal() {
+            const contactTypeValue = document.getElementById('contactType')?.value;
+            const contactIdValue = document.getElementById('contactId')?.value;
+            if (contactTypeValue !== 'User' || contactIdValue !== 'user') {
+                return null;
+            }
+
+            const companyName = document.getElementById('contactCompanyName')?.value.trim() || '';
+            const email = document.getElementById('contactEmail')?.value.trim() || '';
+            const contactNameValue = document.getElementById('contactName')?.value.trim() || '';
+            const phone = document.getElementById('contactPhone')?.value.trim() || '';
+            const address = document.getElementById('contactAddress')?.value.trim() || '';
+            const field06 = document.getElementById('contactField06')?.value.trim() || '';
+            const handlingInfo = document.getElementById('contactHandlingInfo')?.value.trim() || '';
+            const signatureIssuingCarrier = document.getElementById('contactSignatureIssuingCarrier')?.value.trim() || '';
+            const signatureShipper = document.getElementById('contactSignatureShipper')?.value.trim() || '';
+            const signaturePlace = document.getElementById('contactSignaturePlace')?.value.trim() || '';
+            const origin = document.getElementById('contactOrigin')?.value.trim() || '';
+            const aoDEP = document.getElementById('contactAoDEP')?.value.trim() || '';
+            const existingProfile = getUserProfile() || {};
+
+            const contactNameGroup = document.getElementById('contactNameGroup');
+            const contactPhoneGroup = document.getElementById('contactPhoneGroup');
+            const contactAddressGroup = document.getElementById('contactAddressGroup');
+            const contactField06Group = document.getElementById('contactField06Group');
+            const contactHandlingInfoGroup = document.getElementById('contactHandlingInfoGroup');
+            const contactSignatureIssuingCarrierGroup = document.getElementById('contactSignatureIssuingCarrierGroup');
+            const contactSignatureShipperGroup = document.getElementById('contactSignatureShipperGroup');
+            const contactSignaturePlaceGroup = document.getElementById('contactSignaturePlaceGroup');
+            const originInfoGroup = document.getElementById('originInfoGroup');
+            const aoDEPInfoGroup = document.getElementById('aoDEPInfoGroup');
+            const commodityList = document.getElementById('commodityList');
+
+            let field33 = existingProfile.field33 || [];
+            const contactField33Group = document.getElementById('contactField33Group');
+
+            if (commodityList && contactField33Group && contactField33Group.style.display !== 'none') {
+                field33 = [];
+                const commodityEntries = commodityList.querySelectorAll('.commodity-entry');
+                commodityEntries.forEach(entry => {
+                    const commodityInput = entry.querySelector('.commodity-name-input');
+                    const autofillInput = entry.querySelector('.commodity-autofill-input');
+                    const field41Input = entry.querySelector('.commodity-field41-input');
+                    if (commodityInput && autofillInput && field41Input) {
+                        const commodity = commodityInput.value.trim();
+                        const autofillText = autofillInput.value.trim();
+                        const field41 = field41Input.value.trim();
+                        if (commodity || autofillText || field41) {
+                            field33.push({ commodity, autofillText, field41 });
+                        }
+                    }
+                });
+            }
+
+            return {
+                ...existingProfile,
+                companyName,
+                email,
+                ...(contactNameGroup && contactNameGroup.style.display !== 'none' ? { contactName: contactNameValue } : {}),
+                ...(contactPhoneGroup && contactPhoneGroup.style.display !== 'none' ? { phone } : {}),
+                ...(contactAddressGroup && contactAddressGroup.style.display !== 'none' ? { address } : {}),
+                ...(contactField06Group && contactField06Group.style.display !== 'none' ? { field06 } : {}),
+                ...(contactHandlingInfoGroup && contactHandlingInfoGroup.style.display !== 'none' ? { handlingInfo } : {}),
+                ...(contactSignatureIssuingCarrierGroup && contactSignatureIssuingCarrierGroup.style.display !== 'none' ? { signatureIssuingCarrier } : {}),
+                ...(contactSignatureShipperGroup && contactSignatureShipperGroup.style.display !== 'none' ? { signatureShipper } : {}),
+                ...(contactSignaturePlaceGroup && contactSignaturePlaceGroup.style.display !== 'none' ? { signaturePlace } : {}),
+                ...(originInfoGroup && originInfoGroup.style.display !== 'none' ? { origin } : {}),
+                ...(aoDEPInfoGroup && aoDEPInfoGroup.style.display !== 'none' ? { aoDEP } : {}),
+                field33
+            };
+        }
+
+        async function saveUserProfileFromModal(silent = true) {
+            const profile = collectUserProfileFromModal();
+            if (!profile) return false;
+
+            try {
+                const saved = await saveUserProfile(profile);
+                if (saved && !silent) {
+                    alert('✓ User profile saved successfully!');
+                }
+                if (saved) {
+                    resetUserProfileDirtyState();
+                }
+                return saved;
+            } catch (error) {
+                console.warn('Could not save user profile from modal:', error);
+                return false;
+            }
+        }
+
+        function markUserProfileDirty() {
+            const contactTypeValue = document.getElementById('contactType')?.value;
+            const contactIdValue = document.getElementById('contactId')?.value;
+            const modal = document.getElementById('contactModal');
+            if (contactTypeValue !== 'User' || contactIdValue !== 'user') return;
+            if (modal && modal.style.display === 'none') return;
+            userProfileDirty = true;
+        }
+
+        function setupUserProfileDirtyListeners() {
+            const modal = document.getElementById('contactModal');
+            if (!modal || modal.dataset.userProfileDirtyListeners === 'true') return;
+
+            const markDirty = (event) => {
+                if (document.getElementById('contactType')?.value !== 'User') return;
+                if (document.getElementById('contactId')?.value !== 'user') return;
+                if (modal.style.display === 'none') return;
+
+                const target = event?.target;
+                if (!target) return;
+
+                if (event.type === 'click') {
+                    if (target.id === 'addCommodityBtn' || target.classList?.contains('remove-commodity-btn')) {
+                        userProfileDirty = true;
+                    }
+                    return;
+                }
+
+                if (event.type === 'input' || event.type === 'change') {
+                    userProfileDirty = true;
+                }
+            };
+
+            modal.addEventListener('input', markDirty, true);
+            modal.addEventListener('change', markDirty, true);
+            modal.addEventListener('click', markDirty, true);
+            modal.dataset.userProfileDirtyListeners = 'true';
+        }
+
+        function resetUserProfileDirtyState() {
+            userProfileDirty = false;
+        }
+
+        function isUserProfileModalOpen() {
+            const modal = document.getElementById('contactModal');
+            return Boolean(
+                modal &&
+                modal.style.display !== 'none' &&
+                document.getElementById('contactType')?.value === 'User' &&
+                document.getElementById('contactId')?.value === 'user'
+            );
+        }
+
+        async function confirmDiscardingUserProfileChanges() {
+            if (!isUserProfileModalOpen() || !userProfileDirty) {
+                return 'discard';
+            }
+
+            return openUnsavedChangesPrompt();
+        }
+
+        function openUnsavedChangesPrompt() {
+            const modal = document.getElementById('unsavedChangesModal');
+            const message = document.getElementById('unsavedChangesMessage');
+            if (!modal || !message) return Promise.resolve('cancel');
+
+            modal.style.display = 'block';
+            message.textContent = 'You have unsaved autofill changes. What would you like to do?';
+
+            return new Promise((resolve) => {
+                userProfilePromptOpen = true;
+                userProfilePromptResolver = (choice) => {
+                    userProfilePromptOpen = false;
+                    resolve(choice);
+                };
+            });
+        }
+
+        function closeUnsavedChangesPrompt(choice) {
+            const modal = document.getElementById('unsavedChangesModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+
+            if (userProfilePromptResolver) {
+                const resolver = userProfilePromptResolver;
+                userProfilePromptResolver = null;
+                userProfilePromptOpen = false;
+                resolver(choice);
+                return;
+            }
+
+            userProfilePromptOpen = false;
+        }
+
+        async function handleUnsavedChangesBeforeAction(action) {
+            if (!isUserProfileModalOpen() || !userProfileDirty) {
+                action();
+                return;
+            }
+
+            const choice = await openUnsavedChangesPrompt();
+            if (choice === 'save') {
+                const saved = await saveUserProfileFromModal(true);
+                if (saved) {
+                    resetUserProfileDirtyState();
+                    action();
+                }
+                return;
+            }
+
+            if (choice === 'discard') {
+                resetUserProfileDirtyState();
+                action();
             }
         }
 
@@ -1054,6 +1324,28 @@
             if (accountInfoGroup) {
                 accountInfoGroup.style.display = 'none';
             }
+            resetUserProfileDirtyState();
+            closeUnsavedChangesPrompt('cancel');
+        }
+
+        async function requestCloseContactModal() {
+            if (!isUserProfileModalOpen() || !userProfileDirty) {
+                closeContactModal();
+                return;
+            }
+
+            const choice = await openUnsavedChangesPrompt();
+            if (choice === 'save') {
+                const saved = await saveUserProfileFromModal(true);
+                if (saved) {
+                    closeContactModal();
+                }
+                return;
+            }
+
+            if (choice === 'discard') {
+                closeContactModal();
+            }
         }
 
         async function handleSaveContact(e) {
@@ -1154,6 +1446,7 @@
                 };
                 
                 if (await saveUserProfile(profile)) {
+                    resetUserProfileDirtyState();
                     closeContactModal();
                     alert('✓ User profile saved successfully!');
                 }
@@ -1353,28 +1646,31 @@
 
         // Tab switching
         document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', () => {
-                const tabName = button.getAttribute('data-tab');
-                
-                // Update active tab button
-                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-                
-                // Update active tab content
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                document.getElementById(`${tabName}-tab`).classList.add('active');
-                
-                // Load content for specific tabs
-                if (tabName === 'contacts') {
-                    // Show first subtab (shippers) by default
-                    switchSubtab('shippers');
-                } else if (tabName === 'routing') {
-                    loadRoutingAutofills();
-                } else if (tabName === 'descriptions') {
-                    loadDescriptionsAutofills();
-                } else if (tabName === 'billing') {
-                    loadBillingAutofills();
-                }
+            button.addEventListener('click', async () => {
+                await handleUnsavedChangesBeforeAction(() => {
+                    closeContactModal();
+                    const tabName = button.getAttribute('data-tab');
+
+                    // Update active tab button
+                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    // Update active tab content
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    document.getElementById(`${tabName}-tab`).classList.add('active');
+
+                    // Load content for specific tabs
+                    if (tabName === 'contacts') {
+                        // Show first subtab (shippers) by default
+                        switchSubtab('shippers');
+                    } else if (tabName === 'routing') {
+                        loadRoutingAutofills();
+                    } else if (tabName === 'descriptions') {
+                        loadDescriptionsAutofills();
+                    } else if (tabName === 'billing') {
+                        loadBillingAutofills();
+                    }
+                });
             });
         });
         
@@ -1403,9 +1699,12 @@
         // Subtab button event listeners (set up after DOM is ready)
         function setupSubtabListeners() {
             document.querySelectorAll('.subtab-button').forEach(button => {
-                button.addEventListener('click', () => {
-                    const subtabName = button.getAttribute('data-subtab');
-                    switchSubtab(subtabName);
+                button.addEventListener('click', async () => {
+                    await handleUnsavedChangesBeforeAction(() => {
+                        closeContactModal();
+                        const subtabName = button.getAttribute('data-subtab');
+                        switchSubtab(subtabName);
+                    });
                 });
             });
         }
@@ -1419,12 +1718,20 @@
 
         // Modal event handlers
         document.getElementById('contactForm').addEventListener('submit', handleSaveContact);
-        document.getElementById('closeContactModal').addEventListener('click', closeContactModal);
-        document.getElementById('cancelContactBtn').addEventListener('click', closeContactModal);
+        document.getElementById('closeContactModal').addEventListener('click', requestCloseContactModal);
+        document.getElementById('cancelContactBtn').addEventListener('click', requestCloseContactModal);
+        document.getElementById('unsavedChangesSaveBtn').addEventListener('click', () => closeUnsavedChangesPrompt('save'));
+        document.getElementById('unsavedChangesDiscardBtn').addEventListener('click', () => closeUnsavedChangesPrompt('discard'));
+        document.getElementById('unsavedChangesCancelBtn').addEventListener('click', () => closeUnsavedChangesPrompt('cancel'));
+        document.getElementById('unsavedChangesModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('unsavedChangesModal')) {
+                closeUnsavedChangesPrompt('cancel');
+            }
+        });
         
         document.getElementById('contactModal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('contactModal')) {
-                closeContactModal();
+                requestCloseContactModal();
             }
         });
 
@@ -1557,7 +1864,15 @@
             });
         }
 
-        function openContactsEditModal() {
+        async function openContactsEditModal() {
+            const choice = await confirmDiscardingUserProfileChanges();
+            if (choice === 'save') {
+                const saved = await saveUserProfileFromModal(true);
+                if (!saved) return;
+            } else if (choice !== 'discard') {
+                return;
+            }
+
             const modal = document.getElementById('contactModal');
             const form = document.getElementById('contactForm');
             const profile = getUserProfile();
@@ -1597,10 +1912,19 @@
                 document.getElementById('contactId').value = 'user';
             }
             
+            resetUserProfileDirtyState();
             modal.style.display = 'block';
         }
 
-        function openRoutingEditModal() {
+        async function openRoutingEditModal() {
+            const choice = await confirmDiscardingUserProfileChanges();
+            if (choice === 'save') {
+                const saved = await saveUserProfileFromModal(true);
+                if (!saved) return;
+            } else if (choice !== 'discard') {
+                return;
+            }
+
             const modal = document.getElementById('contactModal');
             const form = document.getElementById('contactForm');
             const profile = getUserProfile();
@@ -1636,10 +1960,19 @@
                 document.getElementById('contactId').value = 'user';
             }
             
+            resetUserProfileDirtyState();
             modal.style.display = 'block';
         }
 
-        function openDescriptionsEditModal() {
+        async function openDescriptionsEditModal() {
+            const choice = await confirmDiscardingUserProfileChanges();
+            if (choice === 'save') {
+                const saved = await saveUserProfileFromModal(true);
+                if (!saved) return;
+            } else if (choice !== 'discard') {
+                return;
+            }
+
             const modal = document.getElementById('contactModal');
             const form = document.getElementById('contactForm');
             const profile = getUserProfile();
@@ -1688,19 +2021,20 @@
                     commodityList.innerHTML = '';
                 }
             }
-            
-            // Set up add commodity button event listener
-            const addCommodityBtn = document.getElementById('addCommodityBtn');
-            if (addCommodityBtn) {
-                addCommodityBtn.addEventListener('click', () => {
-                    addCommodityEntry();
-                });
-            }
-            
+
+            resetUserProfileDirtyState();
             modal.style.display = 'block';
         }
 
-        function openBillingEditModal() {
+        async function openBillingEditModal() {
+            const choice = await confirmDiscardingUserProfileChanges();
+            if (choice === 'save') {
+                const saved = await saveUserProfileFromModal(true);
+                if (!saved) return;
+            } else if (choice !== 'discard') {
+                return;
+            }
+
             const modal = document.getElementById('contactModal');
             const form = document.getElementById('contactForm');
             const profile = getUserProfile();
@@ -1740,6 +2074,7 @@
                 document.getElementById('contactId').value = 'user';
             }
             
+            resetUserProfileDirtyState();
             modal.style.display = 'block';
         }
 
@@ -1764,6 +2099,7 @@
             if (removeBtn) {
                 removeBtn.addEventListener('click', () => {
                     entry.remove();
+                    markUserProfileDirty();
                 });
             }
             
@@ -1776,6 +2112,7 @@
             if (addCommodityBtn) {
                 addCommodityBtn.addEventListener('click', () => {
                     addCommodityEntry();
+                    markUserProfileDirty();
                 });
             }
         });
@@ -1798,6 +2135,7 @@
             loadDescriptionsAutofills();
             loadBillingAutofills();
             setupSubtabListeners();
+            setupUserProfileDirtyListeners();
         })();
     </script>
 </body>
