@@ -291,7 +291,7 @@
             
             // If still no user, check localStorage for auth data
             if (!user) {
-                const authData = localStorage.getItem('awb_auth');
+                const authData = sessionStorage.getItem('awb_auth');
                 if (authData) {
                     try {
                         const auth = JSON.parse(authData);
@@ -319,7 +319,7 @@
             
             // Only redirect if we truly have no user and no auth data
             if (!user) {
-                const authData = localStorage.getItem('awb_auth');
+                const authData = sessionStorage.getItem('awb_auth');
                 if (!authData) {
                     console.log('No authentication data found, redirecting to login');
                     if (window.parent && window.parent !== window) {

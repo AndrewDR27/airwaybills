@@ -532,7 +532,7 @@
                     </div>
                     
                     <div class="form-group" id="accountInfoGroup" style="display: none;">
-                        <label for="contactAccountInfo">Account Info (07. ACCNT INFO)</label>
+                        <label for="contactAccountInfo">Account Info <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 07</span></label>
                         <textarea id="contactAccountInfo" rows="3" placeholder="Enter account information for this consignee"></textarea>
                         <small>This will be used to fill field 07. ACCNT INFO when this consignee is selected.</small>
                     </div>
@@ -614,103 +614,78 @@
                     return migrated;
                 }).filter(c => c !== null && c.id && c.type);
                 
-                // Update cache
-                try {
-                    localStorage.setItem('awbContacts', JSON.stringify(migratedContacts));
-                } catch (e) {
-                    console.warn('Could not update localStorage cache:', e);
-                }
-                
                 return migratedContacts;
             } catch (error) {
                 console.error('Error fetching contacts from API:', error);
-                return getContactsFromLocalStorage();
+                return [];
             }
         }
         
-        // Fallback to localStorage
         function getContactsFromLocalStorage() {
-            try {
-                const contactsJson = localStorage.getItem('awbContacts');
-                const contacts = contactsJson ? JSON.parse(contactsJson) : [];
-                return contacts.filter(c => c !== null && c.id && c.type);
-            } catch (error) {
-                console.warn('Could not read contacts from localStorage:', error);
-                return [];
-            }
+            return [];
         }
 
         async function saveContacts(contacts) {
             if (!contactsAPI) {
-                try {
-                    localStorage.setItem('awbContacts', JSON.stringify(contacts));
-                    await loadContacts();
-                    return true;
-                } catch (error) {
-                    console.warn('Could not save contacts to localStorage:', error);
-                    alert('Error saving contact. Storage may be full.');
-                    return false;
-                }
+                alert('Database not available. Please try again.');
+                return false;
             }
-            
-            // Save each contact individually via API
             try {
                 for (const contact of contacts) {
                     const existing = await contactsAPI.getAll();
                     const exists = existing.find(c => c.id === contact.id);
-                    
                     if (exists) {
                         await contactsAPI.update(contact);
                     } else {
                         await contactsAPI.create(contact);
                     }
                 }
-                
-                // Also update localStorage cache
-                try {
-                    localStorage.setItem('awbContacts', JSON.stringify(contacts));
-                } catch (e) {
-                    console.warn('Could not update localStorage cache:', e);
-                }
-                
                 await loadContacts();
                 return true;
             } catch (error) {
                 console.error('Error saving contacts via API:', error);
-                // Fallback to localStorage
-                try {
-                    localStorage.setItem('awbContacts', JSON.stringify(contacts));
-                    await loadContacts();
-                    return true;
-                } catch (e) {
-                    alert('Error saving contact. Please try again.');
-                    return false;
-                }
+                alert('Error saving contact. Please try again.');
+                return false;
             }
         }
 
+        let userProfileCache = null;
+        async function loadUserProfileFromAPI() {
+            const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+            if (!user || !user.id || !window.userProfileAPI) return;
+            try {
+                userProfileCache = await window.userProfileAPI.get(user.id);
+                if (userProfileCache && typeof userProfileCache !== 'object') userProfileCache = null;
+            } catch (e) {
+                console.warn('Could not load user profile from API:', e);
+            }
+        }
         function getUserProfile() {
-            try {
-                const profileJson = localStorage.getItem('awbUserProfile');
-                return profileJson ? JSON.parse(profileJson) : null;
-            } catch (error) {
-                console.warn('Could not read user profile from localStorage:', error);
-                return null;
-            }
+            return userProfileCache;
         }
 
-        function saveUserProfile(profile) {
+        async function saveUserProfile(profile) {
+            const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+            if (!user || !user.id || !window.userProfileAPI) {
+                alert('Cannot save profile: not logged in or API not available.');
+                return false;
+            }
             try {
-                localStorage.setItem('awbUserProfile', JSON.stringify(profile));
-                // Refresh all autofill displays after saving
+                await window.userProfileAPI.save(user.id, profile);
+                userProfileCache = profile;
                 loadContactsAutofills();
                 loadRoutingAutofills();
                 loadDescriptionsAutofills();
                 loadBillingAutofills();
                 return true;
             } catch (error) {
-                console.warn('Could not save user profile to localStorage:', error);
-                alert('Error saving user profile. Storage may be full.');
+                console.warn('Could not save user profile to API:', error);
+                const is404 = (error.message || '').toLowerCase().includes('404') || (error.message || '').toLowerCase().includes('not found');
+                if (is404) {
+                    alert('User profile API not found (404). Open the app from the running server (e.g. http://localhost:3000/contacts.html) instead of opening the file directly.');
+                } else {
+                    alert('Error saving user profile. Please try again.');
+                }
                 return false;
             }
         }
@@ -937,7 +912,14 @@
             
             // Update formatted value label based on contact type
             if (formattedValueLabel && type && type !== 'User' && type !== 'UserAccount') {
-                formattedValueLabel.textContent = `${type}'s name and address`;
+                const fieldTagStyle = 'background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;';
+                if (type === 'Shipper') {
+                    formattedValueLabel.innerHTML = `${type}'s name and address <span style="${fieldTagStyle}">Field 04</span>`;
+                } else if (type === 'Consignee') {
+                    formattedValueLabel.innerHTML = `${type}'s name and address <span style="${fieldTagStyle}">Field 05</span>`;
+                } else {
+                    formattedValueLabel.textContent = `${type}'s name and address`;
+                }
             } else if (formattedValueLabel) {
                 formattedValueLabel.textContent = 'Formatted Field Value';
             }
@@ -1168,7 +1150,7 @@
                     // Note: formattedValue is not included - it's only for AWB form contacts, not user profiles
                 };
                 
-                if (saveUserProfile(profile)) {
+                if (await saveUserProfile(profile)) {
                     closeContactModal();
                     alert('✓ User profile saved successfully!');
                 }
@@ -1592,8 +1574,8 @@
             ];
             setFieldGroupVisibility(allGroups, false);
             
-            // Show only Contacts fields
-            setFieldGroupVisibility(['contactNameGroup', 'contactPhoneGroup', 'contactAddressGroup'], true);
+            // Show only Contacts fields (include Field 06 - issuing agent name/address)
+            setFieldGroupVisibility(['contactNameGroup', 'contactPhoneGroup', 'contactAddressGroup', 'contactField06Group'], true);
             
             // Populate form
             if (profile) {
@@ -1605,6 +1587,8 @@
                 if (contactPhoneEl) contactPhoneEl.value = profile.phone || '';
                 const contactAddressEl = document.getElementById('contactAddress');
                 if (contactAddressEl) contactAddressEl.value = profile.address || '';
+                const contactField06El = document.getElementById('contactField06');
+                if (contactField06El) contactField06El.value = profile.field06 || profile.formattedValue || '';
             } else {
                 form.reset();
                 document.getElementById('contactId').value = 'user';
@@ -1802,11 +1786,10 @@
         window.openDescriptionsEditModal = openDescriptionsEditModal;
         window.openBillingEditModal = openBillingEditModal;
 
-        // Load contacts and profile on page load
-        // Initialize on page load
+        // Load contacts and profile from database on page load
         (async () => {
+            if (typeof loadUserProfileFromAPI === 'function') await loadUserProfileFromAPI();
             await loadContacts();
-            // Load autofills for the active tab
             loadContactsAutofills();
             loadRoutingAutofills();
             loadDescriptionsAutofills();

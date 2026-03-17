@@ -421,7 +421,7 @@
                                 if (loginResult && loginResult.success && loginResult.user) {
                                     // Update localStorage for auth
                                     try {
-                                        localStorage.setItem('awb_auth', JSON.stringify({
+                                        sessionStorage.setItem('awb_auth', JSON.stringify({
                                             isAuthenticated: true,
                                             userId: loginResult.user.id,
                                             email: loginResult.user.email,

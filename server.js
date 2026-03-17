@@ -793,9 +793,17 @@ app.get('/api/contacts', async (req, res) => {
 
         const { type, userId } = req.query;
         console.log('Contacts API: Fetching from Redis, key:', CONTACTS_KEY);
-        const contacts = await redis.get(CONTACTS_KEY);
-        console.log('Contacts API: Raw result from Redis:', typeof contacts, contacts === null ? 'null' : contacts === undefined ? 'undefined' : Array.isArray(contacts) ? `array with ${contacts.length} items` : 'not an array');
-        const contactsArray = Array.isArray(contacts) ? contacts : (contacts || []);
+        let raw = await redis.get(CONTACTS_KEY);
+        if (typeof raw === 'string') {
+            try {
+                raw = JSON.parse(raw);
+            } catch (e) {
+                console.warn('Contacts API: Could not parse Redis value as JSON');
+                raw = [];
+            }
+        }
+        const contactsArray = Array.isArray(raw) ? raw : (raw || []);
+        console.log('Contacts API: Returning', contactsArray.length, 'contacts');
 
         if (type) {
             const filtered = contactsArray.filter(c => c && c.type === type);
@@ -806,7 +814,6 @@ app.get('/api/contacts', async (req, res) => {
             console.log('Contacts API: Returning', userContacts.length, 'contacts for user:', userId);
             res.json(Array.isArray(userContacts) ? userContacts : []);
         } else {
-            console.log('Contacts API: Returning', contactsArray.length, 'contacts');
             res.json(Array.isArray(contactsArray) ? contactsArray : []);
         }
     } catch (error) {
@@ -873,6 +880,130 @@ app.delete('/api/contacts', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('Contacts API error:', error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+});
+
+// Templates API (per-user, keyed by userId)
+app.get('/api/templates', async (req, res) => {
+    try {
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured' });
+            return;
+        }
+        const userId = req.query.userId;
+        if (!userId) {
+            res.status(400).json({ error: 'userId required' });
+            return;
+        }
+        const key = `awb_templates:${userId}`;
+        const raw = await redis.get(key);
+        const templates = raw && typeof raw === 'object' ? raw : (typeof raw === 'string' ? JSON.parse(raw || '{}') : {});
+        res.json(templates);
+    } catch (error) {
+        console.error('Templates API error:', error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+});
+
+app.post('/api/templates', async (req, res) => {
+    try {
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured' });
+            return;
+        }
+        const { userId, templates } = req.body;
+        if (!userId || templates === undefined) {
+            res.status(400).json({ error: 'userId and templates required' });
+            return;
+        }
+        const key = `awb_templates:${userId}`;
+        await redis.set(key, templates);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Templates API error:', error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+});
+
+// User profile API (per-user autofill profile)
+app.get('/api/user-profile', async (req, res) => {
+    try {
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured' });
+            return;
+        }
+        const userId = req.query.userId;
+        if (!userId) {
+            res.status(400).json({ error: 'userId required' });
+            return;
+        }
+        const key = `awb_user_profile:${userId}`;
+        const profile = await redis.get(key);
+        res.json(profile || null);
+    } catch (error) {
+        console.error('User profile API error:', error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+});
+
+app.post('/api/user-profile', async (req, res) => {
+    try {
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured' });
+            return;
+        }
+        const { userId, profile } = req.body;
+        if (!userId) {
+            res.status(400).json({ error: 'userId required' });
+            return;
+        }
+        const key = `awb_user_profile:${userId}`;
+        await redis.set(key, profile || null);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('User profile API error:', error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+});
+
+// AWB form draft API (per-user, for resume later when not in a shipment space)
+app.get('/api/awb-draft', async (req, res) => {
+    try {
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured' });
+            return;
+        }
+        const userId = req.query.userId;
+        if (!userId) {
+            res.status(400).json({ error: 'userId required' });
+            return;
+        }
+        const key = `awb_awb_draft:${userId}`;
+        const draft = await redis.get(key);
+        res.json(draft || null);
+    } catch (error) {
+        console.error('AWB draft API error:', error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+});
+
+app.post('/api/awb-draft', async (req, res) => {
+    try {
+        if (!redis) {
+            res.status(503).json({ error: 'Database not configured' });
+            return;
+        }
+        const { userId, draft } = req.body;
+        if (!userId) {
+            res.status(400).json({ error: 'userId required' });
+            return;
+        }
+        const key = `awb_awb_draft:${userId}`;
+        await redis.set(key, draft || null);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('AWB draft API error:', error);
         res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });

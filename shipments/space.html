@@ -435,7 +435,7 @@
                 
                 // If still no user, check localStorage for auth data
                 if (!user) {
-                    const authData = localStorage.getItem('awb_auth');
+                    const authData = sessionStorage.getItem('awb_auth');
                     if (authData) {
                         try {
                             const auth = JSON.parse(authData);
@@ -544,11 +544,13 @@
             if (isAgent || isAdmin) {
                 document.getElementById('agentSection').style.display = 'block';
                 
-                // Show Create AWB button only for agents (not admins) and only if AWB not created yet
+                // Show Create AWB / Resume AWB button only for agents (not admins) and only if AWB not created yet
+                const createAWBBtnEl = document.getElementById('createAWBBtn');
                 if (isAgent && !currentShipment.awbNumber) {
-                    document.getElementById('createAWBBtn').style.display = 'block';
+                    createAWBBtnEl.style.display = 'block';
+                    createAWBBtnEl.textContent = (currentShipment.formData && (currentShipment.formData.formData || currentShipment.formData.dropdownData)) ? 'Resume AWB' : 'Create AWB';
                 } else {
-                    document.getElementById('createAWBBtn').style.display = 'none';
+                    createAWBBtnEl.style.display = 'none';
                 }
                 
                 // Show Share button only for agents (not admins) and only if AWB exists and not shared yet

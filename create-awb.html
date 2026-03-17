@@ -15,10 +15,13 @@
                     <h1 style="margin: 0;">Create Airway Bill</h1>
                     <p style="margin: 5px 0 0 0;">Fill out the form below to generate your completed PDF</p>
                 </div>
-                <div id="iframeNavigation" style="display: none;">
-                    <button onclick="goBackToShipments()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
-                        ← Back to Shipments
-                    </button>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div id="spaceIdHeader" style="display: none; font-size: 13px; color: #555; font-weight: 600;">Space ID: <span id="spaceIdValue"></span></div>
+                    <div id="iframeNavigation" style="display: none;">
+                        <button onclick="goBackToShipments()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            ← Back to Shipments
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
@@ -302,6 +305,7 @@
                 <!-- Form Actions - Appears at bottom of all tabs -->
                 <div class="form-actions">
                     <button type="button" class="btn-primary" id="fillAndFlattenBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">Create AWB</button>
+                    <button type="button" class="btn-secondary" id="saveFormToSpaceBtn" style="display: none;">Save to resume later</button>
                     <button type="button" class="btn-secondary" id="printPreviewBtn">Print Preview</button>
                     <button type="button" class="btn-secondary" id="submitBtn">View Form Data</button>
                 </div>
@@ -440,10 +444,11 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <!-- Load API first so contactsAPI is ready when form loads (shipper/consignee dropdowns) -->
+    <script type="module" src="js/api.js"></script>
     <script src="app4.js"></script>
     
     <!-- Load shipment management scripts (for saving AWB data) -->
-    <script type="module" src="js/api.js"></script>
     <script src="models/user.js"></script>
     <script src="models/shipment.js"></script>
     <script src="js/roles.js"></script>
@@ -584,13 +589,9 @@
             }
         }
         
-        // Clear any edit mode flags and saved form data - this is the CREATE page only
+        // Clear any edit mode flags - this is the CREATE page only (form data is in database, not localStorage)
         sessionStorage.removeItem('isEditingShipment');
         sessionStorage.removeItem('loadShipmentAWB');
-        
-        // Clear any saved form data to ensure form starts fresh
-        localStorage.removeItem('awbFormData');
-        console.log('✅ Cleared saved form data - form will start fresh');
         
         // PDF Preview functionality
         let previewTimeout = null;
@@ -713,6 +714,69 @@
         // Check if we're creating AWB for a shipment space
         const urlParams = new URLSearchParams(window.location.search);
         const spaceId = urlParams.get('spaceId') || sessionStorage.getItem('currentSpaceId');
+        
+        // When opened from a space: show space ID in header, show Back + Save button, load saved form if any
+        if (spaceId) {
+            const spaceIdHeader = document.getElementById('spaceIdHeader');
+            const spaceIdValue = document.getElementById('spaceIdValue');
+            const iframeNav = document.getElementById('iframeNavigation');
+            const saveFormToSpaceBtn = document.getElementById('saveFormToSpaceBtn');
+            if (spaceIdHeader && spaceIdValue) {
+                spaceIdHeader.style.display = 'block';
+                spaceIdValue.textContent = spaceId;
+            }
+            if (iframeNav) iframeNav.style.display = 'block';
+            if (saveFormToSpaceBtn) saveFormToSpaceBtn.style.display = 'inline-block';
+            
+            // Load saved form data from shipment (after app4 and getShipmentBySpaceId are ready)
+            setTimeout(async () => {
+                if (typeof getShipmentBySpaceId !== 'function') return;
+                try {
+                    const shipment = await getShipmentBySpaceId(spaceId);
+                    if (shipment && shipment.formData && typeof restoreFormData === 'function') {
+                        restoreFormData(shipment.formData);
+                        console.log('Form restored from shipment space');
+                    }
+                } catch (e) {
+                    console.warn('Could not load form from shipment:', e);
+                }
+            }, 1500);
+            
+            // Save form only (no PDF) - "Save to resume later"
+            if (saveFormToSpaceBtn) {
+                saveFormToSpaceBtn.addEventListener('click', async function() {
+                    if (typeof collectCompleteFormData !== 'function' || typeof updateShipment !== 'function') {
+                        alert('Required functions not loaded. Please refresh.');
+                        return;
+                    }
+                    const btn = saveFormToSpaceBtn;
+                    btn.disabled = true;
+                    btn.textContent = 'Saving...';
+                    try {
+                        const completeFormData = collectCompleteFormData();
+                        const result = await updateShipment(spaceId, { formData: completeFormData });
+                        if (result && result.success) {
+                            btn.textContent = 'Saved';
+                            const errEl = document.getElementById('error');
+                            if (errEl) {
+                                errEl.style.display = 'block';
+                                errEl.style.background = '#28a745';
+                                errEl.style.color = 'white';
+                                errEl.textContent = 'Saved. You can close this page and resume later from the shipment space.';
+                                setTimeout(() => { errEl.style.display = 'none'; }, 5000);
+                            }
+                        } else {
+                            alert('Save failed: ' + (result && result.message ? result.message : 'Unknown error'));
+                        }
+                    } catch (err) {
+                        console.error('Save to space failed:', err);
+                        alert('Save failed: ' + (err.message || 'Unknown error'));
+                    }
+                    btn.disabled = false;
+                    btn.textContent = 'Save to resume later';
+                });
+            }
+        }
         
         // Hook into "Create AWB" button to save PDF to shipment space without downloading
         (function() {

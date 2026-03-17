@@ -247,7 +247,7 @@
                 
                 // Final fallback: check localStorage directly
                 if (!user) {
-                    const authData = localStorage.getItem('awb_auth');
+                    const authData = sessionStorage.getItem('awb_auth');
                     if (authData) {
                         try {
                             const auth = JSON.parse(authData);

@@ -327,7 +327,7 @@
             }
             
             // Check localStorage auth data
-            const authData = JSON.parse(localStorage.getItem('awb_auth') || '{}');
+            const authData = JSON.parse(sessionStorage.getItem('awb_auth') || '{}');
             debugLog('Dashboard: localStorage awb_auth', { 
                 hasAuth: !!authData.isAuthenticated, 
                 userId: authData.userId,
@@ -616,7 +616,7 @@
         // Logout function - simple direct implementation to avoid recursion
         window.dashboardLogout = function() {
             // Clear all auth data
-            localStorage.removeItem('awb_auth');
+            sessionStorage.removeItem('awb_auth');
             localStorage.removeItem('isAuthenticated');
             localStorage.removeItem('username');
             // Redirect to login

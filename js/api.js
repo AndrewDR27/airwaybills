@@ -262,7 +262,7 @@ export const usersAPI = {
     async getCurrent() {
         try {
             // Get session token from localStorage (for API request only, not as data source)
-            const authData = JSON.parse(localStorage.getItem('awb_auth') || '{}');
+            const authData = JSON.parse(sessionStorage.getItem('awb_auth') || '{}');
             const sessionToken = authData.sessionToken;
             
             // Build URL with session token
@@ -361,7 +361,7 @@ export const usersAPI = {
     async logout() {
         try {
             // Get session token before clearing
-            const authData = JSON.parse(localStorage.getItem('awb_auth') || '{}');
+            const authData = JSON.parse(sessionStorage.getItem('awb_auth') || '{}');
             const sessionToken = authData.sessionToken;
             
             if (sessionToken) {
@@ -378,7 +378,7 @@ export const usersAPI = {
             // Still clear local session token even if API call fails
         } finally {
             // Clear local session token
-            localStorage.removeItem('awb_auth');
+            sessionStorage.removeItem('awb_auth');
         }
     },
 
@@ -588,8 +588,63 @@ export const contactsAPI = {
     }
 };
 
-// Note: localStorage is still used for session tokens (awb_auth) for authentication
-// but NOT as a data source - all data comes from the database
+// Templates API (per-user, stored in database)
+export const templatesAPI = {
+    async get(userId) {
+        const response = await fetch(`${API_BASE_URL}/api/templates?userId=${encodeURIComponent(userId)}`);
+        if (!response.ok) throw new Error('Failed to fetch templates');
+        const data = await response.json();
+        return data && typeof data === 'object' ? data : {};
+    },
+    async save(userId, templates) {
+        const response = await fetch(`${API_BASE_URL}/api/templates`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, templates })
+        });
+        if (!response.ok) throw new Error('Failed to save templates');
+        return await response.json();
+    }
+};
+
+// User profile API (per-user autofill profile)
+export const userProfileAPI = {
+    async get(userId) {
+        const response = await fetch(`${API_BASE_URL}/api/user-profile?userId=${encodeURIComponent(userId)}`);
+        if (!response.ok) throw new Error('Failed to fetch user profile (' + response.status + ')');
+        const data = await response.json();
+        return data;
+    },
+    async save(userId, profile) {
+        const response = await fetch(`${API_BASE_URL}/api/user-profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, profile })
+        });
+        if (!response.ok) throw new Error('Failed to save user profile (' + response.status + ')');
+        return await response.json();
+    }
+};
+
+// AWB draft API (per-user form draft for resume later)
+export const awbDraftAPI = {
+    async get(userId) {
+        const response = await fetch(`${API_BASE_URL}/api/awb-draft?userId=${encodeURIComponent(userId)}`);
+        if (!response.ok) throw new Error('Failed to fetch AWB draft');
+        return await response.json();
+    },
+    async save(userId, draft) {
+        const response = await fetch(`${API_BASE_URL}/api/awb-draft`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, draft })
+        });
+        if (!response.ok) throw new Error('Failed to save AWB draft');
+        return await response.json();
+    }
+};
+
+// Note: session token (awb_auth) is stored in sessionStorage for the current tab only; all app data is in the database.
 
 // Expose APIs globally for non-module scripts (after all APIs are defined)
 if (typeof window !== 'undefined') {
@@ -601,6 +656,9 @@ if (typeof window !== 'undefined') {
     window.destinationsAPI = destinationsAPI;
     window.originsAPI = originsAPI;
     window.terminalsAPI = terminalsAPI;
+    window.templatesAPI = templatesAPI;
+    window.userProfileAPI = userProfileAPI;
+    window.awbDraftAPI = awbDraftAPI;
     
     console.log('🔧 api.js: APIs exposed. usersAPI available:', !!window.usersAPI);
     

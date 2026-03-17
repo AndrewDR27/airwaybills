@@ -13,6 +13,10 @@ let submitBtn, printPreviewBtn, fillPdfBtn, fillAndFlattenBtn, results, resultsC
 let templateSelect, templateNameInput, templateNameGroup, templateNameLabel, saveTemplateBtn, deleteTemplateBtn, renameTemplateBtn, clearFormBtn;
 let isRenamingTemplate = false;
 let currentTemplateName = null; // Track which template is currently loaded
+// In-memory caches loaded from database (no localStorage)
+let templatesCache = {};
+let profileCache = null;
+let contactsCache = [];
 let missingFieldsModal, missingFieldsList, cancelMissingFieldsBtn, confirmMissingFieldsBtn;
 let missingFieldsCallback = null; // Store the callback for when user confirms/cancels
 
@@ -619,14 +623,27 @@ function initializeApp() {
     // Initialize tabs
     initializeTabs();
     
-    // Auto-load default PDF if available (with small delay to ensure page is fully loaded)
-    setTimeout(() => {
+    // Auto-load default PDF after APIs are ready so shipper/consignee dropdowns can populate
+    const runLoadDefaultPDF = () => {
         loadDefaultPDF().then(() => {
-            // Don't auto-restore form data - form should start fresh
-            // restoreFormData() is only called explicitly when editing a shipment
             console.log('PDF loaded - form ready for fresh input');
         });
-    }, 100);
+    };
+    if (window.contactsAPI) {
+        setTimeout(runLoadDefaultPDF, 100);
+    } else {
+        const onApiReady = () => {
+            window.removeEventListener('apiReady', onApiReady);
+            setTimeout(runLoadDefaultPDF, 50);
+        };
+        window.addEventListener('apiReady', onApiReady);
+        setTimeout(() => {
+            if (window.contactsAPI) {
+                window.removeEventListener('apiReady', onApiReady);
+                runLoadDefaultPDF();
+            }
+        }, 2000);
+    }
     
     // Don't auto-save form data on create page - only save when explicitly needed
     // setupFormDataAutoSave(); // Disabled - form should start fresh each time
@@ -703,6 +720,20 @@ async function handlePDF(file) {
         generateForm();
         hideLoading();
         showForm();
+        
+        // Load templates, user profile, and contacts from database (fire-and-forget; must not block or throw)
+        // Contacts: wait for apiReady if api.js not loaded yet so shipper/consignee dropdowns get populated
+        try {
+            if (typeof loadTemplatesFromAPI === 'function') loadTemplatesFromAPI().catch(() => {});
+            if (typeof loadUserProfileFromAPI === 'function') loadUserProfileFromAPI().catch(() => {});
+            if (typeof ensureContactsLoadedForForm === 'function') ensureContactsLoadedForForm();
+            // Retry contacts load after delay in case API wasn't ready yet (e.g. when opened from space with default PDF)
+            setTimeout(() => {
+                if (typeof ensureContactsLoadedForForm === 'function') ensureContactsLoadedForForm();
+            }, 1500);
+        } catch (e) {
+            console.warn('Data load failed:', e);
+        }
         
         // Don't auto-restore form data - form should start fresh
         // restoreFormData() is only called explicitly when editing a shipment
@@ -1953,25 +1984,37 @@ function generateForm() {
     }, 100);
 }
 
-// Template Management Functions
+// Template Management Functions (database-backed)
 function getTemplates() {
+    return templatesCache;
+}
+
+async function loadTemplatesFromAPI() {
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (!user || !user.id || !window.templatesAPI) return;
     try {
-        const templatesJson = localStorage.getItem('awbTemplates');
-        return templatesJson ? JSON.parse(templatesJson) : {};
-    } catch (error) {
-        console.warn('Could not read templates from localStorage:', error);
-        return {};
+        templatesCache = await window.templatesAPI.get(user.id);
+        if (!templatesCache || typeof templatesCache !== 'object') templatesCache = {};
+        updateTemplateDropdown();
+    } catch (e) {
+        console.warn('Could not load templates from API:', e);
     }
 }
 
-function saveTemplates(templates) {
+async function saveTemplates(templates) {
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (!user || !user.id || !window.templatesAPI) {
+        showError('Cannot save template: not logged in or API not available.');
+        return false;
+    }
     try {
-        localStorage.setItem('awbTemplates', JSON.stringify(templates));
+        await window.templatesAPI.save(user.id, templates);
+        templatesCache = templates;
         updateTemplateDropdown();
         return true;
-    } catch (error) {
-        console.warn('Could not save templates to localStorage:', error);
-        showError('Error saving template. Storage may be full.');
+    } catch (e) {
+        console.warn('Could not save templates to API:', e);
+        showError('Error saving template. ' + (e.message || ''));
         return false;
     }
 }
@@ -1980,6 +2023,8 @@ function updateTemplateDropdown() {
     if (!templateSelect) return;
     
     const templates = getTemplates();
+    if (!templates || typeof templates !== 'object') return;
+    
     const currentValue = templateSelect.value;
     
     // Clear and rebuild dropdown
@@ -2000,22 +2045,16 @@ function updateTemplateDropdown() {
     
     // Show/hide delete/rename buttons based on selection
     if (templateSelect.value) {
-        deleteTemplateBtn.style.display = 'inline-block';
-        renameTemplateBtn.style.display = 'inline-block';
-        templateNameGroup.style.display = 'none';
+        if (deleteTemplateBtn) deleteTemplateBtn.style.display = 'inline-block';
+        if (renameTemplateBtn) renameTemplateBtn.style.display = 'inline-block';
+        if (templateNameGroup) templateNameGroup.style.display = 'none';
         currentTemplateName = templateSelect.value;
-        // Update button text to "Update Template" since a template is selected
-        if (saveTemplateBtn) {
-            saveTemplateBtn.textContent = 'Update Template';
-        }
+        if (saveTemplateBtn) saveTemplateBtn.textContent = 'Update Template';
     } else {
-        deleteTemplateBtn.style.display = 'none';
-        renameTemplateBtn.style.display = 'none';
+        if (deleteTemplateBtn) deleteTemplateBtn.style.display = 'none';
+        if (renameTemplateBtn) renameTemplateBtn.style.display = 'none';
         currentTemplateName = null;
-        // Change button text back to "Save Template" since no template is selected
-        if (saveTemplateBtn) {
-            saveTemplateBtn.textContent = 'Save Template';
-        }
+        if (saveTemplateBtn) saveTemplateBtn.textContent = 'Save Template';
     }
 }
 
@@ -2515,7 +2554,7 @@ async function handleTemplateSelect() {
     }
 }
 
-function handleSaveTemplate() {
+async function handleSaveTemplate() {
     if (!generatedForm) {
         showError('Error: Form not found.');
         return;
@@ -2553,7 +2592,7 @@ function handleSaveTemplate() {
         templates[newName] = templates[selectedTemplate];
         delete templates[selectedTemplate];
         
-        if (saveTemplates(templates)) {
+        if (await saveTemplates(templates)) {
             templateSelect.value = newName;
             currentTemplateName = newName;
             isRenamingTemplate = false;
@@ -2578,7 +2617,7 @@ function handleSaveTemplate() {
         const templates = getTemplates();
         templates[currentTemplateName] = formData;
         
-        if (saveTemplates(templates)) {
+        if (await saveTemplates(templates)) {
             showError('✓ Template updated: ' + currentTemplateName);
             setTimeout(() => hideError(), 2000);
         }
@@ -2611,7 +2650,7 @@ function handleSaveTemplate() {
     const templates = getTemplates();
     templates[templateName] = formData;
     
-    if (saveTemplates(templates)) {
+    if (await saveTemplates(templates)) {
         templateSelect.value = templateName;
         currentTemplateName = templateName;
         templateNameGroup.style.display = 'none';
@@ -2627,7 +2666,7 @@ function handleSaveTemplate() {
     }
 }
 
-function handleDeleteTemplate() {
+async function handleDeleteTemplate() {
     const selectedTemplate = templateSelect.value;
     
     if (!selectedTemplate) {
@@ -2642,7 +2681,7 @@ function handleDeleteTemplate() {
     const templates = getTemplates();
     delete templates[selectedTemplate];
     
-    if (saveTemplates(templates)) {
+    if (await saveTemplates(templates)) {
         templateSelect.value = '';
         currentTemplateName = null;
         deleteTemplateBtn.style.display = 'none';
@@ -2656,7 +2695,7 @@ function handleDeleteTemplate() {
     }
 }
 
-function handleRenameTemplate() {
+async function handleRenameTemplate() {
     const selectedTemplate = templateSelect.value;
     
     if (!selectedTemplate) {
@@ -4426,49 +4465,106 @@ function hideResults() {
 
 // ==================== Contact Management Functions ====================
 
-// Get all contacts from localStorage
+// Contacts from database (cache refreshed from API)
 function getContacts() {
+    return contactsCache;
+}
+
+async function loadContactsFromAPI() {
+    if (!window.contactsAPI) return;
     try {
-        const contactsJson = localStorage.getItem('awbContacts');
-        return contactsJson ? JSON.parse(contactsJson) : [];
-    } catch (error) {
-        console.warn('Could not read contacts from localStorage:', error);
-        return [];
+        const list = await window.contactsAPI.getAll();
+        contactsCache = Array.isArray(list) ? list : [];
+        // Ensure contact section is visible and dropdowns are populated when contacts load
+        if (contactControlsSection) contactControlsSection.style.display = 'block';
+        if (typeof updateContactDropdowns === 'function') await updateContactDropdowns();
+    } catch (e) {
+        console.warn('Could not load contacts from API:', e);
     }
 }
 
-// Save contacts to localStorage
-function saveContacts(contacts) {
+// Ensure contacts are loaded for the Create AWB form. If api.js is not ready yet, wait for apiReady then load.
+function ensureContactsLoadedForForm() {
+    const doLoad = () => {
+        if (typeof loadContactsFromAPI === 'function') loadContactsFromAPI().catch(() => {});
+    };
+    if (window.contactsAPI) {
+        doLoad();
+    } else {
+        const onReady = () => {
+            window.removeEventListener('apiReady', onReady);
+            doLoad();
+        };
+        window.addEventListener('apiReady', onReady);
+        // In case apiReady already fired (race), try once after a short delay
+        setTimeout(() => { if (window.contactsAPI) { window.removeEventListener('apiReady', onReady); doLoad(); } }, 500);
+    }
+}
+
+async function saveSingleContact(contact) {
+    if (!window.contactsAPI || !contact) return false;
     try {
-        localStorage.setItem('awbContacts', JSON.stringify(contacts));
-        updateContactDropdowns();
+        const existing = contactsCache.find(c => c.id === contact.id);
+        if (existing) await window.contactsAPI.update(contact);
+        else await window.contactsAPI.create(contact);
+        await loadContactsFromAPI();
         return true;
-    } catch (error) {
-        console.warn('Could not save contacts to localStorage:', error);
-        showError('Error saving contact. Storage may be full.');
+    } catch (e) {
+        console.warn('Could not save contact to API:', e);
+        showError('Error saving contact. ' + (e.message || ''));
         return false;
     }
 }
 
-// Get user profile from localStorage
-function getUserProfile() {
+async function saveContacts(contacts) {
+    if (!window.contactsAPI) return false;
     try {
-        const profileJson = localStorage.getItem('awbUserProfile');
-        return profileJson ? JSON.parse(profileJson) : null;
-    } catch (error) {
-        console.warn('Could not read user profile from localStorage:', error);
-        return null;
+        for (const c of (contacts || [])) {
+            if (!c || !c.id) continue;
+            const existing = contactsCache.find(x => x.id === c.id);
+            if (existing) await window.contactsAPI.update(c);
+            else await window.contactsAPI.create(c);
+        }
+        await loadContactsFromAPI();
+        return true;
+    } catch (e) {
+        console.warn('Could not save contacts to API:', e);
+        showError('Error saving contact. ' + (e.message || ''));
+        return false;
     }
 }
 
-// Save user profile to localStorage
-function saveUserProfile(profile) {
+// User profile from database (cache refreshed from API)
+function getUserProfile() {
+    return profileCache;
+}
+
+async function loadUserProfileFromAPI() {
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (!user || !user.id || !window.userProfileAPI) return;
     try {
-        localStorage.setItem('awbUserProfile', JSON.stringify(profile));
+        profileCache = await window.userProfileAPI.get(user.id);
+        if (profileCache && typeof profileCache !== 'object') profileCache = null;
+        // Fill field 06 (issuing agent) and other user profile fields once profile is loaded
+        if (typeof autoFillUserProfile === 'function') autoFillUserProfile();
+    } catch (e) {
+        console.warn('Could not load user profile from API:', e);
+    }
+}
+
+async function saveUserProfile(profile) {
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (!user || !user.id || !window.userProfileAPI) {
+        showError('Cannot save profile: not logged in or API not available.');
+        return false;
+    }
+    try {
+        await window.userProfileAPI.save(user.id, profile);
+        profileCache = profile;
         return true;
-    } catch (error) {
-        console.warn('Could not save user profile to localStorage:', error);
-        showError('Error saving user profile. Storage may be full.');
+    } catch (e) {
+        console.warn('Could not save user profile to API:', e);
+        showError('Error saving user profile. ' + (e.message || ''));
         return false;
     }
 }
@@ -4486,8 +4582,8 @@ async function updateContactDropdowns() {
     isUpdatingDropdowns = true;
     
     try {
-        const contacts = getContacts();
-    const currentShipperValue = shipperSelect.value;
+        const contacts = Array.isArray(getContacts()) ? getContacts() : [];
+        const currentShipperValue = shipperSelect.value;
     const currentConsigneeValue = consigneeSelect.value;
     const currentAirlineValue1 = airlineSelect1 ? airlineSelect1.value : null;
     
@@ -4906,9 +5002,9 @@ function openContactModal(type, contactIdToEdit) {
                 }
             }
         } else {
-            // Editing existing contact
-            const contacts = getContacts();
-            const contact = contacts.find(c => c.id === contactIdToEdit);
+            // Editing existing contact (compare as string - IDs from dropdown are string)
+            const contacts = Array.isArray(getContacts()) ? getContacts() : [];
+            const contact = contacts.find(c => String(c.id) === String(contactIdToEdit));
             if (contact) {
                 modalTitle.textContent = `Edit ${type}`;
                 contactCompanyName.value = contact.companyName || '';
@@ -5107,7 +5203,7 @@ function closeContactModalHandler() {
 }
 
 // Handle save contact
-function handleSaveContact(e) {
+async function handleSaveContact(e) {
     e.preventDefault();
     
     const type = contactType.value;
@@ -5217,7 +5313,8 @@ function handleSaveContact(e) {
             field33: field33 // Always update field33 if it was collected, otherwise preserve existing
         };
         
-        if (saveUserProfile(profile)) {
+        const saved = await saveUserProfile(profile);
+        if (saved) {
             closeContactModalHandler();
             showError('✓ User profile saved successfully!');
             setTimeout(() => hideError(), 2000);
@@ -5310,15 +5407,8 @@ function handleSaveContact(e) {
         
         // Save contact (if image wasn't uploaded, this will be called directly)
         if (type !== 'Airline' || !document.getElementById('contactAirlineImage')?.files?.[0]) {
-            if (contactIndex >= 0) {
-                // Update existing contact
-                contacts[contactIndex] = contact;
-            } else {
-                // Add new contact
-                contacts.push(contact);
-            }
-            
-            if (saveContacts(contacts)) {
+            const saved = await saveSingleContact(contact);
+            if (saved) {
                 closeContactModalHandler();
                 showError(`✓ ${type} contact saved successfully!`);
                 setTimeout(() => hideError(), 2000);
@@ -5328,14 +5418,9 @@ function handleSaveContact(e) {
 }
 
 // Save contact with image (called after image is loaded)
-function saveContactWithImage(contact, contactIndex, contacts) {
-    if (contactIndex >= 0) {
-        contacts[contactIndex] = contact;
-    } else {
-        contacts.push(contact);
-    }
-    
-    if (saveContacts(contacts)) {
+async function saveContactWithImage(contact, contactIndex, contacts) {
+    const saved = await saveSingleContact(contact);
+    if (saved) {
         closeContactModalHandler();
         showError(`✓ ${contact.type} contact saved successfully!`);
         setTimeout(() => hideError(), 2000);
@@ -5704,8 +5789,8 @@ function updateField99WithImage(inputElement, imageDataUrl) {
     }
 }
 
-// Save form data to localStorage
-function saveFormDataToStorage() {
+// Save form data to database (per-user draft)
+async function saveFormDataToStorage() {
     if (!generatedForm) return;
     
     try {
@@ -5728,29 +5813,50 @@ function saveFormDataToStorage() {
             timestamp: Date.now()
         };
         
-        localStorage.setItem('awbFormData', JSON.stringify(dataToSave));
-        console.log('Form data saved to localStorage');
+        const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+        if (user && user.id && window.awbDraftAPI) {
+            try {
+                await window.awbDraftAPI.save(user.id, dataToSave);
+                console.log('Form draft saved to database');
+            } catch (e) {
+                console.warn('Could not save form draft to API:', e);
+            }
+        }
     } catch (error) {
-        console.warn('Could not save form data to localStorage:', error);
+        console.warn('Could not save form data:', error);
     }
 }
 
-// Restore form data from localStorage
-function restoreFormData() {
+// Restore form data from database or from optional object (e.g. shipment.formData)
+async function restoreFormData(optionalSavedData) {
     if (!generatedForm) return;
     
     try {
-        const savedDataJson = localStorage.getItem('awbFormData');
-        if (!savedDataJson) {
-            console.log('No saved form data found');
-            return;
+        let savedData;
+        if (optionalSavedData && typeof optionalSavedData === 'object') {
+            savedData = optionalSavedData;
+            console.log('Restoring form data from provided data (e.g. shipment space)');
+        } else {
+            const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+            if (!user || !user.id || !window.awbDraftAPI) {
+                console.log('No saved form data found');
+                return;
+            }
+            try {
+                savedData = await window.awbDraftAPI.get(user.id);
+            } catch (e) {
+                console.warn('Could not load draft from API:', e);
+                return;
+            }
+            if (!savedData || typeof savedData !== 'object') {
+                console.log('No saved form data found');
+                return;
+            }
+            console.log('Restoring form data from database');
         }
         
-        const savedData = JSON.parse(savedDataJson);
         const formData = savedData.formData || {};
         const dropdownData = savedData.dropdownData || {};
-        
-        console.log('Restoring form data from localStorage');
         
         // Restore form fields
         const formElements = generatedForm.elements;
@@ -6009,9 +6115,9 @@ function fillContactField(fieldPrefix, contactIdOrUser) {
         // Get user profile
         contactData = getUserProfile();
     } else {
-        // Get contact from list
-        const contacts = getContacts();
-        contactData = contacts.find(c => c.id === contactIdOrUser);
+        // Get contact from list (compare as string - select values are always string)
+        const contacts = Array.isArray(getContacts()) ? getContacts() : [];
+        contactData = contacts.find(c => String(c.id) === String(contactIdOrUser));
     }
     
     // For user profile, handle special cases for field 02 (origin) and field 08 (aoDEP)
@@ -7479,8 +7585,7 @@ function initializeTabs() {
     if (tabButton && tabContent) {
         tabButton.classList.add('active');
         tabContent.classList.add('active');
-        // Save to localStorage so it persists if user switches tabs
-        localStorage.setItem('awbLastActiveTab', defaultTab);
+        // Tab state is in-memory only (no localStorage)
     } else {
         // Fallback to routing if contacts tab doesn't exist
         const routingButton = document.querySelector('.awb-tab-button[data-tab="routing"]');
@@ -7506,8 +7611,7 @@ function initializeTabs() {
                 targetTab.classList.add('active');
             }
             
-            // Save active tab to localStorage
-            localStorage.setItem('awbLastActiveTab', tabName);
+            // Tab state kept in-memory
             
             // If Preview AWB tab (form tab) is clicked, generate preview
             if (tabName === 'form' && typeof window.generatePDFPreview === 'function') {
@@ -9107,14 +9211,14 @@ function getCommoditySourcesForDropdown() {
     }
     if (shipperSelect && shipperSelect.value) {
         const contacts = getContacts();
-        const shipper = contacts.find(c => c.id === shipperSelect.value);
+        const shipper = contacts.find(c => String(c.id) === String(shipperSelect.value));
         if (shipper && shipper.field33) {
             add(shipper.field33);
         }
     }
     if (consigneeSelect && consigneeSelect.value) {
         const contacts = getContacts();
-        const consignee = contacts.find(c => c.id === consigneeSelect.value);
+        const consignee = contacts.find(c => String(c.id) === String(consigneeSelect.value));
         if (consignee && consignee.field33) {
             add(consignee.field33);
         }
@@ -9183,7 +9287,7 @@ function findCommodityByName(commodityName) {
     }
     if (shipperSelect && shipperSelect.value) {
         const contacts = getContacts();
-        const shipper = contacts.find(c => c.id === shipperSelect.value);
+        const shipper = contacts.find(c => String(c.id) === String(shipperSelect.value));
         if (shipper && shipper.field33 && Array.isArray(shipper.field33)) {
             const found = shipper.field33.find(item => item.commodity === commodityName);
             if (found) return found;
@@ -9191,7 +9295,7 @@ function findCommodityByName(commodityName) {
     }
     if (consigneeSelect && consigneeSelect.value) {
         const contacts = getContacts();
-        const consignee = contacts.find(c => c.id === consigneeSelect.value);
+        const consignee = contacts.find(c => String(c.id) === String(consigneeSelect.value));
         if (consignee && consignee.field33 && Array.isArray(consignee.field33)) {
             const found = consignee.field33.find(item => item.commodity === commodityName);
             if (found) return found;

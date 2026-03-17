@@ -580,15 +580,12 @@
                 };
             }
             
-            // Store in localStorage in the correct format
-            localStorage.setItem('awbFormData', JSON.stringify(dataToRestore));
-            console.log('✅ Shipment data stored in localStorage, waiting for PDF to load and form to be generated...');
+            console.log('✅ Shipment data prepared, waiting for PDF to load and form to be generated...');
             console.log('Data structure:', Object.keys(dataToRestore));
             console.log('Form data keys:', Object.keys(dataToRestore.formData || {}));
             console.log('Dropdown data keys:', Object.keys(dataToRestore.dropdownData || {}));
             
             // Wait for PDF to load and form to be generated
-            // The initializeApp() function will call loadDefaultPDF() which loads the PDF and generates the form
             let attempts = 0;
             const maxAttempts = 60; // Wait up to 6 seconds for PDF to load
             
@@ -602,21 +599,20 @@
                     clearInterval(checkFormReady);
                     console.log('✅ Form is ready, restoring shipment data...');
                     
-                    // Wait a bit more for all form elements to be fully initialized
-                    setTimeout(() => {
+                    setTimeout(async () => {
                         if (typeof restoreFormData === 'function') {
-                            restoreFormData();
+                            await restoreFormData(dataToRestore);
                             sessionStorage.removeItem('loadShipmentAWB');
                             console.log('✅✅✅ Shipment form data restored for AWB:', awbNumber);
                         } else {
                             console.error('restoreFormData function not available');
                         }
-                    }, 1000); // Give more time for all elements to be ready
+                    }, 1000);
                 } else if (attempts >= maxAttempts) {
                     clearInterval(checkFormReady);
                     console.warn('⚠️ Form not ready after 6 seconds, attempting restore anyway...');
                     if (typeof restoreFormData === 'function') {
-                        restoreFormData();
+                        restoreFormData(dataToRestore);
                         sessionStorage.removeItem('loadShipmentAWB');
                     } else {
                         console.error('restoreFormData function still not available');

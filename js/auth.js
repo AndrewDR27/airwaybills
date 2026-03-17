@@ -29,7 +29,7 @@ function getCurrentUser() {
     // Check cache first (if valid and recent)
     if (currentUserCache && Date.now() - cacheTimestamp < CACHE_DURATION) {
         // Verify cache is still valid by checking awb_auth
-        const authData = localStorage.getItem('awb_auth');
+        const authData = sessionStorage.getItem('awb_auth');
         if (authData) {
             try {
                 const auth = JSON.parse(authData);
@@ -50,7 +50,7 @@ function getCurrentUser() {
     }
     
     // Check if awb_auth exists - if not, user is logged out
-    const authData = localStorage.getItem('awb_auth');
+    const authData = sessionStorage.getItem('awb_auth');
     if (!authData) {
         // No auth data means user is logged out - clear cache and return null
         currentUserCache = null;
@@ -109,8 +109,8 @@ async function getCurrentUserAsync() {
             cacheTimestamp = Date.now();
             // Store session token and user in localStorage (for cache and localhost fallback)
             try {
-                const existingAuth = JSON.parse(localStorage.getItem('awb_auth') || '{}');
-                localStorage.setItem('awb_auth', JSON.stringify({
+                const existingAuth = JSON.parse(sessionStorage.getItem('awb_auth') || '{}');
+                sessionStorage.setItem('awb_auth', JSON.stringify({
                     isAuthenticated: true,
                     userId: user.id,
                     sessionToken: existingAuth.sessionToken || null // Preserve session token
@@ -123,7 +123,7 @@ async function getCurrentUserAsync() {
                 } else {
                     users.push(user);
                 }
-                localStorage.setItem('awb_users', JSON.stringify(users));
+                sessionStorage.setItem('awb_users', JSON.stringify(users));
             } catch (e) {
                 console.warn('Could not update localStorage:', e);
             }
@@ -239,7 +239,7 @@ async function login(email, password) {
             cacheTimestamp = Date.now();
             // Store session token and user in localStorage (for cache and localhost fallback)
             try {
-                localStorage.setItem('awb_auth', JSON.stringify({
+                sessionStorage.setItem('awb_auth', JSON.stringify({
                     isAuthenticated: true,
                     userId: result.user.id,
                     email: result.user.email,
@@ -254,7 +254,7 @@ async function login(email, password) {
                 } else {
                     users.push(result.user);
                 }
-                localStorage.setItem('awb_users', JSON.stringify(users));
+                sessionStorage.setItem('awb_users', JSON.stringify(users));
             } catch (e) {
                 console.warn('Could not store session token:', e);
             }
@@ -325,7 +325,7 @@ async function register(userData) {
 // Logout
 async function logout() {
     // Get session token and user ID BEFORE clearing auth data
-    const authData = JSON.parse(localStorage.getItem('awb_auth') || '{}');
+    const authData = JSON.parse(sessionStorage.getItem('awb_auth') || '{}');
     const sessionToken = authData.sessionToken;
     
     // Clear cache FIRST to prevent getCurrentUser() from returning cached user
@@ -356,13 +356,13 @@ async function logout() {
     }
     
     // Clear all auth-related localStorage items
-    localStorage.removeItem('awb_auth');
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('username');
+    sessionStorage.removeItem('awb_auth');
+    sessionStorage.removeItem('isAuthenticated');
+    sessionStorage.removeItem('username');
     
     // Clear any session-related data
     if (sessionToken) {
-        localStorage.removeItem(`session_${sessionToken}`);
+        sessionStorage.removeItem(`session_${sessionToken}`);
     }
     
     // Force clear cache again (in case anything was set during API call)

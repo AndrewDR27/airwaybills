@@ -471,7 +471,7 @@
                 
                 // If still no user, check localStorage for auth data and try one more time
                 if (!user) {
-                    const authData = localStorage.getItem('awb_auth');
+                    const authData = sessionStorage.getItem('awb_auth');
                     if (authData) {
                         try {
                             const auth = JSON.parse(authData);
@@ -509,7 +509,7 @@
                 // Final check - if no user found, check localStorage directly
                 if (!user) {
                     // Last attempt: check localStorage directly for user data
-                    const authData = localStorage.getItem('awb_auth');
+                    const authData = sessionStorage.getItem('awb_auth');
                     if (authData) {
                         try {
                             const auth = JSON.parse(authData);

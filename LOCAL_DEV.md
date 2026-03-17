@@ -2,6 +2,17 @@
 
 Use this to run the app on localhost and log in with the same Redis database as production, **without pushing code**.
 
+## Data storage (no localStorage)
+
+All app data is stored in the database (Redis) so it can be accessed from any device or browser:
+
+- **Users, contacts, shipments, airlines, destinations, origins, terminals** – already in the API/Redis.
+- **Templates** (Create AWB) – stored per user in Redis (`/api/templates`).
+- **User profile** (My Autofills / origin, aoDEP, etc.) – stored per user in Redis (`/api/user-profile`).
+- **AWB form draft** (Save to resume later when not in a shipment space) – stored per user in Redis (`/api/awb-draft`).
+
+The **session token** is kept in **sessionStorage** only (not localStorage), so you stay logged in for the current tab/session; logging in on another device or browser uses the same database but a separate session.
+
 ## 1. Install dependencies
 
 ```bash
