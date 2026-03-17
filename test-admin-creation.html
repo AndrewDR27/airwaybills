@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Admin Creation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .result.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Admin Account Creation</h1>
+        <p>This tool tests if you can create an admin account via the API.</p>
+        
+        <div class="test-section">
+            <h2>Step 1: Test Database Connection</h2>
+            <button onclick="testDatabase()">Test Database Connection</button>
+            <div id="dbResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 2: Test Admin Creation</h2>
+            <p>Enter test admin details (use a test email you don't mind creating):</p>
+            <input type="text" id="testName" placeholder="Test Admin Name" value="Test Admin">
+            <input type="email" id="testEmail" placeholder="test-admin@example.com" value="test-admin@example.com">
+            <input type="text" id="testCompany" placeholder="Test Company" value="Test Company">
+            <input type="password" id="testPassword" placeholder="Password (min 6 chars)" value="test123">
+            <button onclick="testAdminCreation()">Test Create Admin</button>
+            <div id="createResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 3: Verify Admin Was Created</h2>
+            <button onclick="verifyAdmin()">Check if Admin Exists</button>
+            <div id="verifyResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 4: Test Login</h2>
+            <button onclick="testLogin()">Test Login with Created Admin</button>
+            <div id="loginResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `result ${type}`;
+            element.textContent = message;
+        }
+
+        async function testDatabase() {
+            showResult('dbResult', 'Testing database connection...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/users?action=all`);
+                const status = response.status;
+                const data = await response.json();
+                
+                if (status === 200) {
+                    showResult('dbResult', 
+                        `✅ DATABASE CONNECTED!\n\n` +
+                        `Status: ${status}\n` +
+                        `Users in database: ${Array.isArray(data) ? data.length : 'N/A'}\n\n` +
+                        `Your database is working! You can proceed to create an admin.`,
+                        'success'
+                    );
+                } else if (status === 503) {
+                    showResult('dbResult', 
+                        `❌ DATABASE NOT CONFIGURED\n\n` +
+                        `Status: ${status}\n` +
+                        `Error: ${data.error || 'Database not configured'}\n\n` +
+                        `Action Required:\n` +
+                        `1. Check Vercel environment variables\n` +
+                        `2. Make sure KV_REST_API_URL and KV_REST_API_TOKEN are set\n` +
+                        `3. Redeploy your project`,
+                        'error'
+                    );
+                } else {
+                    showResult('dbResult', 
+                        `⚠️ UNEXPECTED STATUS\n\n` +
+                        `Status: ${status}\n` +
+                        `Response: ${JSON.stringify(data, null, 2)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('dbResult', 
+                    `❌ CONNECTION ERROR\n\n` +
+                    `Error: ${error.message}\n\n` +
+                    `Make sure you're testing on your production URL.`,
+                    'error'
+                );
+            }
+        }
+
+        async function testAdminCreation() {
+            const name = document.getElementById('testName').value.trim();
+            const email = document.getElementById('testEmail').value.trim();
+            const company = document.getElementById('testCompany').value.trim();
+            const password = document.getElementById('testPassword').value;
+
+            if (!name || !email || !password) {
+                showResult('createResult', 'Please fill in all required fields!', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showResult('createResult', 'Password must be at least 6 characters!', 'error');
+                return;
+            }
+
+            showResult('createResult', 'Creating admin account...', 'info');
+
+            try {
+                const userData = {
+                    name: name,
+                    email: email,
+                    role: 'admin',
+                    company: company || '',
+                    password: password
+                };
+
+                const response = await fetch(`${API_BASE}/api/users?action=register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResult('createResult', 
+                        `✅ ADMIN ACCOUNT CREATED!\n\n` +
+                        `Status: ${response.status}\n` +
+                        `User ID: ${data.id}\n` +
+                        `Name: ${data.name}\n` +
+                        `Email: ${data.email}\n` +
+                        `Role: ${data.role}\n\n` +
+                        `You can now log in with this account!`,
+                        'success'
+                    );
+                    
+                    // Store for login test
+                    window.testAdminEmail = email;
+                    window.testAdminPassword = password;
+                } else {
+                    showResult('createResult', 
+                        `❌ FAILED TO CREATE ADMIN\n\n` +
+                        `Status: ${response.status}\n` +
+                        `Error: ${data.error || 'Unknown error'}\n\n` +
+                        `Response: ${JSON.stringify(data, null, 2)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('createResult', 
+                    `❌ ERROR\n\n` +
+                    `Error: ${error.message}\n\n` +
+                    `Check browser console for details.`,
+                    'error'
+                );
+            }
+        }
+
+        async function verifyAdmin() {
+            showResult('verifyResult', 'Checking for admin accounts...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/users?action=all`);
+                const data = await response.json();
+
+                if (Array.isArray(data)) {
+                    const admins = data.filter(u => u.role === 'admin');
+                    
+                    if (admins.length > 0) {
+                        showResult('verifyResult', 
+                            `✅ FOUND ${admins.length} ADMIN(S)\n\n` +
+                            admins.map(admin => 
+                                `- ${admin.name} (${admin.email})\n  ID: ${admin.id}`
+                            ).join('\n\n'),
+                            'success'
+                        );
+                    } else {
+                        showResult('verifyResult', 
+                            `⚠️ NO ADMINS FOUND\n\n` +
+                            `Total users: ${data.length}\n` +
+                            `But none have admin role.`,
+                            'error'
+                        );
+                    }
+                } else {
+                    showResult('verifyResult', 
+                        `⚠️ UNEXPECTED RESPONSE\n\n` +
+                        `Response: ${JSON.stringify(data, null, 2)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('verifyResult', 
+                    `❌ ERROR\n\n` +
+                    `Error: ${error.message}`,
+                    'error'
+                );
+            }
+        }
+
+        async function testLogin() {
+            const email = window.testAdminEmail || document.getElementById('testEmail').value.trim();
+            const password = window.testAdminPassword || document.getElementById('testPassword').value;
+
+            if (!email || !password) {
+                showResult('loginResult', 'Please create an admin first or enter email/password!', 'error');
+                return;
+            }
+
+            showResult('loginResult', 'Testing login...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/users?action=login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.token) {
+                    showResult('loginResult', 
+                        `✅ LOGIN SUCCESSFUL!\n\n` +
+                        `Status: ${response.status}\n` +
+                        `Token received: ${data.token.substring(0, 20)}...\n` +
+                        `User: ${data.user.name} (${data.user.email})\n` +
+                        `Role: ${data.user.role}\n\n` +
+                        `Everything is working! You can now use this account.`,
+                        'success'
+                    );
+                } else {
+                    showResult('loginResult', 
+                        `❌ LOGIN FAILED\n\n` +
+                        `Status: ${response.status}\n` +
+                        `Error: ${data.error || 'Invalid credentials'}\n\n` +
+                        `Response: ${JSON.stringify(data, null, 2)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('loginResult', 
+                    `❌ ERROR\n\n` +
+                    `Error: ${error.message}`,
+                    'error'
+                );
+            }
+        }
+
+        // Auto-test database on load
+        window.addEventListener('load', () => {
+            setTimeout(testDatabase, 500);
+        });
+    </script>
+</body>
+</html>

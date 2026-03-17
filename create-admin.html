@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Admin Account</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Create Admin Account</h1>
+        <p style="color: #666; margin-bottom: 20px;">Create the first administrator account for your system.</p>
+        
+        <div id="message" class="message"></div>
+        
+        <form id="adminForm">
+            <div class="form-group">
+                <label for="name">Full Name *</label>
+                <input type="text" id="name" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="company">Company (Optional)</label>
+                <input type="text" id="company">
+            </div>
+            <div class="form-group">
+                <label for="password">Password * (min 6 characters)</label>
+                <input type="password" id="password" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password *</label>
+                <input type="password" id="confirmPassword" required minlength="6">
+            </div>
+            <button type="submit" id="submitBtn">Create Admin Account</button>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('adminForm');
+        const messageDiv = document.getElementById('message');
+        const submitBtn = document.getElementById('submitBtn');
+
+        function showMessage(text, type = 'info') {
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const company = document.getElementById('company').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Validation
+            if (password !== confirmPassword) {
+                showMessage('Passwords do not match!', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showMessage('Password must be at least 6 characters!', 'error');
+                return;
+            }
+
+            // Disable button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating...';
+
+            try {
+                // Create admin user via API
+                const userData = {
+                    name: name,
+                    email: email,
+                    role: 'admin',
+                    company: company || '',
+                    password: password
+                };
+
+                const response = await fetch('/api/users?action=register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('✅ Admin account created successfully! You can now log in.', 'success');
+                    form.reset();
+                    
+                    // Redirect to login after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/login.html';
+                    }, 2000);
+                } else {
+                    showMessage(`❌ Error: ${data.error || 'Failed to create admin account'}`, 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Create Admin Account';
+                }
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}. Make sure your database is connected.`, 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Admin Account';
+            }
+        });
+    </script>
+</body>
+</html>
