@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Admin Creation Error</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .result.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Admin Creation Error</h1>
+        <p>This tool will help identify why admin creation is failing.</p>
+        
+        <div class="test-section">
+            <h2>Step 1: Test API Endpoint</h2>
+            <button onclick="testAPIEndpoint()">Test /api/users Endpoint</button>
+            <div id="endpointResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 2: Test Database Connection</h2>
+            <button onclick="testDatabase()">Test Database Read/Write</button>
+            <div id="dbResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 3: Try Creating Admin (with detailed error)</h2>
+            <input type="text" id="testName" placeholder="Name" value="Test Admin">
+            <input type="email" id="testEmail" placeholder="Email" value="test@example.com">
+            <input type="password" id="testPassword" placeholder="Password" value="test123">
+            <button onclick="testCreateWithDetails()">Create Admin (Show Full Error)</button>
+            <div id="createResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 4: Check Vercel Function Logs</h2>
+            <p>Check your Vercel dashboard → Functions → /api/users → Logs for server-side errors</p>
+            <button onclick="showLogInstructions()">Show Instructions</button>
+            <div id="logInstructions"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `result ${type}`;
+            element.textContent = message;
+        }
+
+        async function testAPIEndpoint() {
+            showResult('endpointResult', 'Testing API endpoint...', 'info');
+            
+            try {
+                // Test GET first
+                const getResponse = await fetch(`${API_BASE}/api/users?action=all`);
+                const getStatus = getResponse.status;
+                const getData = await getResponse.json();
+                
+                let result = `GET /api/users?action=all:\n`;
+                result += `Status: ${getStatus}\n`;
+                result += `Response: ${JSON.stringify(getData, null, 2)}\n\n`;
+                
+                // Test POST
+                try {
+                    const postResponse = await fetch(`${API_BASE}/api/users?action=register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: 'Test',
+                            email: 'test@test.com',
+                            role: 'admin',
+                            password: 'test123'
+                        })
+                    });
+                    
+                    const postStatus = postResponse.status;
+                    const postText = await postResponse.text();
+                    let postData;
+                    try {
+                        postData = JSON.parse(postText);
+                    } catch (e) {
+                        postData = postText;
+                    }
+                    
+                    result += `POST /api/users?action=register:\n`;
+                    result += `Status: ${postStatus}\n`;
+                    result += `Response: ${JSON.stringify(postData, null, 2)}\n`;
+                    
+                    if (postStatus >= 500) {
+                        showResult('endpointResult', result, 'error');
+                    } else {
+                        showResult('endpointResult', result, postStatus === 200 || postStatus === 201 ? 'success' : 'info');
+                    }
+                } catch (postError) {
+                    result += `POST Error: ${postError.message}\n`;
+                    showResult('endpointResult', result, 'error');
+                }
+            } catch (error) {
+                showResult('endpointResult', 
+                    `❌ ERROR\n\n` +
+                    `Error: ${error.message}\n\n` +
+                    `Stack: ${error.stack}`,
+                    'error'
+                );
+            }
+        }
+
+        async function testDatabase() {
+            showResult('dbResult', 'Testing database connection...', 'info');
+            
+            try {
+                // Try to read
+                const readResponse = await fetch(`${API_BASE}/api/users?action=all`);
+                const readStatus = readResponse.status;
+                const readData = await readResponse.json();
+                
+                let result = `Database Read Test:\n`;
+                result += `Status: ${readStatus}\n`;
+                
+                if (readStatus === 200) {
+                    result += `✅ Read successful\n`;
+                    result += `Users found: ${Array.isArray(readData) ? readData.length : 'N/A'}\n\n`;
+                } else if (readStatus === 503) {
+                    result += `❌ Database not configured\n`;
+                    result += `Error: ${readData.error || 'Unknown'}\n\n`;
+                    showResult('dbResult', result, 'error');
+                    return;
+                } else {
+                    result += `⚠️ Unexpected status\n`;
+                    result += `Response: ${JSON.stringify(readData, null, 2)}\n\n`;
+                }
+                
+                // Try to write (create a test user)
+                result += `Database Write Test:\n`;
+                const writeResponse = await fetch(`${API_BASE}/api/users?action=register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Database Test User',
+                        email: `test-${Date.now()}@test.com`,
+                        role: 'shipper',
+                        password: 'test123'
+                    })
+                });
+                
+                const writeStatus = writeResponse.status;
+                const writeText = await writeResponse.text();
+                let writeData;
+                try {
+                    writeData = JSON.parse(writeText);
+                } catch (e) {
+                    writeData = writeText;
+                }
+                
+                result += `Status: ${writeStatus}\n`;
+                result += `Response: ${JSON.stringify(writeData, null, 2)}\n`;
+                
+                if (writeStatus === 201 || writeStatus === 200) {
+                    result += `\n✅ Write successful! Database is working.`;
+                    showResult('dbResult', result, 'success');
+                } else if (writeStatus === 503) {
+                    result += `\n❌ Database not configured. Check environment variables.`;
+                    showResult('dbResult', result, 'error');
+                } else if (writeStatus >= 500) {
+                    result += `\n❌ Server error. Check Vercel function logs.`;
+                    showResult('dbResult', result, 'error');
+                } else {
+                    result += `\n⚠️ Unexpected response.`;
+                    showResult('dbResult', result, 'error');
+                }
+            } catch (error) {
+                showResult('dbResult', 
+                    `❌ ERROR\n\n` +
+                    `Error: ${error.message}\n\n` +
+                    `Stack: ${error.stack}`,
+                    'error'
+                );
+            }
+        }
+
+        async function testCreateWithDetails() {
+            const name = document.getElementById('testName').value.trim();
+            const email = document.getElementById('testEmail').value.trim();
+            const password = document.getElementById('testPassword').value;
+
+            if (!name || !email || !password) {
+                showResult('createResult', 'Please fill in all fields!', 'error');
+                return;
+            }
+
+            showResult('createResult', 'Creating admin with detailed logging...', 'info');
+
+            try {
+                const userData = {
+                    name: name,
+                    email: email,
+                    role: 'admin',
+                    company: '',
+                    password: password
+                };
+
+                console.log('Sending request:', userData);
+
+                const response = await fetch(`${API_BASE}/api/users?action=register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
+
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    data = { raw: responseText, parseError: e.message };
+                }
+
+                let result = `Full Request/Response Details:\n\n`;
+                result += `Request URL: ${API_BASE}/api/users?action=register\n`;
+                result += `Request Method: POST\n`;
+                result += `Request Body: ${JSON.stringify(userData, null, 2)}\n\n`;
+                result += `Response Status: ${response.status} ${response.statusText}\n`;
+                result += `Response Headers:\n`;
+                [...response.headers.entries()].forEach(([key, value]) => {
+                    result += `  ${key}: ${value}\n`;
+                });
+                result += `\nResponse Body:\n${JSON.stringify(data, null, 2)}\n`;
+
+                if (response.status >= 500) {
+                    result += `\n❌ SERVER ERROR (5xx)\n`;
+                    result += `This is a server-side error. Check:\n`;
+                    result += `1. Vercel function logs\n`;
+                    result += `2. Database connection\n`;
+                    result += `3. Environment variables`;
+                    showResult('createResult', result, 'error');
+                } else if (response.status === 503) {
+                    result += `\n❌ DATABASE NOT CONFIGURED\n`;
+                    result += `Check environment variables in Vercel.`;
+                    showResult('createResult', result, 'error');
+                } else if (response.status === 400 || response.status === 409) {
+                    result += `\n⚠️ CLIENT ERROR\n`;
+                    result += `This might be a validation error or duplicate email.`;
+                    showResult('createResult', result, 'error');
+                } else if (response.status === 201 || response.status === 200) {
+                    result += `\n✅ SUCCESS! Admin created.`;
+                    showResult('createResult', result, 'success');
+                } else {
+                    result += `\n⚠️ UNEXPECTED STATUS`;
+                    showResult('createResult', result, 'error');
+                }
+            } catch (error) {
+                showResult('createResult', 
+                    `❌ NETWORK ERROR\n\n` +
+                    `Error: ${error.message}\n\n` +
+                    `Stack: ${error.stack}\n\n` +
+                    `This might be a CORS issue or network problem.`,
+                    'error'
+                );
+            }
+        }
+
+        function showLogInstructions() {
+            const instructions = `How to Check Vercel Function Logs:\n\n` +
+                `1. Go to: https://vercel.com/dashboard\n` +
+                `2. Click on your project (airwaybills)\n` +
+                `3. Click "Functions" tab\n` +
+                `4. Click on "/api/users" function\n` +
+                `5. Look at the "Logs" section\n` +
+                `6. Try creating an admin again and watch for errors\n\n` +
+                `Common errors you might see:\n` +
+                `- "Database not configured" → Check environment variables\n` +
+                `- "Redis connection failed" → Check Upstash database status\n` +
+                `- "Cannot read property..." → Code error, check the function\n` +
+                `- "Timeout" → Database might be paused or slow\n\n` +
+                `Copy any error messages you see and share them for help.`;
+            
+            showResult('logInstructions', instructions, 'info');
+        }
+    </script>
+</body>
+</html>
