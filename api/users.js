@@ -166,6 +166,12 @@ export default async function handler(req, res) {
             }
         } else if (req.method === 'POST') {
             if (action === 'register') {
+                // Validate required fields
+                if (!req.body.email || !req.body.name || !req.body.password) {
+                    res.status(400).json({ error: 'Missing required fields: email, name, and password are required' });
+                    return;
+                }
+
                 // Register new user
                 const users = (await redis.get(USERS_KEY)) || [];
                 
@@ -179,7 +185,7 @@ export default async function handler(req, res) {
                     id: req.body.id || `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                     email: req.body.email,
                     name: req.body.name,
-                    role: req.body.role,
+                    role: req.body.role || 'shipper',
                     company: req.body.company || '',
                     createdAt: new Date().toISOString(),
                     isActive: true,
@@ -187,10 +193,20 @@ export default async function handler(req, res) {
                 };
 
                 users.push(newUser);
-                await redis.set(USERS_KEY, users);
                 
-                // Store password separately (in production, use proper hashing)
-                await redis.set(`user_password_${newUser.id}`, req.body.password);
+                try {
+                    await redis.set(USERS_KEY, users);
+                    // Store password separately (in production, use proper hashing)
+                    await redis.set(`user_password_${newUser.id}`, req.body.password);
+                } catch (redisError) {
+                    console.error('Redis write error:', redisError);
+                    res.status(503).json({ 
+                        error: 'Database write failed', 
+                        message: redisError.message,
+                        details: 'Unable to save user to database. Check database connection.'
+                    });
+                    return;
+                }
 
                 const { password, ...safeUser } = newUser;
                 res.status(201).json(safeUser);
