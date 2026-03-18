@@ -376,6 +376,20 @@
                     </div>
                     
                     <div class="form-group">
+                        <label>General customer service</label>
+                        <small style="display: block; margin-bottom: 4px;">Shown in shipment space for all participants.</small>
+                        <input type="tel" id="airlineGeneralPhone" placeholder="General phone" style="margin-bottom: 4px;">
+                        <input type="email" id="airlineGeneralEmail" placeholder="General email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Terminal / location details</label>
+                        <small style="display: block; margin-bottom: 6px;">Link destinations (or origins) so terminal info appears in the shipment space when AWB has this carrier and that location.</small>
+                        <div id="airlineLocationDetailsList" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;"></div>
+                        <button type="button" id="addAirlineLocationBtn" class="btn-add" style="margin-bottom: 4px;">+ Add location</button>
+                    </div>
+                    
+                    <div class="form-group">
                         <label for="airlineImage">Airline Logo/Image <span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: normal; margin-left: 5px;">Field 99</span></label>
                         <input type="file" id="airlineImage" accept="image/*">
                         <small>This will be used to auto-fill field 99 when this airline is selected. Upload an image/logo for this airline (JPG, PNG, etc.)</small>
@@ -396,7 +410,7 @@
 
     <script type="module" src="js/auth.js"></script>
     <script type="module">
-        import { airlinesAPI } from './js/api.js';
+        import { airlinesAPI, destinationsAPI, originsAPI } from './js/api.js';
         
         // Function to get image dimensions
         function getImageDimensions(imageDataUrl) {
@@ -633,6 +647,9 @@
                         document.getElementById('airlineFormattedValue').value = airline.formattedValue || '';
                         document.getElementById('airlineAWBP').value = airline.awbp || '';
                         document.getElementById('airlineAbbreviation').value = airline.airlineAbbreviation || '';
+                        document.getElementById('airlineGeneralPhone').value = airline.generalCustomerServicePhone || '';
+                        document.getElementById('airlineGeneralEmail').value = airline.generalCustomerServiceEmail || '';
+                        await renderAirlineLocationDetails(airline.locationDetails || []);
                         
                         // Load airline image if it exists
                         const airlineImagePreview = document.getElementById('airlineImagePreview');
@@ -665,6 +682,9 @@
                 modalTitle.textContent = 'Add Airline';
                 form.reset();
                 airlineId.value = '';
+                document.getElementById('airlineGeneralPhone').value = '';
+                document.getElementById('airlineGeneralEmail').value = '';
+                await renderAirlineLocationDetails([]);
                 const airlineImagePreview = document.getElementById('airlineImagePreview');
                 if (airlineImagePreview) {
                     airlineImagePreview.style.display = 'none';
@@ -672,6 +692,105 @@
             }
             
             modal.style.display = 'flex';
+        }
+        
+        let _cachedDestinations = [];
+        let _cachedOrigins = [];
+        
+        async function getDestinationsAndOrigins() {
+            try {
+                const [d, o] = await Promise.all([
+                    destinationsAPI ? destinationsAPI.getAll() : [],
+                    originsAPI ? originsAPI.getAll() : []
+                ]);
+                _cachedDestinations = Array.isArray(d) ? d : [];
+                _cachedOrigins = Array.isArray(o) ? o : [];
+                return { destinations: _cachedDestinations, origins: _cachedOrigins };
+            } catch (e) {
+                console.warn('Could not load destinations/origins:', e);
+                return { destinations: _cachedDestinations, origins: _cachedOrigins };
+            }
+        }
+        
+        function escapeHtml(text) {
+            if (text == null) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        async function renderAirlineLocationDetails(list) {
+            const container = document.getElementById('airlineLocationDetailsList');
+            if (!container) return;
+            const { destinations, origins } = await getDestinationsAndOrigins();
+            container.innerHTML = '';
+            (list.length ? list : [{}]).forEach((entry, index) => {
+                addAirlineLocationEntryRow(container, destinations, origins, entry);
+            });
+        }
+        
+        function addAirlineLocationEntryRow(container, destinations, origins, entry = {}) {
+            const row = document.createElement('div');
+            row.className = 'airline-location-row';
+            row.style.cssText = 'padding: 6px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 4px;';
+            const destId = entry.destinationId || '';
+            const origId = entry.originId || '';
+            const selVal = destId ? 'dest:' + destId : (origId ? 'orig:' + origId : '');
+            let optHtml = '<option value="">-- Select destination or origin --</option>';
+            (destinations || []).forEach(d => {
+                const label = (d.airportCode || d.id) + (d.cityName ? ' - ' + d.cityName : '');
+                optHtml += `<option value="dest:${d.id}">${escapeHtml(label)} (Destination)</option>`;
+            });
+            (origins || []).forEach(o => {
+                const label = (o.airportCode || o.id) + (o.cityName ? ' - ' + o.cityName : '');
+                optHtml += `<option value="orig:${o.id}">${escapeHtml(label)} (Origin)</option>`;
+            });
+            row.innerHTML = `
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 4px;">
+                    <select class="airline-loc-select" style="min-width: 180px; padding: 2px 4px;">${optHtml}</select>
+                    <button type="button" class="btn-remove-loc" style="padding: 2px 8px;">Remove</button>
+                </div>
+                <input type="text" class="airline-loc-phone" placeholder="Terminal phone" value="${escapeHtml(entry.terminalPhone || '')}" style="width: 100%; margin-bottom: 4px; padding: 2px 4px;">
+                <input type="email" class="airline-loc-email" placeholder="Terminal email" value="${escapeHtml(entry.terminalEmail || '')}" style="width: 100%; margin-bottom: 4px; padding: 2px 4px;">
+                <input type="text" class="airline-loc-address" placeholder="Terminal address" value="${escapeHtml(entry.terminalAddress || '')}" style="width: 100%; margin-bottom: 4px; padding: 2px 4px;">
+                <input type="text" class="airline-loc-hours" placeholder="Pick-up hours" value="${escapeHtml(entry.terminalPickUpHours || '')}" style="width: 100%; padding: 2px 4px;">
+            `;
+            if (selVal) {
+                const sel = row.querySelector('.airline-loc-select');
+                if (sel) sel.value = selVal;
+            }
+            row.querySelector('.btn-remove-loc').addEventListener('click', () => {
+                row.remove();
+            });
+            container.appendChild(row);
+        }
+        
+        document.getElementById('addAirlineLocationBtn').addEventListener('click', async () => {
+            const container = document.getElementById('airlineLocationDetailsList');
+            const { destinations, origins } = await getDestinationsAndOrigins();
+            addAirlineLocationEntryRow(container, destinations, origins, {});
+        });
+        
+        function collectAirlineLocationDetails() {
+            const container = document.getElementById('airlineLocationDetailsList');
+            if (!container) return [];
+            const rows = container.querySelectorAll('.airline-location-row');
+            const list = [];
+            rows.forEach(row => {
+                const sel = row.querySelector('.airline-loc-select');
+                const val = sel ? sel.value : '';
+                if (!val) return;
+                const [type, id] = val.split(':');
+                const entry = {
+                    terminalPhone: (row.querySelector('.airline-loc-phone') || {}).value || '',
+                    terminalEmail: (row.querySelector('.airline-loc-email') || {}).value || '',
+                    terminalAddress: (row.querySelector('.airline-loc-address') || {}).value || '',
+                    terminalPickUpHours: (row.querySelector('.airline-loc-hours') || {}).value || ''
+                };
+                if (type === 'dest') entry.destinationId = id; else if (type === 'orig') entry.originId = id;
+                list.push(entry);
+            });
+            return list;
         }
 
         function closeAirlineModal() {
@@ -704,6 +823,10 @@
                 return;
             }
             
+            const generalPhone = document.getElementById('airlineGeneralPhone') && document.getElementById('airlineGeneralPhone').value.trim();
+            const generalEmail = document.getElementById('airlineGeneralEmail') && document.getElementById('airlineGeneralEmail').value.trim();
+            const locationDetails = collectAirlineLocationDetails();
+            
             const airline = {
                 id,
                 type: 'Airline',
@@ -718,6 +841,9 @@
             if (formattedValue) airline.formattedValue = formattedValue;
             if (awbp) airline.awbp = awbp;
             if (airlineAbbreviation) airline.airlineAbbreviation = airlineAbbreviation;
+            if (generalPhone) airline.generalCustomerServicePhone = generalPhone;
+            if (generalEmail) airline.generalCustomerServiceEmail = generalEmail;
+            if (locationDetails.length) airline.locationDetails = locationDetails;
             
             // Handle image upload/removal
             const airlineImageInput = document.getElementById('airlineImage');

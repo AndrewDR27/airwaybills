@@ -330,6 +330,11 @@
                 </div>
             </div>
 
+            <div id="carrierTerminalSection" class="pdf-section" style="display: none;">
+                <h2>Carrier &amp; terminal information</h2>
+                <div id="carrierTerminalContent" style="font-size: 12px; line-height: 1.5;"></div>
+            </div>
+
             <div id="documentViewerSection" class="pdf-section" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <div>
@@ -631,6 +636,9 @@
                 }
             }
 
+            // Show carrier & terminal info when AWB has airline and destination
+            updateCarrierTerminalSection(currentShipment);
+
             // Load participants
             loadParticipants();
             
@@ -675,6 +683,89 @@
                 alert('Error loading shipment space: ' + (error.message || 'Unknown error'));
                 goBack();
                 return;
+            }
+        }
+
+        function escapeHtml(text) {
+            if (text == null || text === '') return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function updateCarrierTerminalSection(shipment) {
+            const section = document.getElementById('carrierTerminalSection');
+            const content = document.getElementById('carrierTerminalContent');
+            if (!section || !content) return;
+            const formData = shipment && (shipment.formData || {});
+            const airlineId = formData._airlineContactId1 || formData.airlineContactId1;
+            let destinationId = formData._destinationId || formData.destinationId;
+            if (!airlineId) {
+                section.style.display = 'none';
+                return;
+            }
+            try {
+                if (!window.airlinesAPI || !window.destinationsAPI) {
+                    section.style.display = 'none';
+                    return;
+                }
+                const [airlines, destinations] = await Promise.all([
+                    window.airlinesAPI.getAll(),
+                    window.destinationsAPI.getAll()
+                ]);
+                if (!destinationId && Array.isArray(destinations) && Object.keys(formData).length > 0) {
+                    const codeMatch = /^[A-Za-z]{3}$/;
+                    for (const key of Object.keys(formData)) {
+                        const val = formData[key];
+                        if (typeof val !== 'string') continue;
+                        const code = val.trim().toUpperCase();
+                        if (!codeMatch.test(code)) continue;
+                        const dest = destinations.find(d => (d.airportCode || '').toUpperCase() === code);
+                        if (dest) {
+                            destinationId = dest.id;
+                            break;
+                        }
+                    }
+                }
+                if (!destinationId) {
+                    section.style.display = 'none';
+                    return;
+                }
+                const airline = Array.isArray(airlines) ? airlines.find(a => a.id === airlineId) : null;
+                const destination = Array.isArray(destinations) ? destinations.find(d => d.id === destinationId) : null;
+                const locationDetails = (airline && airline.locationDetails && Array.isArray(airline.locationDetails)) ? airline.locationDetails : [];
+                const terminal = locationDetails.find(l => l.destinationId === destinationId || (l.originId === destinationId));
+                const hasGeneral = airline && (airline.generalCustomerServicePhone || airline.generalCustomerServiceEmail);
+                const hasTerminal = terminal && (terminal.terminalPhone || terminal.terminalEmail || terminal.terminalAddress || terminal.terminalPickUpHours);
+                if (!airline || (!hasGeneral && !hasTerminal)) {
+                    section.style.display = 'none';
+                    return;
+                }
+                const destLabel = destination ? (destination.airportCode || destination.id) + (destination.cityName ? ' – ' + destination.cityName : '') : destinationId;
+                let html = '<p style="margin: 0 0 8px 0;"><strong>' + escapeHtml(airline.companyName || 'Carrier') + '</strong>';
+                if (destLabel) html += ' at ' + escapeHtml(destLabel);
+                html += '</p>';
+                if (hasGeneral) {
+                    html += '<p style="margin: 0 0 4px 0;"><strong>General customer service</strong></p>';
+                    html += '<p style="margin: 0 0 8px 0; padding-left: 8px;">';
+                    if (airline.generalCustomerServicePhone) html += 'Phone: ' + escapeHtml(airline.generalCustomerServicePhone) + '<br>';
+                    if (airline.generalCustomerServiceEmail) html += 'Email: ' + escapeHtml(airline.generalCustomerServiceEmail);
+                    html += '</p>';
+                }
+                if (hasTerminal) {
+                    html += '<p style="margin: 0 0 4px 0;"><strong>Terminal</strong></p>';
+                    html += '<p style="margin: 0; padding-left: 8px;">';
+                    if (terminal.terminalPhone) html += 'Phone: ' + escapeHtml(terminal.terminalPhone) + '<br>';
+                    if (terminal.terminalEmail) html += 'Email: ' + escapeHtml(terminal.terminalEmail) + '<br>';
+                    if (terminal.terminalAddress) html += 'Address: ' + escapeHtml(terminal.terminalAddress) + '<br>';
+                    if (terminal.terminalPickUpHours) html += 'Pick-up hours: ' + escapeHtml(terminal.terminalPickUpHours);
+                    html += '</p>';
+                }
+                content.innerHTML = html;
+                section.style.display = 'block';
+            } catch (e) {
+                console.warn('Could not load carrier/terminal info:', e);
+                section.style.display = 'none';
             }
         }
 
