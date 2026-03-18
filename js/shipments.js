@@ -831,8 +831,16 @@ function setShipmentStatus(spaceId, status, subStatus = null) {
 }
 
 // Upload factory invoice
-function uploadFactoryInvoice(spaceId, fileBase64) {
-    const user = getCurrentUser();
+async function uploadFactoryInvoice(spaceId, fileBase64) {
+    let user = getCurrentUser();
+    if (!user && typeof getCurrentUserAsync === 'function') {
+        try {
+            user = await getCurrentUserAsync();
+        } catch (error) {
+            console.warn('Could not resolve current user for factory invoice upload:', error);
+        }
+    }
+
     if (!user) {
         return { success: false, message: 'Not authenticated' };
     }
@@ -842,7 +850,7 @@ function uploadFactoryInvoice(spaceId, fileBase64) {
         return { success: false, message: 'You do not have permission to upload factory invoices' };
     }
     
-    const shipment = getShipmentBySpaceId(spaceId);
+    const shipment = await getShipmentBySpaceId(spaceId);
     if (!shipment) {
         return { success: false, message: 'Shipment not found' };
     }

@@ -920,7 +920,7 @@
                 }
             }
             
-            function uploadFactoryInvoiceFile(spaceId, input) {
+            async function uploadFactoryInvoiceFile(spaceId, input) {
                 const file = input.files[0];
                 if (!file) return;
                 
@@ -934,14 +934,21 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const base64 = e.target.result.split(',')[1]; // Remove data:type;base64, prefix
-                    const result = window.uploadFactoryInvoice(spaceId, base64);
-                    if (result.success) {
-                        alert('Factory invoice uploaded successfully!');
-                        loadShipments();
-                    } else {
-                        alert('Error: ' + result.message);
-                        input.value = '';
-                    }
+                    Promise.resolve(window.uploadFactoryInvoice(spaceId, base64))
+                        .then(result => {
+                            if (result && result.success) {
+                                alert('Factory invoice uploaded successfully!');
+                                loadShipments();
+                            } else {
+                                alert('Error: ' + (result && result.message ? result.message : 'Unknown error'));
+                                input.value = '';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error uploading factory invoice:', error);
+                            alert('Error: ' + (error.message || 'Unknown error'));
+                            input.value = '';
+                        });
                 };
                 reader.onerror = function() {
                     alert('Error reading file');
