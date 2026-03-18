@@ -758,7 +758,7 @@ async function confirmAWB(spaceId) {
         return { success: false, message: 'Only Issuing Carrier Agents can confirm AWBs' };
     }
     
-    const shipment = getShipmentBySpaceId(spaceId);
+    const shipment = await getShipmentBySpaceId(spaceId);
     if (!shipment) {
         return { success: false, message: 'Shipment not found' };
     }
