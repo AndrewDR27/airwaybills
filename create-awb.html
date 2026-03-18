@@ -713,7 +713,7 @@
         
         // Check if we're creating AWB for a shipment space
         const urlParams = new URLSearchParams(window.location.search);
-        const spaceId = urlParams.get('spaceId') || sessionStorage.getItem('currentSpaceId');
+        const spaceId = urlParams.get('spaceId');
         
         // When opened from a space: show space ID in header, show Back + Save button, load saved form if any
         if (spaceId) {
@@ -866,9 +866,9 @@
                 
                 const user = getCurrentUser();
                 
-                // Get spaceId from URL or sessionStorage (needed for both agents and admins)
+                // Get spaceId from the URL only when opened from a shipment space
                 const urlParams = new URLSearchParams(window.location.search);
-                const spaceId = urlParams.get('spaceId') || sessionStorage.getItem('currentSpaceId');
+                const spaceId = urlParams.get('spaceId');
                 
                 // Only agents can create AWBs, admins can view/edit but not create
                 if (!user || user.role !== 'issuing-carrier-agent') {
