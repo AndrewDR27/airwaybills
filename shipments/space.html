@@ -690,17 +690,23 @@
             const isAgent = user.role === 'issuing-carrier-agent';
             const canManage = isCreator || isAdmin || isAgent;
             
-            // Define the 4 addable roles
+            // Roles that can be added via UI (shipper, consignee, customs broker, courier)
             const addableRoles = [
-                { role: ROLES.SHIPPER, label: ROLE_LABELS[ROLES.SHIPPER] },
-                { role: ROLES.CONSIGNEE, label: ROLE_LABELS[ROLES.CONSIGNEE] },
-                { role: ROLES.CUSTOMS_BROKER, label: ROLE_LABELS[ROLES.CUSTOMS_BROKER] },
-                { role: ROLES.COURIER, label: ROLE_LABELS[ROLES.COURIER] }
+                { role: ROLES.SHIPPER, label: ROLE_LABELS[ROLES.SHIPPER], addable: true },
+                { role: ROLES.CONSIGNEE, label: ROLE_LABELS[ROLES.CONSIGNEE], addable: true },
+                { role: ROLES.CUSTOMS_BROKER, label: ROLE_LABELS[ROLES.CUSTOMS_BROKER], addable: true },
+                { role: ROLES.COURIER, label: ROLE_LABELS[ROLES.COURIER], addable: true }
             ];
-            
+            // Display-only roles (agent and admin appear as participants but are not addable here)
+            const displayOnlyRoles = [
+                { role: ROLES.ISSUING_CARRIER_AGENT, label: ROLE_LABELS[ROLES.ISSUING_CARRIER_AGENT], addable: false },
+                { role: ROLES.ADMIN, label: ROLE_LABELS[ROLES.ADMIN], addable: false }
+            ];
+            const allDisplayRoles = [...addableRoles, ...displayOnlyRoles];
+
             // Group participants by role
             const participantsByRole = {};
-            addableRoles.forEach(r => {
+            allDisplayRoles.forEach(r => {
                 participantsByRole[r.role] = [];
             });
             
@@ -735,17 +741,18 @@
             
             // Build HTML for each role section
             let html = '';
-            
-            for (const roleInfo of addableRoles) {
+
+            for (const roleInfo of allDisplayRoles) {
                 const roleParticipants = participantsByRole[roleInfo.role] || [];
                 const roleId = roleInfo.role.replace(/-/g, '_');
-                
+                const isAddable = roleInfo.addable !== false;
+
                 html += `<div class="role-section" data-role="${roleInfo.role}">`;
                 html += `<div class="role-section-header">`;
                 html += `<span class="role-section-title">${escapeHtml(roleInfo.label)}</span>`;
                 html += `<span style="font-size: 10px; color: #666;">(${roleParticipants.length})</span>`;
                 html += `</div>`;
-                
+
                 // Participants list
                 html += `<div class="role-participants" id="participants_${roleId}">`;
                 if (roleParticipants.length === 0) {
@@ -754,14 +761,17 @@
                     roleParticipants.forEach(p => {
                         const name = p.user ? p.user.name : 'Unknown User';
                         const isSelf = p.userId === user.id;
-                        
+
                         let actionButton = '';
-                        if (isSelf) {
-                            actionButton = `<button class="participant-leave" onclick="leaveSpace()" title="Leave this space">Leave</button>`;
-                        } else if (canManage) {
-                            actionButton = `<button class="participant-remove" onclick="removeParticipant('${p.userId}')" title="Remove participant">×</button>`;
+                        if (isAddable) {
+                            if (isSelf) {
+                                actionButton = `<button class="participant-leave" onclick="leaveSpace()" title="Leave this space">Leave</button>`;
+                            } else if (canManage) {
+                                actionButton = `<button class="participant-remove" onclick="removeParticipant('${p.userId}')" title="Remove participant">×</button>`;
+                            }
                         }
-                        
+                        // Display-only roles (agent, admin): no Leave/Remove
+
                         html += `<div class="participant-badge">`;
                         html += `<span class="participant-info">${escapeHtml(name)}</span>`;
                         html += actionButton;
@@ -769,9 +779,9 @@
                     });
                 }
                 html += `</div>`;
-                
-                // Add section (only if can manage)
-                if (canManage) {
+
+                // Add section only for addable roles when user can manage
+                if (isAddable && canManage) {
                     html += `<div class="role-add-section">`;
                     html += `<select id="userSelect_${roleId}" class="role-add-select">`;
                     html += `<option value="">-- Add ${roleInfo.label} --</option>`;
@@ -779,7 +789,7 @@
                     html += `<button class="role-add-btn" onclick="addParticipantForRole('${roleInfo.role}')">Add</button>`;
                     html += `</div>`;
                 }
-                
+
                 html += `</div>`;
             }
             
