@@ -186,6 +186,8 @@ async function createShipment(formDataOrOptions = {}) {
     let awbNumber = null;
     let pdfBase64 = null;
     let pdfCreatedAt = null;
+    let factoryInvoiceMimeType = null;
+    let factoryInvoiceFileName = null;
     
     if (formDataOrOptions && typeof formDataOrOptions === 'object') {
         if (formDataOrOptions.awbNumber || formDataOrOptions.pdfBase64) {
@@ -194,12 +196,16 @@ async function createShipment(formDataOrOptions = {}) {
             formData = formDataOrOptions.formData || formDataOrOptions;
             pdfBase64 = formDataOrOptions.pdfBase64 || null;
             pdfCreatedAt = formDataOrOptions.pdfCreatedAt || null;
+            factoryInvoiceMimeType = formDataOrOptions.factoryInvoiceMimeType || null;
+            factoryInvoiceFileName = formDataOrOptions.factoryInvoiceFileName || null;
         } else if (formDataOrOptions.formData) {
             // Also new format
             formData = formDataOrOptions.formData;
             awbNumber = formDataOrOptions.awbNumber || null;
             pdfBase64 = formDataOrOptions.pdfBase64 || null;
             pdfCreatedAt = formDataOrOptions.pdfCreatedAt || null;
+            factoryInvoiceMimeType = formDataOrOptions.factoryInvoiceMimeType || null;
+            factoryInvoiceFileName = formDataOrOptions.factoryInvoiceFileName || null;
         } else {
             // Old format: just formData object
             formData = formDataOrOptions;
@@ -222,6 +228,12 @@ async function createShipment(formDataOrOptions = {}) {
         }
         if (pdfCreatedAt) {
             shipmentData.pdfCreatedAt = pdfCreatedAt;
+        }
+        if (factoryInvoiceMimeType) {
+            shipmentData.factoryInvoiceMimeType = factoryInvoiceMimeType;
+        }
+        if (factoryInvoiceFileName) {
+            shipmentData.factoryInvoiceFileName = factoryInvoiceFileName;
         }
         newShipment = new Shipment(shipmentData);
     } else {
@@ -252,7 +264,9 @@ async function createShipment(formDataOrOptions = {}) {
             paidAt: null,
             notes: '',
             pdfBase64: pdfBase64 || null,
-            pdfCreatedAt: pdfCreatedAt || null
+            pdfCreatedAt: pdfCreatedAt || null,
+            factoryInvoiceMimeType: factoryInvoiceMimeType || null,
+            factoryInvoiceFileName: factoryInvoiceFileName || null
         };
     }
     
@@ -831,7 +845,7 @@ function setShipmentStatus(spaceId, status, subStatus = null) {
 }
 
 // Upload factory invoice
-async function uploadFactoryInvoice(spaceId, fileBase64) {
+async function uploadFactoryInvoice(spaceId, fileBase64OrOptions) {
     let user = getCurrentUser();
     if (!user && typeof getCurrentUserAsync === 'function') {
         try {
@@ -860,11 +874,23 @@ async function uploadFactoryInvoice(spaceId, fileBase64) {
     }
     
     const uploadedAt = new Date().toISOString();
+    const fileBase64 = fileBase64OrOptions && typeof fileBase64OrOptions === 'object'
+        ? fileBase64OrOptions.fileBase64 || ''
+        : fileBase64OrOptions;
+    const factoryInvoiceMimeType = fileBase64OrOptions && typeof fileBase64OrOptions === 'object'
+        ? fileBase64OrOptions.mimeType || 'application/pdf'
+        : 'application/pdf';
+    const factoryInvoiceFileName = fileBase64OrOptions && typeof fileBase64OrOptions === 'object'
+        ? fileBase64OrOptions.fileName || null
+        : null;
+
     const minimalUpdate = {
         spaceId,
         factoryInvoice: fileBase64,
         factoryInvoiceUploadedAt: uploadedAt,
-        factoryInvoiceUploadedBy: user.id
+        factoryInvoiceUploadedBy: user.id,
+        factoryInvoiceMimeType,
+        factoryInvoiceFileName
     };
 
     try {

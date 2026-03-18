@@ -315,13 +315,33 @@
             <div id="pdfSection" class="pdf-section" style="display: none;">
                 <h2>AWB Document</h2>
                 <p id="pdfStatus">PDF is available for download.</p>
-                <button class="btn btn-success" id="downloadPDFBtn">Download AWB PDF</button>
+                <div class="action-buttons">
+                    <button class="btn btn-success" id="downloadPDFBtn">Download AWB PDF</button>
+                    <button class="btn btn-primary" id="previewPDFBtn">Preview AWB PDF</button>
+                </div>
             </div>
 
             <div id="invoiceSection" class="pdf-section" style="display: none;">
                 <h2>Export Invoice</h2>
                 <p id="invoiceStatus">Export invoice is available for download.</p>
-                <button class="btn btn-success" id="downloadInvoiceBtn">Download Export Invoice</button>
+                <div class="action-buttons">
+                    <button class="btn btn-success" id="downloadInvoiceBtn">Download Export Invoice</button>
+                    <button class="btn btn-primary" id="previewInvoiceBtn">Preview Export Invoice</button>
+                </div>
+            </div>
+
+            <div id="documentViewerSection" class="pdf-section" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <div>
+                        <h2 id="documentViewerTitle" style="margin: 0;">Document Preview</h2>
+                        <p id="documentViewerSubtitle" style="margin: 4px 0 0; font-size: 11px;">Preview will appear below.</p>
+                    </div>
+                    <button class="btn btn-secondary" id="closeViewerBtn" type="button">Close Preview</button>
+                </div>
+                <div style="background: white; border: 2px inset #C0C0C0; padding: 8px;">
+                    <iframe id="documentViewerFrame" title="Document preview" style="width: 100%; height: 650px; border: none; display: none;"></iframe>
+                    <img id="documentViewerImage" alt="Document preview" style="max-width: 100%; max-height: 650px; display: none; object-fit: contain;" />
+                </div>
             </div>
 
             <div id="restrictedSection" class="restricted-section" style="display: none;">
@@ -1147,58 +1167,141 @@
         });
 
         document.getElementById('downloadPDFBtn').addEventListener('click', function() {
-            if (!currentShipment.pdfBase64) {
-                alert('PDF not available.');
-                return;
-            }
-
-            try {
-                const binaryString = atob(currentShipment.pdfBase64);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
-                const blob = new Blob([bytes], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `AWB-${currentShipment.awbNumber || currentShipment.spaceId}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            } catch (error) {
-                console.error('Error downloading PDF:', error);
-                alert('Error downloading PDF: ' + error.message);
-            }
+            downloadBase64Document(currentShipment.pdfBase64, 'application/pdf', `AWB-${currentShipment.awbNumber || currentShipment.spaceId}.pdf`, 'PDF not available.');
         });
 
         document.getElementById('downloadInvoiceBtn').addEventListener('click', function() {
-            if (!currentShipment.factoryInvoice) {
-                alert('Export invoice not available.');
+            const mimeType = currentShipment.factoryInvoiceMimeType || 'application/pdf';
+            const imageExtension = mimeType === 'image/jpeg' ? '.jpg' : `.${(mimeType.split('/')[1] || 'bin')}`;
+            const fallbackName = currentShipment.factoryInvoiceFileName || `Factory_Invoice_${currentShipment.awbNumber || currentShipment.spaceId}${mimeType.startsWith('image/') ? imageExtension : '.pdf'}`;
+            downloadBase64Document(currentShipment.factoryInvoice, mimeType, fallbackName, 'Export invoice not available.');
+        });
+
+        document.getElementById('previewPDFBtn').addEventListener('click', function() {
+            openDocumentPreview({
+                title: 'AWB PDF Preview',
+                subtitle: `AWB ${currentShipment.awbNumber || currentShipment.spaceId}`,
+                base64: currentShipment.pdfBase64,
+                mimeType: 'application/pdf'
+            });
+        });
+
+        document.getElementById('previewInvoiceBtn').addEventListener('click', function() {
+            openDocumentPreview({
+                title: 'Export Invoice Preview',
+                subtitle: currentShipment.factoryInvoiceUploadedAt ? `Uploaded ${new Date(currentShipment.factoryInvoiceUploadedAt).toLocaleString()}` : `AWB ${currentShipment.awbNumber || currentShipment.spaceId}`,
+                base64: currentShipment.factoryInvoice,
+                mimeType: currentShipment.factoryInvoiceMimeType || 'application/pdf'
+            });
+        });
+
+        document.getElementById('closeViewerBtn').addEventListener('click', function() {
+            closeDocumentPreview();
+        });
+
+        let documentViewerUrl = null;
+
+        function downloadBase64Document(base64, mimeType, fileName, missingMessage) {
+            if (!base64) {
+                alert(missingMessage);
                 return;
             }
 
             try {
-                const binaryString = atob(currentShipment.factoryInvoice);
+                const binaryString = atob(base64);
                 const bytes = new Uint8Array(binaryString.length);
                 for (let i = 0; i < binaryString.length; i++) {
                     bytes[i] = binaryString.charCodeAt(i);
                 }
-                const blob = new Blob([bytes], { type: 'application/pdf' });
+                const blob = new Blob([bytes], { type: mimeType || 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Factory_Invoice_${currentShipment.awbNumber || currentShipment.spaceId}.pdf`;
+                a.download = fileName;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             } catch (error) {
-                console.error('Error downloading export invoice:', error);
-                alert('Error downloading export invoice: ' + error.message);
+                console.error('Error downloading document:', error);
+                alert('Error downloading document: ' + error.message);
             }
-        });
+        }
+
+        function closeDocumentPreview() {
+            const viewerSection = document.getElementById('documentViewerSection');
+            const viewerFrame = document.getElementById('documentViewerFrame');
+            const viewerImage = document.getElementById('documentViewerImage');
+            if (documentViewerUrl) {
+                URL.revokeObjectURL(documentViewerUrl);
+                documentViewerUrl = null;
+            }
+            if (viewerFrame) {
+                viewerFrame.src = 'about:blank';
+                viewerFrame.style.display = 'none';
+            }
+            if (viewerImage) {
+                viewerImage.src = '';
+                viewerImage.style.display = 'none';
+            }
+            if (viewerSection) {
+                viewerSection.style.display = 'none';
+            }
+        }
+
+        function openDocumentPreview({ title, subtitle, base64, mimeType }) {
+            if (!base64) {
+                alert('Document not available.');
+                return;
+            }
+
+            const viewerSection = document.getElementById('documentViewerSection');
+            const viewerTitle = document.getElementById('documentViewerTitle');
+            const viewerSubtitle = document.getElementById('documentViewerSubtitle');
+            const viewerFrame = document.getElementById('documentViewerFrame');
+            const viewerImage = document.getElementById('documentViewerImage');
+
+            if (documentViewerUrl) {
+                URL.revokeObjectURL(documentViewerUrl);
+                documentViewerUrl = null;
+            }
+
+            const binaryString = atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            const blob = new Blob([bytes], { type: mimeType || 'application/pdf' });
+            documentViewerUrl = URL.createObjectURL(blob);
+
+            if (viewerTitle) viewerTitle.textContent = title || 'Document Preview';
+            if (viewerSubtitle) viewerSubtitle.textContent = subtitle || '';
+
+            if (mimeType && mimeType.startsWith('image/')) {
+                if (viewerFrame) {
+                    viewerFrame.style.display = 'none';
+                    viewerFrame.src = 'about:blank';
+                }
+                if (viewerImage) {
+                    viewerImage.src = documentViewerUrl;
+                    viewerImage.style.display = 'block';
+                }
+            } else {
+                if (viewerImage) {
+                    viewerImage.style.display = 'none';
+                    viewerImage.src = '';
+                }
+                if (viewerFrame) {
+                    viewerFrame.src = documentViewerUrl;
+                    viewerFrame.style.display = 'block';
+                }
+            }
+
+            if (viewerSection) {
+                viewerSection.style.display = 'block';
+            }
+        }
 
         function goBack() {
             if (window.parent && window.parent !== window) {

@@ -24,6 +24,8 @@ class Shipment {
         this.factoryInvoice = data.factoryInvoice || null; // Factory invoice PDF as base64
         this.factoryInvoiceUploadedAt = data.factoryInvoiceUploadedAt || null;
         this.factoryInvoiceUploadedBy = data.factoryInvoiceUploadedBy || null;
+        this.factoryInvoiceMimeType = data.factoryInvoiceMimeType || null;
+        this.factoryInvoiceFileName = data.factoryInvoiceFileName || null;
     }
 
     generateSpaceId() {
@@ -139,7 +141,9 @@ class Shipment {
             sharedAt: this.sharedAt,
             factoryInvoice: this.factoryInvoice,
             factoryInvoiceUploadedAt: this.factoryInvoiceUploadedAt,
-            factoryInvoiceUploadedBy: this.factoryInvoiceUploadedBy
+            factoryInvoiceUploadedBy: this.factoryInvoiceUploadedBy,
+            factoryInvoiceMimeType: this.factoryInvoiceMimeType,
+            factoryInvoiceFileName: this.factoryInvoiceFileName
         };
     }
 

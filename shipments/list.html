@@ -934,7 +934,11 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const base64 = e.target.result.split(',')[1]; // Remove data:type;base64, prefix
-                    Promise.resolve(window.uploadFactoryInvoice(spaceId, base64))
+                    Promise.resolve(window.uploadFactoryInvoice(spaceId, {
+                        fileBase64: base64,
+                        mimeType: file.type || 'application/pdf',
+                        fileName: file.name || null
+                    }))
                         .then(result => {
                             if (result && result.success) {
                                 alert('Factory invoice uploaded successfully!');
@@ -970,11 +974,13 @@
                     for (let i = 0; i < binaryString.length; i++) {
                         bytes[i] = binaryString.charCodeAt(i);
                     }
-                    const blob = new Blob([bytes], { type: 'application/pdf' });
+                    const mimeType = shipment.factoryInvoiceMimeType || 'application/pdf';
+                    const blob = new Blob([bytes], { type: mimeType });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Factory_Invoice_${shipment.awbNumber || shipment.spaceId}.pdf`;
+                    const extension = mimeType.startsWith('image/') ? (mimeType === 'image/jpeg' ? '.jpg' : `.${mimeType.split('/')[1] || 'bin'}`) : '.pdf';
+                    a.download = shipment.factoryInvoiceFileName || `Factory_Invoice_${shipment.awbNumber || shipment.spaceId}${extension}`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
