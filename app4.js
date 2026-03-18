@@ -13,6 +13,7 @@ let submitBtn, printPreviewBtn, fillPdfBtn, fillAndFlattenBtn, results, resultsC
 let templateSelect, templateNameInput, templateNameGroup, templateNameLabel, saveTemplateBtn, deleteTemplateBtn, renameTemplateBtn, clearFormBtn;
 let isRenamingTemplate = false;
 let currentTemplateName = null; // Track which template is currently loaded
+let pendingTemplateSelection = null;
 // In-memory caches loaded from database (no localStorage)
 let templatesCache = {};
 let profileCache = null;
@@ -725,12 +726,14 @@ async function handlePDF(file) {
         hideLoading();
         showForm();
         
-        // Load templates, user profile, and contacts from database (fire-and-forget; must not block or throw)
+        // Load templates, user profile, and contacts from database before applying any URL-selected template.
         // Contacts: wait for apiReady if api.js not loaded yet so shipper/consignee dropdowns get populated
         try {
-            if (typeof loadTemplatesFromAPI === 'function') loadTemplatesFromAPI().catch(() => {});
+            if (typeof loadTemplatesFromAPI === 'function') await loadTemplatesFromAPI().catch(() => {});
             if (typeof ensureUserProfileLoadedForForm === 'function') await ensureUserProfileLoadedForForm();
-            if (typeof ensureContactsLoadedForForm === 'function') ensureContactsLoadedForForm();
+            if (typeof ensureContactsLoadedForForm === 'function') await ensureContactsLoadedForForm();
+            await applyPendingTemplateSelection();
+            autoFillUserProfile();
             // Retry profile + contacts load after delay in case APIs or auth weren't ready yet
             setTimeout(() => {
                 if (typeof ensureUserProfileLoadedForForm === 'function') ensureUserProfileLoadedForForm();
@@ -1994,8 +1997,72 @@ function getTemplates() {
     return templatesCache;
 }
 
+function getPendingTemplateSelection() {
+    if (pendingTemplateSelection !== null) {
+        return pendingTemplateSelection;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    pendingTemplateSelection = urlParams.get('template') || '';
+    return pendingTemplateSelection;
+}
+
+function buildTemplateRecord(formData, existingRecord = null, options = {}) {
+    const now = new Date().toISOString();
+    const existingMeta = existingRecord && typeof existingRecord._meta === 'object' ? existingRecord._meta : {};
+    const meta = {
+        ...existingMeta,
+        createdAt: existingMeta.createdAt || now,
+        updatedAt: options.touchUpdatedAt === false ? (existingMeta.updatedAt || now) : now
+    };
+
+    if (options.touchLastUsed) {
+        meta.lastUsedAt = now;
+    } else if (existingMeta.lastUsedAt) {
+        meta.lastUsedAt = existingMeta.lastUsedAt;
+    }
+
+    return {
+        ...formData,
+        _meta: meta
+    };
+}
+
+async function markTemplateUsed(templateName) {
+    if (!templateName) return;
+
+    const templates = getTemplates();
+    const existingRecord = templates[templateName];
+    if (!existingRecord || typeof existingRecord !== 'object') return;
+
+    templates[templateName] = buildTemplateRecord(existingRecord, existingRecord, { touchLastUsed: true, touchUpdatedAt: false });
+    await saveTemplates(templates);
+}
+
+async function applyPendingTemplateSelection() {
+    const templateName = getPendingTemplateSelection();
+    if (!templateName || !templateSelect) return false;
+
+    const templates = getTemplates();
+    if (!templates || !templates[templateName]) return false;
+
+    if (templateSelect.value === templateName && currentTemplateName === templateName) {
+        pendingTemplateSelection = '';
+        return true;
+    }
+
+    pendingTemplateSelection = '';
+    if (templateSelect.value !== templateName) {
+        templateSelect.value = templateName;
+    }
+
+    await handleTemplateSelect();
+
+    return true;
+}
+
 async function loadTemplatesFromAPI() {
-    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    const user = await resolveCurrentUserForProfile();
     if (!user || !user.id || !window.templatesAPI) return;
     try {
         templatesCache = await window.templatesAPI.get(user.id);
@@ -2007,7 +2074,7 @@ async function loadTemplatesFromAPI() {
 }
 
 async function saveTemplates(templates) {
-    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    const user = await resolveCurrentUserForProfile();
     if (!user || !user.id || !window.templatesAPI) {
         showError('Cannot save template: not logged in or API not available.');
         return false;
@@ -2554,6 +2621,7 @@ async function handleTemplateSelect() {
     const templateData = loadTemplateData(selectedTemplate);
     if (templateData) {
         await populateFormFromTemplate(templateData);
+        markTemplateUsed(selectedTemplate).catch(err => console.warn('Could not mark template as used:', err));
         showError('✓ Template loaded: ' + selectedTemplate);
         setTimeout(() => hideError(), 2000);
     }
@@ -2587,14 +2655,14 @@ async function handleSaveTemplate() {
         }
         
         const templates = getTemplates();
-        
+
         if (templates[newName]) {
             showError('A template with that name already exists.');
             return;
         }
         
         // Rename: copy data to new name, delete old
-        templates[newName] = templates[selectedTemplate];
+        templates[newName] = buildTemplateRecord(templates[selectedTemplate] || {}, templates[selectedTemplate], { touchLastUsed: false });
         delete templates[selectedTemplate];
         
         if (await saveTemplates(templates)) {
@@ -2620,7 +2688,7 @@ async function handleSaveTemplate() {
         
         // Update the existing template
         const templates = getTemplates();
-        templates[currentTemplateName] = formData;
+        templates[currentTemplateName] = buildTemplateRecord(formData, templates[currentTemplateName], { touchLastUsed: false });
         
         if (await saveTemplates(templates)) {
             showError('✓ Template updated: ' + currentTemplateName);
@@ -2653,7 +2721,7 @@ async function handleSaveTemplate() {
     
     // Save template
     const templates = getTemplates();
-    templates[templateName] = formData;
+    templates[templateName] = buildTemplateRecord(formData, templates[templateName], { touchLastUsed: false });
     
     if (await saveTemplates(templates)) {
         templateSelect.value = templateName;
@@ -4491,18 +4559,28 @@ async function loadContactsFromAPI() {
 // Ensure contacts are loaded for the Create AWB form. If api.js is not ready yet, wait for apiReady then load.
 function ensureContactsLoadedForForm() {
     const doLoad = () => {
-        if (typeof loadContactsFromAPI === 'function') loadContactsFromAPI().catch(() => {});
+        if (typeof loadContactsFromAPI === 'function') {
+            return loadContactsFromAPI().catch(() => {});
+        }
+        return Promise.resolve();
     };
     if (window.contactsAPI) {
-        doLoad();
+        return doLoad();
     } else {
-        const onReady = () => {
-            window.removeEventListener('apiReady', onReady);
-            doLoad();
-        };
-        window.addEventListener('apiReady', onReady);
-        // In case apiReady already fired (race), try once after a short delay
-        setTimeout(() => { if (window.contactsAPI) { window.removeEventListener('apiReady', onReady); doLoad(); } }, 500);
+        return new Promise((resolve) => {
+            const onReady = () => {
+                window.removeEventListener('apiReady', onReady);
+                resolve(doLoad());
+            };
+            window.addEventListener('apiReady', onReady);
+            // In case apiReady already fired (race), try once after a short delay
+            setTimeout(() => {
+                if (window.contactsAPI) {
+                    window.removeEventListener('apiReady', onReady);
+                    resolve(doLoad());
+                }
+            }, 500);
+        });
     }
 }
 
@@ -7614,9 +7692,6 @@ function setupPrepaidCollectFieldListeners() {
 async function showContactSection() {
     if (contactControlsSection) {
         contactControlsSection.style.display = 'block';
-        await updateContactDropdowns();
-        if (typeof ensureUserProfileLoadedForForm === 'function') await ensureUserProfileLoadedForForm();
-        autoFillUserProfile();
     }
     
     // Show routing controls section

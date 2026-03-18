@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Templates - Airway Bills</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/themes.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <style>
+        .templates-page {
+            padding: 16px;
+        }
+        .templates-shell {
+            display: grid;
+            gap: 16px;
+        }
+        .templates-toolbar,
+        .templates-filter-panel,
+        .templates-results,
+        .templates-details {
+            background: #fff;
+            border: 1px solid #9b9b9b;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+            padding: 12px;
+        }
+        .templates-header-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+        .templates-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .templates-note {
+            color: #555;
+            font-size: 12px;
+            margin: 4px 0 0;
+        }
+        .templates-filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            align-items: end;
+        }
+        .templates-filters .form-group {
+            margin: 0;
+        }
+        .templates-filters label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+        .templates-filters input,
+        .templates-filters select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 6px 8px;
+            border: 1px solid #7f7f7f;
+            background: #fff;
+        }
+        .templates-results-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .template-table-wrap {
+            overflow-x: auto;
+        }
+        .template-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 1100px;
+        }
+        .template-table th,
+        .template-table td {
+            border: 1px solid #d0d0d0;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .template-table th {
+            background: #f1f1f1;
+            white-space: nowrap;
+        }
+        .template-table tr:hover {
+            background: #f8fbff;
+        }
+        .template-actions-cell {
+            white-space: nowrap;
+        }
+        .template-action-btn {
+            margin: 0 4px 4px 0;
+            padding: 4px 8px;
+            border: 1px solid #7f7f7f;
+            background: #efefef;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .template-action-btn.primary {
+            background: #667eea;
+            color: #fff;
+            border-color: #4b5fc7;
+        }
+        .template-chips {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .template-chip {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: #eef1ff;
+            font-size: 11px;
+        }
+        .template-empty {
+            padding: 18px;
+            text-align: center;
+            color: #666;
+        }
+        .template-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+        }
+        .template-details-item {
+            border: 1px solid #d8d8d8;
+            padding: 8px;
+            background: #fafafa;
+        }
+        .template-details-item strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+        .template-details-modal {
+            max-width: 900px;
+            width: calc(100% - 24px);
+        }
+        .template-details-modal pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;">
+                <div>
+                    <h1 style="margin: 0;">Templates</h1>
+                    <p style="margin: 4px 0 0; color: #555;">Find and manage AWB templates using only fields that appear on the form.</p>
+                </div>
+                <div class="templates-actions">
+                    <button type="button" class="btn-secondary" id="backDashboardBtn">Back to Dashboard</button>
+                    <button type="button" class="btn-primary" id="openCreateAwbBtn">Open Create AWB</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="content-wrapper" style="display: block;">
+            <div class="form-section">
+                <div class="templates-shell">
+                    <div class="templates-toolbar">
+                        <div class="templates-header-row">
+                            <div>
+                                <h2 style="margin: 0 0 4px;">Template Library</h2>
+                                <p class="templates-note">Search by template name and the AWB fields agents actually use: shipper, consignee, airline, origin, destination, commodity, and prepaid or collect.</p>
+                            </div>
+                            <div class="templates-actions">
+                                <button type="button" class="btn-secondary" id="clearFiltersBtn">Clear Filters</button>
+                                <button type="button" class="btn-secondary" id="refreshBtn">Refresh</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="templates-filter-panel">
+                        <div class="templates-filters">
+                            <div class="form-group">
+                                <label for="templateNameFilter">Template Name</label>
+                                <input id="templateNameFilter" type="text" placeholder="Search template name">
+                            </div>
+                            <div class="form-group">
+                                <label for="shipperFilter">Shipper (04)</label>
+                                <input id="shipperFilter" type="text" list="shipperFilterList" placeholder="Search shipper">
+                                <datalist id="shipperFilterList"></datalist>
+                            </div>
+                            <div class="form-group">
+                                <label for="consigneeFilter">Consignee (05)</label>
+                                <input id="consigneeFilter" type="text" list="consigneeFilterList" placeholder="Search consignee">
+                                <datalist id="consigneeFilterList"></datalist>
+                            </div>
+                            <div class="form-group">
+                                <label for="airlineFilter">Airline / Issuing Carrier</label>
+                                <input id="airlineFilter" type="text" list="airlineFilterList" placeholder="Search airline">
+                                <datalist id="airlineFilterList"></datalist>
+                            </div>
+                            <div class="form-group">
+                                <label for="originFilter">Origin (02)</label>
+                                <input id="originFilter" type="text" list="originFilterList" placeholder="Search origin">
+                                <datalist id="originFilterList"></datalist>
+                            </div>
+                            <div class="form-group">
+                                <label for="destinationFilter">Destination (18)</label>
+                                <input id="destinationFilter" type="text" list="destinationFilterList" placeholder="Search destination">
+                                <datalist id="destinationFilterList"></datalist>
+                            </div>
+                            <div class="form-group">
+                                <label for="commodityFilter">Commodity (33)</label>
+                                <input id="commodityFilter" type="text" list="commodityFilterList" placeholder="Search commodity">
+                                <datalist id="commodityFilterList"></datalist>
+                            </div>
+                            <div class="form-group">
+                                <label for="prepaidCollectFilter">Prepaid / Collect</label>
+                                <select id="prepaidCollectFilter">
+                                    <option value="">All</option>
+                                    <option value="Prepaid">Prepaid</option>
+                                    <option value="Collect">Collect</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="sortFilter">Sort By</label>
+                                <select id="sortFilter">
+                                    <option value="updated-desc">Most recently updated</option>
+                                    <option value="used-desc">Most recently used</option>
+                                    <option value="name-asc">Template name A-Z</option>
+                                    <option value="name-desc">Template name Z-A</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="templates-results">
+                        <div class="templates-results-header">
+                            <div>
+                                <h2 style="margin: 0;">Results</h2>
+                                <div id="resultsCount" style="margin-top: 4px; color: #555; font-size: 12px;">Loading...</div>
+                            </div>
+                            <div id="statusMessage" style="font-size: 12px; color: #555;"></div>
+                        </div>
+                        <div class="template-table-wrap">
+                            <table class="template-table">
+                                <thead>
+                                    <tr>
+                                        <th>Template</th>
+                                        <th>Shipper</th>
+                                        <th>Consignee</th>
+                                        <th>Airline</th>
+                                        <th>Origin</th>
+                                        <th>Destination</th>
+                                        <th>Commodity</th>
+                                        <th>Prepaid/Collect</th>
+                                        <th>Updated</th>
+                                        <th>Used</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="templatesTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div id="emptyState" class="template-empty" style="display: none;">
+                            No templates match these filters.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="templateDetailsModal" class="modal" style="display:none;">
+        <div class="modal-content template-details-modal">
+            <div class="modal-header">
+                <h2 id="templateDetailsTitle">Template Details</h2>
+                <button type="button" class="modal-close" id="closeTemplateDetailsBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="template-details-grid" id="templateDetailsGrid"></div>
+                <div style="margin-top: 12px;">
+                    <h3 style="margin: 0 0 6px;">Template Notes</h3>
+                    <pre id="templateDetailsNotes" style="background: #f7f7f7; border: 1px solid #ddd; padding: 10px; min-height: 80px;"></pre>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="detailDeleteBtn">Delete</button>
+                <button type="button" class="btn-secondary" id="detailRenameBtn">Rename</button>
+                <button type="button" class="btn-secondary" id="detailDuplicateBtn">Duplicate</button>
+                <button type="button" class="btn-primary" id="detailUseBtn">Use in Create AWB</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { templatesAPI, contactsAPI, airlinesAPI, originsAPI, destinationsAPI } from './js/api.js';
+
+        const state = {
+            user: null,
+            templates: {},
+            summaries: [],
+            lookups: {
+                contacts: new Map(),
+                airlines: new Map(),
+                origins: new Map(),
+                destinations: new Map()
+            },
+            filters: {
+                templateName: '',
+                shipper: '',
+                consignee: '',
+                airline: '',
+                origin: '',
+                destination: '',
+                commodity: '',
+                prepaidCollect: ''
+            },
+            sortBy: 'updated-desc',
+            selectedTemplate: null
+        };
+
+        const els = {
+            backDashboardBtn: document.getElementById('backDashboardBtn'),
+            openCreateAwbBtn: document.getElementById('openCreateAwbBtn'),
+            clearFiltersBtn: document.getElementById('clearFiltersBtn'),
+            refreshBtn: document.getElementById('refreshBtn'),
+            templateNameFilter: document.getElementById('templateNameFilter'),
+            shipperFilter: document.getElementById('shipperFilter'),
+            consigneeFilter: document.getElementById('consigneeFilter'),
+            airlineFilter: document.getElementById('airlineFilter'),
+            originFilter: document.getElementById('originFilter'),
+            destinationFilter: document.getElementById('destinationFilter'),
+            commodityFilter: document.getElementById('commodityFilter'),
+            prepaidCollectFilter: document.getElementById('prepaidCollectFilter'),
+            sortFilter: document.getElementById('sortFilter'),
+            resultsCount: document.getElementById('resultsCount'),
+            statusMessage: document.getElementById('statusMessage'),
+            tableBody: document.getElementById('templatesTableBody'),
+            emptyState: document.getElementById('emptyState'),
+            detailsModal: document.getElementById('templateDetailsModal'),
+            detailsTitle: document.getElementById('templateDetailsTitle'),
+            detailsGrid: document.getElementById('templateDetailsGrid'),
+            detailsNotes: document.getElementById('templateDetailsNotes'),
+            closeDetailsBtn: document.getElementById('closeTemplateDetailsBtn'),
+            detailDeleteBtn: document.getElementById('detailDeleteBtn'),
+            detailRenameBtn: document.getElementById('detailRenameBtn'),
+            detailDuplicateBtn: document.getElementById('detailDuplicateBtn'),
+            detailUseBtn: document.getElementById('detailUseBtn'),
+            shipperList: document.getElementById('shipperFilterList'),
+            consigneeList: document.getElementById('consigneeFilterList'),
+            airlineList: document.getElementById('airlineFilterList'),
+            originList: document.getElementById('originFilterList'),
+            destinationList: document.getElementById('destinationFilterList'),
+            commodityList: document.getElementById('commodityFilterList')
+        };
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text ?? '';
+            return div.innerHTML;
+        }
+
+        function normalizeText(value) {
+            return String(value ?? '').trim();
+        }
+
+        function normalizeForMatch(value) {
+            return normalizeText(value).toLowerCase();
+        }
+
+        function formatTimestamp(value) {
+            if (!value) return 'Never';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return 'Never';
+            return new Intl.DateTimeFormat(undefined, {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            }).format(date);
+        }
+
+        function uniqueSorted(values) {
+            return [...new Set(values.map(normalizeText).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+        }
+
+        function firstValueByPrefixes(templateData, prefixes) {
+            if (!templateData || typeof templateData !== 'object') return '';
+            const keys = Object.keys(templateData);
+            for (const prefix of prefixes) {
+                for (const key of keys) {
+                    if (key === '_meta') continue;
+                    if (key.startsWith(prefix)) {
+                        const value = templateData[key];
+                        if (Array.isArray(value)) {
+                            const joined = value.map(item => normalizeText(item)).filter(Boolean).join(', ');
+                            if (joined) return joined;
+                        } else if (value && typeof value === 'object') {
+                            const joinedObject = Object.values(value).map(item => normalizeText(item)).filter(Boolean).join(', ');
+                            if (joinedObject) return joinedObject;
+                        } else if (normalizeText(value)) {
+                            return normalizeText(value);
+                        }
+                    }
+                }
+            }
+            return '';
+        }
+
+        function getMeta(templateData) {
+            return templateData && typeof templateData._meta === 'object' ? templateData._meta : {};
+        }
+
+        function resolveLookupName(map, id, fallback = '') {
+            if (id == null || id === '') return fallback;
+            const item = map.get(String(id));
+            if (!item) return fallback || String(id);
+            return (
+                item.companyName ||
+                item.name ||
+                item.airportName ||
+                item.originName ||
+                item.destinationName ||
+                item.code ||
+                item.label ||
+                item.description ||
+                String(id)
+            );
+        }
+
+        function getCommoditySummary(templateData) {
+            const direct = firstValueByPrefixes(templateData, ['33']);
+            if (direct) return direct;
+
+            const metaCommodity = templateData?.commodity;
+            if (Array.isArray(metaCommodity)) {
+                return metaCommodity.map(item => {
+                    if (!item) return '';
+                    if (typeof item === 'string') return item;
+                    return item.commodity || item.autofillText || item.field41 || '';
+                }).filter(Boolean).join(', ');
+            }
+            if (metaCommodity && typeof metaCommodity === 'object') {
+                return Object.values(metaCommodity).map(item => normalizeText(item)).filter(Boolean).join(', ');
+            }
+            return normalizeText(metaCommodity);
+        }
+
+        function summarizeTemplate(name, data) {
+            const meta = getMeta(data);
+            const shipper = resolveLookupName(state.lookups.contacts, data?._shipperContactId, firstValueByPrefixes(data, ['04']));
+            const consignee = resolveLookupName(state.lookups.contacts, data?._consigneeContactId, firstValueByPrefixes(data, ['05']));
+            const airline = resolveLookupName(state.lookups.airlines, data?._airlineContactId1, firstValueByPrefixes(data, ['01', '10']));
+            const origin = firstValueByPrefixes(data, ['02']);
+            const destination = resolveLookupName(state.lookups.destinations, data?._destinationId, firstValueByPrefixes(data, ['18']));
+            const commodity = getCommoditySummary(data);
+            const prepaidCollect = normalizeText(data?._prepaidCollect || '');
+
+            const searchBlob = [
+                name,
+                shipper,
+                consignee,
+                airline,
+                origin,
+                destination,
+                commodity,
+                prepaidCollect
+            ].join(' ').toLowerCase();
+
+            return {
+                name,
+                data,
+                meta,
+                shipper,
+                consignee,
+                airline,
+                origin,
+                destination,
+                commodity,
+                prepaidCollect,
+                updatedAt: meta.updatedAt || '',
+                lastUsedAt: meta.lastUsedAt || '',
+                searchBlob
+            };
+        }
+
+        function setStatus(message) {
+            if (els.statusMessage) {
+                els.statusMessage.textContent = message || '';
+            }
+        }
+
+        async function resolveCurrentUser() {
+            const immediateUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+            if (immediateUser && immediateUser.id) return immediateUser;
+
+            if (typeof getCurrentUserAsync === 'function') {
+                try {
+                    const asyncUser = await getCurrentUserAsync();
+                    if (asyncUser && asyncUser.id) return asyncUser;
+                } catch (error) {
+                    console.warn('Could not resolve current user asynchronously:', error);
+                }
+            }
+
+            return new Promise((resolve) => {
+                let finished = false;
+                const finish = (user) => {
+                    if (finished) return;
+                    finished = true;
+                    resolve(user || null);
+                };
+
+                const onReady = () => {
+                    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+                    finish(user && user.id ? user : null);
+                };
+
+                window.addEventListener('apiReady', onReady, { once: true });
+                setTimeout(onReady, 1200);
+            });
+        }
+
+        async function loadLookups() {
+            const [contactsRes, airlinesRes, originsRes, destinationsRes] = await Promise.allSettled([
+                contactsAPI && typeof contactsAPI.getAll === 'function' ? contactsAPI.getAll() : Promise.resolve([]),
+                airlinesAPI && typeof airlinesAPI.getAll === 'function' ? airlinesAPI.getAll() : Promise.resolve([]),
+                originsAPI && typeof originsAPI.getAll === 'function' ? originsAPI.getAll() : Promise.resolve([]),
+                destinationsAPI && typeof destinationsAPI.getAll === 'function' ? destinationsAPI.getAll() : Promise.resolve([])
+            ]);
+
+            const contacts = contactsRes.status === 'fulfilled' && Array.isArray(contactsRes.value) ? contactsRes.value : [];
+            const airlines = airlinesRes.status === 'fulfilled' && Array.isArray(airlinesRes.value) ? airlinesRes.value : [];
+            const origins = originsRes.status === 'fulfilled' && Array.isArray(originsRes.value) ? originsRes.value : [];
+            const destinations = destinationsRes.status === 'fulfilled' && Array.isArray(destinationsRes.value) ? destinationsRes.value : [];
+
+            state.lookups.contacts = new Map(contacts.map(item => [String(item.id), item]));
+            state.lookups.airlines = new Map(airlines.map(item => [String(item.id), item]));
+            state.lookups.origins = new Map(origins.map(item => [String(item.id), item]));
+            state.lookups.destinations = new Map(destinations.map(item => [String(item.id), item]));
+        }
+
+        function loadTemplatesIntoState(rawTemplates) {
+            state.templates = rawTemplates && typeof rawTemplates === 'object' ? rawTemplates : {};
+            state.summaries = Object.entries(state.templates)
+                .filter(([name, value]) => !name.startsWith('_') && value && typeof value === 'object')
+                .map(([name, value]) => summarizeTemplate(name, value));
+        }
+
+        function updateFilterOptions() {
+            const groups = [
+                { list: els.shipperList, values: state.summaries.map(item => item.shipper) },
+                { list: els.consigneeList, values: state.summaries.map(item => item.consignee) },
+                { list: els.airlineList, values: state.summaries.map(item => item.airline) },
+                { list: els.originList, values: state.summaries.map(item => item.origin) },
+                { list: els.destinationList, values: state.summaries.map(item => item.destination) },
+                { list: els.commodityList, values: state.summaries.map(item => item.commodity) }
+            ];
+
+            groups.forEach(group => {
+                if (!group.list) return;
+                group.list.innerHTML = uniqueSorted(group.values)
+                    .map(value => `<option value="${escapeHtml(value)}"></option>`)
+                    .join('');
+            });
+        }
+
+        function matchesFilter(value, filter) {
+            if (!filter) return true;
+            return normalizeForMatch(value).includes(normalizeForMatch(filter));
+        }
+
+        function getFilteredSummaries() {
+            const filtered = state.summaries.filter(summary => {
+                if (!matchesFilter(summary.name, state.filters.templateName)) return false;
+                if (!matchesFilter(summary.shipper, state.filters.shipper)) return false;
+                if (!matchesFilter(summary.consignee, state.filters.consignee)) return false;
+                if (!matchesFilter(summary.airline, state.filters.airline)) return false;
+                if (!matchesFilter(summary.origin, state.filters.origin)) return false;
+                if (!matchesFilter(summary.destination, state.filters.destination)) return false;
+                if (!matchesFilter(summary.commodity, state.filters.commodity)) return false;
+                if (state.filters.prepaidCollect && normalizeForMatch(summary.prepaidCollect) !== normalizeForMatch(state.filters.prepaidCollect)) return false;
+                return true;
+            });
+
+            const sortBy = state.sortBy;
+            filtered.sort((a, b) => {
+                const aUpdated = new Date(a.updatedAt || 0).getTime();
+                const bUpdated = new Date(b.updatedAt || 0).getTime();
+                const aUsed = new Date(a.lastUsedAt || 0).getTime();
+                const bUsed = new Date(b.lastUsedAt || 0).getTime();
+
+                switch (sortBy) {
+                    case 'name-asc':
+                        return a.name.localeCompare(b.name);
+                    case 'name-desc':
+                        return b.name.localeCompare(a.name);
+                    case 'used-desc':
+                        return bUsed - aUsed || bUpdated - aUpdated || a.name.localeCompare(b.name);
+                    case 'updated-desc':
+                    default:
+                        return bUpdated - aUpdated || bUsed - aUsed || a.name.localeCompare(b.name);
+                }
+            });
+
+            return filtered;
+        }
+
+        function renderTemplates() {
+            if (!els.tableBody) return;
+
+            const rows = getFilteredSummaries();
+            els.tableBody.innerHTML = '';
+
+            if (els.resultsCount) {
+                els.resultsCount.textContent = `${rows.length} template${rows.length === 1 ? '' : 's'} shown of ${state.summaries.length}`;
+            }
+
+            if (!rows.length) {
+                if (els.emptyState) els.emptyState.style.display = 'block';
+                return;
+            }
+
+            if (els.emptyState) els.emptyState.style.display = 'none';
+
+            rows.forEach(summary => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <strong>${escapeHtml(summary.name)}</strong>
+                    </td>
+                    <td>${escapeHtml(summary.shipper || 'Not set')}</td>
+                    <td>${escapeHtml(summary.consignee || 'Not set')}</td>
+                    <td>${escapeHtml(summary.airline || 'Not set')}</td>
+                    <td>${escapeHtml(summary.origin || 'Not set')}</td>
+                    <td>${escapeHtml(summary.destination || 'Not set')}</td>
+                    <td>${escapeHtml(summary.commodity || 'Not set')}</td>
+                    <td>${escapeHtml(summary.prepaidCollect || 'Not set')}</td>
+                    <td>${escapeHtml(formatTimestamp(summary.updatedAt))}</td>
+                    <td>${escapeHtml(formatTimestamp(summary.lastUsedAt))}</td>
+                    <td class="template-actions-cell">
+                        <button type="button" class="template-action-btn" data-action="open" data-name="${escapeHtml(summary.name)}">Open</button>
+                        <button type="button" class="template-action-btn primary" data-action="use" data-name="${escapeHtml(summary.name)}">Use</button>
+                        <button type="button" class="template-action-btn" data-action="duplicate" data-name="${escapeHtml(summary.name)}">Duplicate</button>
+                        <button type="button" class="template-action-btn" data-action="rename" data-name="${escapeHtml(summary.name)}">Rename</button>
+                        <button type="button" class="template-action-btn" data-action="delete" data-name="${escapeHtml(summary.name)}">Delete</button>
+                    </td>
+                `;
+                els.tableBody.appendChild(tr);
+            });
+        }
+
+        function buildTemplateDetails(name) {
+            const summary = state.summaries.find(item => item.name === name);
+            if (!summary) return;
+
+            state.selectedTemplate = name;
+
+            if (els.detailsTitle) {
+                els.detailsTitle.textContent = `Template Details - ${summary.name}`;
+            }
+
+            if (els.detailsGrid) {
+                els.detailsGrid.innerHTML = `
+                    <div class="template-details-item"><strong>Template Name</strong><span>${escapeHtml(summary.name)}</span></div>
+                    <div class="template-details-item"><strong>Shipper (04)</strong><span>${escapeHtml(summary.shipper || 'Not set')}</span></div>
+                    <div class="template-details-item"><strong>Consignee (05)</strong><span>${escapeHtml(summary.consignee || 'Not set')}</span></div>
+                    <div class="template-details-item"><strong>Airline / Issuing Carrier</strong><span>${escapeHtml(summary.airline || 'Not set')}</span></div>
+                    <div class="template-details-item"><strong>Origin (02)</strong><span>${escapeHtml(summary.origin || 'Not set')}</span></div>
+                    <div class="template-details-item"><strong>Destination (18)</strong><span>${escapeHtml(summary.destination || 'Not set')}</span></div>
+                    <div class="template-details-item"><strong>Commodity (33)</strong><span>${escapeHtml(summary.commodity || 'Not set')}</span></div>
+                    <div class="template-details-item"><strong>Prepaid / Collect</strong><span>${escapeHtml(summary.prepaidCollect || 'Not set')}</span></div>
+                    <div class="template-details-item"><strong>Updated</strong><span>${escapeHtml(formatTimestamp(summary.updatedAt))}</span></div>
+                    <div class="template-details-item"><strong>Last Used</strong><span>${escapeHtml(formatTimestamp(summary.lastUsedAt))}</span></div>
+                `;
+            }
+
+            if (els.detailsNotes) {
+                const notes = summary.data?._meta?.notes || '';
+                els.detailsNotes.textContent = notes ? String(notes) : 'No notes saved for this template.';
+            }
+
+            if (els.detailDeleteBtn) els.detailDeleteBtn.dataset.name = name;
+            if (els.detailRenameBtn) els.detailRenameBtn.dataset.name = name;
+            if (els.detailDuplicateBtn) els.detailDuplicateBtn.dataset.name = name;
+            if (els.detailUseBtn) els.detailUseBtn.dataset.name = name;
+
+            if (els.detailsModal) {
+                els.detailsModal.style.display = 'block';
+            }
+        }
+
+        function closeDetailsModal() {
+            if (els.detailsModal) {
+                els.detailsModal.style.display = 'none';
+            }
+            state.selectedTemplate = null;
+        }
+
+        async function saveTemplatesObject(nextTemplates) {
+            if (!state.user || !state.user.id || !templatesAPI) {
+                alert('Templates API not available.');
+                return false;
+            }
+
+            await templatesAPI.save(state.user.id, nextTemplates);
+            return true;
+        }
+
+        async function reloadTemplates() {
+            const rawTemplates = state.user && state.user.id && templatesAPI ? await templatesAPI.get(state.user.id) : {};
+            loadTemplatesIntoState(rawTemplates);
+            updateFilterOptions();
+            renderTemplates();
+        }
+
+        async function openTemplateInAwb(name) {
+            window.location.href = `create-awb.html?template=${encodeURIComponent(name)}`;
+        }
+
+        async function deleteTemplate(name) {
+            if (!name) return;
+            if (!confirm(`Delete template "${name}"?`)) return;
+
+            const nextTemplates = { ...state.templates };
+            delete nextTemplates[name];
+            await saveTemplatesObject(nextTemplates);
+            await reloadTemplates();
+            setStatus(`Deleted template "${name}".`);
+            closeDetailsModal();
+        }
+
+        async function renameTemplate(name) {
+            if (!name) return;
+            const newName = prompt('Rename template to:', name);
+            if (!newName) return;
+            const trimmed = newName.trim();
+            if (!trimmed || trimmed === name) return;
+            if (state.templates[trimmed]) {
+                alert('A template with that name already exists.');
+                return;
+            }
+
+            const current = state.templates[name];
+            const nextTemplates = { ...state.templates };
+            delete nextTemplates[name];
+            nextTemplates[trimmed] = {
+                ...current,
+                _meta: {
+                    ...(getMeta(current) || {}),
+                    createdAt: getMeta(current).createdAt || new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                }
+            };
+
+            await saveTemplatesObject(nextTemplates);
+            await reloadTemplates();
+            setStatus(`Renamed template to "${trimmed}".`);
+            closeDetailsModal();
+        }
+
+        async function duplicateTemplate(name) {
+            if (!name) return;
+            const newName = prompt('Duplicate template as:', `${name} Copy`);
+            if (!newName) return;
+            const trimmed = newName.trim();
+            if (!trimmed) return;
+            if (state.templates[trimmed]) {
+                alert('A template with that name already exists.');
+                return;
+            }
+
+            const current = state.templates[name];
+            const now = new Date().toISOString();
+            const currentMeta = getMeta(current);
+            const nextTemplates = { ...state.templates };
+            nextTemplates[trimmed] = {
+                ...current,
+                _meta: {
+                    ...currentMeta,
+                    createdAt: now,
+                    updatedAt: now,
+                    lastUsedAt: ''
+                }
+            };
+
+            await saveTemplatesObject(nextTemplates);
+            await reloadTemplates();
+            setStatus(`Duplicated template as "${trimmed}".`);
+            closeDetailsModal();
+        }
+
+        function bindFilterEvents() {
+            const sync = () => {
+                state.filters.templateName = els.templateNameFilter ? els.templateNameFilter.value : '';
+                state.filters.shipper = els.shipperFilter ? els.shipperFilter.value : '';
+                state.filters.consignee = els.consigneeFilter ? els.consigneeFilter.value : '';
+                state.filters.airline = els.airlineFilter ? els.airlineFilter.value : '';
+                state.filters.origin = els.originFilter ? els.originFilter.value : '';
+                state.filters.destination = els.destinationFilter ? els.destinationFilter.value : '';
+                state.filters.commodity = els.commodityFilter ? els.commodityFilter.value : '';
+                state.filters.prepaidCollect = els.prepaidCollectFilter ? els.prepaidCollectFilter.value : '';
+                state.sortBy = els.sortFilter ? els.sortFilter.value : 'updated-desc';
+                renderTemplates();
+            };
+
+            [
+                els.templateNameFilter,
+                els.shipperFilter,
+                els.consigneeFilter,
+                els.airlineFilter,
+                els.originFilter,
+                els.destinationFilter,
+                els.commodityFilter,
+                els.prepaidCollectFilter,
+                els.sortFilter
+            ].forEach(el => {
+                if (!el) return;
+                el.addEventListener('input', sync);
+                el.addEventListener('change', sync);
+            });
+        }
+
+        function clearFilters() {
+            [
+                els.templateNameFilter,
+                els.shipperFilter,
+                els.consigneeFilter,
+                els.airlineFilter,
+                els.originFilter,
+                els.destinationFilter,
+                els.commodityFilter
+            ].forEach(el => {
+                if (el) el.value = '';
+            });
+            if (els.prepaidCollectFilter) els.prepaidCollectFilter.value = '';
+            if (els.sortFilter) els.sortFilter.value = 'updated-desc';
+            state.filters = {
+                templateName: '',
+                shipper: '',
+                consignee: '',
+                airline: '',
+                origin: '',
+                destination: '',
+                commodity: '',
+                prepaidCollect: ''
+            };
+            state.sortBy = 'updated-desc';
+            renderTemplates();
+        }
+
+        async function loadPage() {
+            setStatus('Loading templates...');
+            if (els.resultsCount) els.resultsCount.textContent = 'Loading...';
+            if (els.tableBody) els.tableBody.innerHTML = '';
+
+            state.user = await resolveCurrentUser();
+            if (!state.user || !state.user.id) {
+                setStatus('Sign in to view templates.');
+                if (els.resultsCount) els.resultsCount.textContent = 'Not signed in';
+                if (els.emptyState) {
+                    els.emptyState.style.display = 'block';
+                    els.emptyState.textContent = 'Sign in to view templates.';
+                }
+                return;
+            }
+
+            await loadLookups();
+            let rawTemplates = {};
+            try {
+                rawTemplates = templatesAPI ? await templatesAPI.get(state.user.id) : {};
+            } catch (error) {
+                console.warn('Could not load templates:', error);
+                setStatus('Could not load templates.');
+            }
+            loadTemplatesIntoState(rawTemplates);
+            updateFilterOptions();
+            renderTemplates();
+            if (!els.statusMessage || !els.statusMessage.textContent) {
+                setStatus('Loaded.');
+            }
+        }
+
+        function wireEvents() {
+            if (els.backDashboardBtn) {
+                els.backDashboardBtn.addEventListener('click', () => {
+                    window.location.href = 'dashboard.html';
+                });
+            }
+
+            if (els.openCreateAwbBtn) {
+                els.openCreateAwbBtn.addEventListener('click', () => {
+                    window.location.href = 'create-awb.html';
+                });
+            }
+
+            if (els.clearFiltersBtn) {
+                els.clearFiltersBtn.addEventListener('click', clearFilters);
+            }
+
+            if (els.refreshBtn) {
+                els.refreshBtn.addEventListener('click', () => loadPage().catch(error => {
+                    console.error('Could not reload templates:', error);
+                    setStatus('Could not reload templates.');
+                }));
+            }
+
+            if (els.closeDetailsBtn) {
+                els.closeDetailsBtn.addEventListener('click', closeDetailsModal);
+            }
+
+            if (els.detailsModal) {
+                els.detailsModal.addEventListener('click', (event) => {
+                    if (event.target === els.detailsModal) {
+                        closeDetailsModal();
+                    }
+                });
+            }
+
+            if (els.detailUseBtn) {
+                els.detailUseBtn.addEventListener('click', () => {
+                    const name = els.detailUseBtn.dataset.name;
+                    if (name) openTemplateInAwb(name);
+                });
+            }
+
+            if (els.detailDeleteBtn) {
+                els.detailDeleteBtn.addEventListener('click', () => {
+                    const name = els.detailDeleteBtn.dataset.name;
+                    if (name) deleteTemplate(name);
+                });
+            }
+
+            if (els.detailRenameBtn) {
+                els.detailRenameBtn.addEventListener('click', () => {
+                    const name = els.detailRenameBtn.dataset.name;
+                    if (name) renameTemplate(name);
+                });
+            }
+
+            if (els.detailDuplicateBtn) {
+                els.detailDuplicateBtn.addEventListener('click', () => {
+                    const name = els.detailDuplicateBtn.dataset.name;
+                    if (name) duplicateTemplate(name);
+                });
+            }
+
+            if (els.tableBody) {
+                els.tableBody.addEventListener('click', (event) => {
+                    const button = event.target.closest('button[data-action]');
+                    if (!button) return;
+                    const { action, name } = button.dataset;
+                    if (!name) return;
+
+                    if (action === 'open') buildTemplateDetails(name);
+                    if (action === 'use') openTemplateInAwb(name);
+                    if (action === 'duplicate') duplicateTemplate(name);
+                    if (action === 'rename') renameTemplate(name);
+                    if (action === 'delete') deleteTemplate(name);
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            wireEvents();
+            bindFilterEvents();
+            try {
+                await loadPage();
+            } catch (error) {
+                console.error('Could not load templates page:', error);
+                setStatus('Could not load templates.');
+            }
+        });
+    </script>
+</body>
+</html>
