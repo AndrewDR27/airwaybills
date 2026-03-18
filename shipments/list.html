@@ -898,9 +898,9 @@
                 }
             }
             
-            function confirmShipmentAWB(spaceId) {
+            async function confirmShipmentAWB(spaceId) {
                 if (confirm('Are you sure you want to confirm this AWB? Once confirmed, it will move to Active status.')) {
-                    const result = window.confirmAWB(spaceId);
+                    const result = await window.confirmAWB(spaceId);
                     if (result.success) {
                         alert('AWB confirmed successfully!');
                         loadShipments();

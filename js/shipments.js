@@ -743,10 +743,18 @@ function shareShipment(spaceId) {
     return updateShipment(spaceId, shipment.toJSON ? shipment.toJSON() : shipment);
 }
 
-// Confirm AWB (Agent only)
-function confirmAWB(spaceId) {
-    const user = getCurrentUser();
-    if (!user || user.role !== 'issuing-carrier-agent') {
+// Confirm AWB (Agent/Admin)
+async function confirmAWB(spaceId) {
+    let user = getCurrentUser();
+    if (!user && typeof getCurrentUserAsync === 'function') {
+        try {
+            user = await getCurrentUserAsync();
+        } catch (error) {
+            console.warn('Could not resolve current user for AWB confirmation:', error);
+        }
+    }
+
+    if (!user || (user.role !== 'issuing-carrier-agent' && user.role !== 'admin')) {
         return { success: false, message: 'Only Issuing Carrier Agents can confirm AWBs' };
     }
     
