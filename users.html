@@ -613,30 +613,68 @@
         }
 
         // ==================== My Users List Functions ====================
-        
+        let myUserListCache = null;
+
         function getMyUserList() {
+            if (Array.isArray(myUserListCache)) return myUserListCache;
             const currentUser = getCurrentUser();
             if (!currentUser) return [];
-            
             try {
                 const listJson = localStorage.getItem(`awb_my_users_${currentUser.id}`);
                 return listJson ? JSON.parse(listJson) : [];
             } catch (error) {
-                console.warn('Could not read my user list from localStorage:', error);
                 return [];
             }
         }
 
-        function saveMyUserList(userIds) {
-            const currentUser = getCurrentUser();
-            if (!currentUser) return false;
-            
+        async function loadMyUserListFromAPI() {
+            const currentUser = typeof getCurrentUserAsync === 'function' ? await getCurrentUserAsync() : getCurrentUser();
+            if (!currentUser || !currentUser.id || !window.userProfileAPI) {
+                myUserListCache = getMyUserList();
+                return;
+            }
             try {
-                localStorage.setItem(`awb_my_users_${currentUser.id}`, JSON.stringify(userIds));
+                const profile = await window.userProfileAPI.get(currentUser.id);
+                myUserListCache = (profile && Array.isArray(profile.myUserIds)) ? profile.myUserIds : [];
+                const fromStorage = (() => { try { const j = localStorage.getItem(`awb_my_users_${currentUser.id}`); return j ? JSON.parse(j) : []; } catch (e) { return []; } })();
+                if (myUserListCache.length === 0 && fromStorage.length > 0) {
+                    myUserListCache = fromStorage;
+                    await saveMyUserList(fromStorage);
+                }
+            } catch (error) {
+                console.warn('Could not load my user list from profile:', error);
+                myUserListCache = getMyUserList();
+            }
+        }
+
+        async function saveMyUserList(userIds) {
+            const currentUser = typeof getCurrentUserAsync === 'function' ? await getCurrentUserAsync() : getCurrentUser();
+            if (!currentUser || !currentUser.id) return false;
+            const list = Array.isArray(userIds) ? userIds : [];
+            if (window.userProfileAPI) {
+                try {
+                    let profile = {};
+                    try {
+                        profile = await window.userProfileAPI.get(currentUser.id) || {};
+                    } catch (e) {}
+                    const merged = { ...profile, myUserIds: list };
+                    await window.userProfileAPI.save(currentUser.id, merged);
+                    myUserListCache = list;
+                    try { localStorage.setItem(`awb_my_users_${currentUser.id}`, JSON.stringify(list)); } catch (e) {}
+                    await loadMyUsers();
+                    return true;
+                } catch (error) {
+                    console.error('Could not save my user list to profile:', error);
+                    alert('Error saving user list. Please try again.');
+                    return false;
+                }
+            }
+            try {
+                localStorage.setItem(`awb_my_users_${currentUser.id}`, JSON.stringify(list));
+                myUserListCache = list;
                 loadMyUsers();
                 return true;
             } catch (error) {
-                console.warn('Could not save my user list to localStorage:', error);
                 alert('Error saving user list. Storage may be full.');
                 return false;
             }
@@ -819,40 +857,34 @@
             container.innerHTML = usersHTML;
         }
 
-        function addUserToMyList(userId) {
+        async function addUserToMyList(userId) {
             const myUserIds = getMyUserList();
-            
             if (myUserIds.includes(userId)) {
                 alert('This user is already in your list.');
                 return;
             }
-            
             myUserIds.push(userId);
-            
-            if (saveMyUserList(myUserIds)) {
+            const ok = await saveMyUserList(myUserIds);
+            if (ok) {
                 closeAddUserToListModal();
-                getAllUsers().then(users => {
-                    const user = users.find(u => u.id === userId);
-                    const userName = user ? (user.name || user.email) : 'User';
-                    alert(`✓ ${userName} has been added to your list!`);
-                });
+                const users = await getAllUsers();
+                const user = users.find(u => u.id === userId);
+                const userName = user ? (user.name || user.email) : 'User';
+                alert(`✓ ${userName} has been added to your list!`);
             }
         }
 
-        function removeUserFromMyList(userId) {
+        async function removeUserFromMyList(userId) {
             if (!confirm('Are you sure you want to remove this user from your list?')) {
                 return;
             }
-            
-            const myUserIds = getMyUserList();
-            const filtered = myUserIds.filter(id => id !== userId);
-            
-            if (saveMyUserList(filtered)) {
-                getAllUsers().then(users => {
-                    const user = users.find(u => u.id === userId);
-                    const userName = user ? (user.name || user.email) : 'User';
-                    alert(`✓ ${userName} has been removed from your list.`);
-                });
+            const myUserIds = getMyUserList().filter(id => id !== userId);
+            const ok = await saveMyUserList(myUserIds);
+            if (ok) {
+                const users = await getAllUsers();
+                const user = users.find(u => u.id === userId);
+                const userName = user ? (user.name || user.email) : 'User';
+                alert(`✓ ${userName} has been removed from your list.`);
             }
         }
 
@@ -1577,9 +1609,13 @@
             // Additional wait to ensure API is fully initialized
             await new Promise(resolve => setTimeout(resolve, 200));
             
-            // Load My Users and Added Me directly - they handle their own retries
-            // Don't wait for getAllUsers() first, as these functions call it internally
+            // Load My List from profile (or localStorage) first, then load My Users
             console.log('Initializing user counts...');
+            try {
+                await loadMyUserListFromAPI();
+            } catch (error) {
+                console.error('Error loading my user list on init:', error);
+            }
             try {
                 await loadMyUsers();
             } catch (error) {
