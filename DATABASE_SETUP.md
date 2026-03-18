@@ -1,6 +1,6 @@
-# Database Setup for Airlines, Destinations, and Terminals
+# Database Setup for Airlines, Destinations, and Airports
 
-This application now stores airlines, destinations, and terminals server-side using Supabase (a free PostgreSQL database service).
+This application stores airlines and airports server-side (e.g. Upstash Redis or Supabase). Airports replace the former separate Origins/Destinations; terminal details are stored per airport, per airline.
 
 ## Quick Setup (5 minutes)
 
@@ -46,23 +46,26 @@ CREATE TABLE IF NOT EXISTS destinations (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Terminals table
-CREATE TABLE IF NOT EXISTS terminals (
+-- Airports table (replaces separate origins/destinations; terminals are JSONB per airport)
+CREATE TABLE IF NOT EXISTS airports (
     id TEXT PRIMARY KEY,
-    terminalCode TEXT,
-    terminalName TEXT,
+    airportCode TEXT,
+    cityName TEXT,
+    stateName TEXT,
+    airportName TEXT,
+    terminals JSONB DEFAULT '[]',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Enable Row Level Security (optional, for future auth)
 ALTER TABLE airlines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE destinations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE terminals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE airports ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read/write for now (you can restrict later)
 CREATE POLICY "Allow public access" ON airlines FOR ALL USING (true);
 CREATE POLICY "Allow public access" ON destinations FOR ALL USING (true);
-CREATE POLICY "Allow public access" ON terminals FOR ALL USING (true);
+CREATE POLICY "Allow public access" ON airports FOR ALL USING (true);
 ```
 
 ### Step 3: Get Your Supabase Credentials
@@ -95,7 +98,7 @@ If you have existing data in localStorage, you can:
 ## Testing
 
 After setup:
-1. Add a new airline/destination/terminal via the UI
+1. Add a new airline or airport via the UI
 2. Check Supabase dashboard → Table Editor to see the data
 3. Refresh the page - data should persist
 4. Open in a different browser - data should be visible there too
@@ -104,7 +107,6 @@ After setup:
 
 If you prefer MongoDB, Firebase, or another database, you can modify the API functions in:
 - `api/airlines.js`
-- `api/destinations.js`
-- `api/terminals.js`
+- `api/airports.js`
 
 The frontend code in `js/api.js` will work with any backend that provides the same API endpoints.

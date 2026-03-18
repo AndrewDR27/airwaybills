@@ -238,67 +238,6 @@ export const airportsAPI = {
     }
 };
 
-// Terminals API
-export const terminalsAPI = {
-    async getAll() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/terminals`);
-            if (!response.ok) throw new Error('Failed to fetch terminals');
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching terminals:', error);
-            // Database required - no localStorage fallback
-            throw error;
-        }
-    },
-
-    async create(terminal) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/terminals`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(terminal)
-            });
-            if (!response.ok) throw new Error('Failed to create terminal');
-            return await response.json();
-        } catch (error) {
-            console.error('Error creating terminal:', error);
-            // Database required - no localStorage fallback
-            throw error;
-        }
-    },
-
-    async update(terminal) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/terminals`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(terminal)
-            });
-            if (!response.ok) throw new Error('Failed to update terminal');
-            return await response.json();
-        } catch (error) {
-            console.error('Error updating terminal:', error);
-            // Database required - no localStorage fallback
-            throw error;
-        }
-    },
-
-    async delete(id) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/terminals?id=${id}`, {
-                method: 'DELETE'
-            });
-            if (!response.ok) throw new Error('Failed to delete terminal');
-            return { success: true };
-        } catch (error) {
-            console.error('Error deleting terminal:', error);
-            // Database required - no localStorage fallback
-            throw error;
-        }
-    }
-};
-
 // Users API
 export const usersAPI = {
     async getAll() {
@@ -710,7 +649,6 @@ if (typeof window !== 'undefined') {
     window.destinationsAPI = destinationsAPI;
     window.originsAPI = originsAPI;
     window.airportsAPI = airportsAPI;
-    window.terminalsAPI = terminalsAPI;
     window.templatesAPI = templatesAPI;
     window.userProfileAPI = userProfileAPI;
     window.awbDraftAPI = awbDraftAPI;

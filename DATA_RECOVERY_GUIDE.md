@@ -62,7 +62,7 @@ function exportAllData() {
         shipments: JSON.parse(localStorage.getItem('awbShipments') || '[]'),
         airlines: JSON.parse(localStorage.getItem('awb_airlines') || '[]'),
         destinations: JSON.parse(localStorage.getItem('awb_destinations') || '[]'),
-        terminals: JSON.parse(localStorage.getItem('awb_terminals') || '[]'),
+        airports: JSON.parse(localStorage.getItem('awb_airports') || '[]'),
     };
     
     // Create download
@@ -99,9 +99,9 @@ This will download a JSON file with all your data.
    - Use "Add Shipper" and "Add Consignee" buttons
    - Re-enter contact information
 
-3. **Re-add Airlines/Destinations/Terminals:**
-   - Go to respective pages
-   - Add them back one by one
+3. **Re-add Airlines and Airports:**
+   - Go to Locations → Airlines and Locations → Airports
+   - Add them back (terminals are configured per airport in Airports)
 
 ### Option 2: Use Export Data (If You Have It)
 
@@ -145,15 +145,11 @@ If you exported data from localStorage:
    - IATA/ICAO codes
    - Contact details
 
-5. **Destinations**
-   - Airport codes
-   - City/state information
-
-6. **Terminals**
-   - Terminal codes and names
+5. **Airports**
+   - Airport codes, city/state, and terminal-by-airline details (phone, email, address, pick-up hours)
 
 ### Optional (Can Recreate Later):
-7. **Shipments**
+6. **Shipments**
    - Historical shipment data
    - Can be recreated as needed
 

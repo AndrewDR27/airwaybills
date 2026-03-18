@@ -75,7 +75,7 @@ function clearLocalStorageOnProduction() {
             'awb_contacts',
             'awb_airlines',
             'awb_destinations',
-            'awb_terminals',
+            'awb_airports',
             'isAuthenticated',
             'username'
         ];

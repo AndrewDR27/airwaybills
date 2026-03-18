@@ -35,14 +35,13 @@ After adding Upstash Redis via the marketplace, Vercel will automatically redepl
 ## How It Works
 
 - **Airlines** are stored under the key `awb_airlines`
-- **Destinations** are stored under the key `awb_destinations`  
-- **Terminals** are stored under the key `awb_terminals`
+- **Airports** are stored under the key `awb_airports` (each airport can have terminals-by-airline; origins/destinations were merged into this)
 
 All data is stored as JSON arrays in Redis, which is perfect for this use case.
 
 ## Testing
 
-1. Add a new airline/destination/terminal via the UI
+1. Add a new airline or airport (with terminal details) via the UI
 2. Refresh the page - data should persist
 3. Open in a different browser - data should be visible there too! 🎉
 

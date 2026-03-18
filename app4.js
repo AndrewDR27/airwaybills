@@ -287,8 +287,8 @@ function initializeApp() {
     // Destination handlers
     if (addDestinationBtn) {
         addDestinationBtn.addEventListener('click', () => {
-            // Open destinations page in a new tab/window or navigate to it
-            window.open('destinations.html', '_blank');
+            // Open airports page in a new tab (destinations merged into Airports)
+            window.open('airports.html', '_blank');
         });
     }
     

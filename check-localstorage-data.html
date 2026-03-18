@@ -179,22 +179,22 @@
                 }
             </div>`;
             
-            // Check Terminals
-            const terminals = JSON.parse(localStorage.getItem('awb_terminals') || '[]');
+            // Check Airports (terminals are per-airport in this list)
+            const airports = JSON.parse(localStorage.getItem('awb_airports') || '[]');
             html += `<div class="data-section">
-                <h2>🏢 Terminals</h2>
-                ${terminals.length > 0 
+                <h2>🛫 Airports</h2>
+                ${airports.length > 0 
                     ? `<div class="data-found">
-                        <span class="count">${terminals.length} terminal(s) found!</span>
-                        <pre>${JSON.stringify(terminals, null, 2)}</pre>
+                        <span class="count">${airports.length} airport(s) found!</span>
+                        <pre>${JSON.stringify(airports, null, 2)}</pre>
                     </div>`
-                    : `<div class="data-empty">No terminals found in localStorage</div>`
+                    : `<div class="data-empty">No airports found in localStorage (data may be in database)</div>`
                 }
             </div>`;
             
             // Summary
             const totalItems = users.length + contacts.length + (profile ? 1 : 0) + 
-                             shipments.length + airlines.length + destinations.length + terminals.length;
+                             shipments.length + airlines.length + destinations.length + airports.length;
             
             html += `<div class="data-section">
                 <h2>📊 Summary</h2>
@@ -218,7 +218,7 @@
                 shipments: JSON.parse(localStorage.getItem('awbShipments') || '[]'),
                 airlines: JSON.parse(localStorage.getItem('awb_airlines') || '[]'),
                 destinations: JSON.parse(localStorage.getItem('awb_destinations') || '[]'),
-                terminals: JSON.parse(localStorage.getItem('awb_terminals') || '[]'),
+                airports: JSON.parse(localStorage.getItem('awb_airports') || '[]'),
                 exportedAt: new Date().toISOString()
             };
             
