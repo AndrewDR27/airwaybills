@@ -5,6 +5,10 @@
       "destination": "/login.html"
     }
   ],
+  "redirects": [
+    { "source": "/origins.html", "destination": "/airports.html", "permanent": true },
+    { "source": "/destinations.html", "destination": "/airports.html", "permanent": true }
+  ],
   "buildCommand": "",
   "outputDirectory": "."
 }
