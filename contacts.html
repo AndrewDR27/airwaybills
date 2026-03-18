@@ -599,7 +599,7 @@
         window.contactsAPI = contactsAPI;
         
         // Contact management functions (shared with create-awb.html)
-        async function getContacts() {
+        async function getContacts(retry = true) {
             if (!contactsAPI) {
                 return getContactsFromLocalStorage();
             }
@@ -607,7 +607,7 @@
             try {
                 const contacts = await contactsAPI.getAll();
                 // Migrate old contacts to new structure if needed
-                const migratedContacts = contacts.map(contact => {
+                const migratedContacts = (Array.isArray(contacts) ? contacts : []).map(contact => {
                     if (!contact) return null;
                     
                     const migrated = {
@@ -634,6 +634,10 @@
                 return migratedContacts;
             } catch (error) {
                 console.error('Error fetching contacts from API:', error);
+                if (retry) {
+                    await new Promise(r => setTimeout(r, 400));
+                    return getContacts(false);
+                }
                 return [];
             }
         }
@@ -647,16 +651,19 @@
                 alert('Database not available. Please try again.');
                 return false;
             }
+            const list = Array.isArray(contacts) ? contacts : [];
             try {
-                for (const contact of contacts) {
+                for (const contact of list) {
+                    if (!contact || !contact.id) continue;
                     const existing = await contactsAPI.getAll();
-                    const exists = existing.find(c => c.id === contact.id);
+                    const exists = Array.isArray(existing) && existing.some(c => c && String(c.id) === String(contact.id));
                     if (exists) {
                         await contactsAPI.update(contact);
                     } else {
                         await contactsAPI.create(contact);
                     }
                 }
+                await new Promise(r => setTimeout(r, 100));
                 await loadContacts();
                 return true;
             } catch (error) {
@@ -2126,8 +2133,17 @@
         window.openDescriptionsEditModal = openDescriptionsEditModal;
         window.openBillingEditModal = openBillingEditModal;
 
-        // Load contacts and profile from database on page load
+        // Load contacts and profile from database on page load (wait for API so contacts persist)
         (async () => {
+            const waitForApi = () => {
+                if (window.contactsAPI) return Promise.resolve();
+                return new Promise((resolve) => {
+                    const onReady = () => resolve();
+                    window.addEventListener('apiReady', onReady, { once: true });
+                    setTimeout(onReady, 800);
+                });
+            };
+            await waitForApi();
             if (typeof loadUserProfileFromAPI === 'function') await loadUserProfileFromAPI();
             await loadContacts();
             loadContactsAutofills();
