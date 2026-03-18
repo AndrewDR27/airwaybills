@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airports - Airway Bills</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/themes.js"></script>
+    <script src="js/roles.js"></script>
+    <style>
+        body { margin: 0; padding: 2px; font-family: 'MS Sans Serif', 'Arial', sans-serif; background: #008080; min-height: 100vh; }
+        .airports-container { max-width: 1200px; margin: 0 auto; background: #C0C0C0; border: 2px outset #C0C0C0; overflow: hidden; }
+        .airports-header { background: linear-gradient(to bottom, #000080 0%, #000080 100%); color: white; padding: 4px 8px; text-align: center; border-bottom: 2px solid #000000; }
+        .airports-header h1 { font-size: 16px; margin-bottom: 2px; font-weight: bold; }
+        .airports-content { padding: 8px; }
+        .airports-list { background: white; overflow: hidden; border: 2px inset #C0C0C0; }
+        .airports-table { width: 100%; border-collapse: collapse; }
+        .airports-table thead { background: #C0C0C0; border-bottom: 2px inset #C0C0C0; }
+        .airports-table th { padding: 4px 8px; text-align: left; font-weight: bold; font-size: 11px; text-transform: uppercase; border-right: 1px solid #808080; }
+        .airports-table th:last-child { border-right: none; }
+        .airports-table td { padding: 4px 8px; border-bottom: 1px solid #C0C0C0; border-right: 1px solid #C0C0C0; font-size: 11px; }
+        .airports-table td:last-child { border-right: none; }
+        .airports-table tbody tr:hover { background: #316AC5; color: white; }
+        .airport-actions { display: flex; gap: 4px; }
+        .btn-edit, .btn-delete { padding: 2px 12px; border: 2px outset #C0C0C0; cursor: pointer; font-size: 11px; }
+        .btn-edit { background: #C0C0C0; color: #000000; }
+        .btn-delete { background: #C0C0C0; color: #000000; }
+        .btn-edit:hover, .btn-delete:hover { background: #E8E8E8; }
+        .add-airport-btn { margin-bottom: 8px; padding: 4px 16px; background: #C0C0C0; border: 2px outset #C0C0C0; cursor: pointer; font-size: 11px; }
+        .add-airport-btn:hover { background: #E8E8E8; }
+        .empty-state { text-align: center; padding: 20px; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: #C0C0C0; padding: 8px; border: 2px outset #C0C0C0; max-width: 560px; width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal-header { margin: -8px -8px 8px -8px; background: #000080; color: white; padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { margin: 0; font-size: 12px; }
+        .modal-close { background: #C0C0C0; border: 2px outset #C0C0C0; cursor: pointer; padding: 2px 6px; }
+        .modal-body { padding: 8px; }
+        .form-group { margin-bottom: 8px; }
+        .form-group label { display: block; margin-bottom: 2px; font-weight: bold; font-size: 11px; }
+        .form-group input, .form-group select { width: 100%; padding: 2px 4px; border: 2px inset #C0C0C0; font-size: 11px; box-sizing: border-box; }
+        .terminals-section { margin-top: 12px; border-top: 2px solid #808080; padding-top: 8px; }
+        .terminals-section h3 { font-size: 11px; margin: 0 0 6px 0; }
+        .terminal-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 4px; align-items: end; margin-bottom: 6px; }
+        .terminal-row .form-group { margin-bottom: 0; }
+        .terminal-row .btn-remove { padding: 2px 8px; font-size: 10px; }
+        .add-terminal-btn { margin-top: 4px; padding: 2px 12px; font-size: 11px; }
+        .modal-actions { display: flex; gap: 4px; justify-content: flex-end; margin-top: 8px; padding-top: 8px; border-top: 2px inset #C0C0C0; }
+        .btn-primary, .btn-secondary { padding: 4px 16px; border: 2px outset #C0C0C0; cursor: pointer; font-size: 11px; }
+    </style>
+</head>
+<body>
+    <div class="airports-container">
+        <div class="airports-header">
+            <h1>✈️ Airports</h1>
+            <p>Manage airports and terminals by airline</p>
+        </div>
+        <div class="airports-content">
+            <button class="add-airport-btn" id="addAirportBtn">+ Add Airport</button>
+            <div class="airports-list" id="airportsList"></div>
+        </div>
+    </div>
+
+    <div id="airportModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="airportModalTitle">Add Airport</h2>
+                <button type="button" class="modal-close" id="closeAirportModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="airportForm">
+                    <input type="hidden" id="airportId" value="">
+                    <div class="form-group">
+                        <label for="airportCode">Airport Code *</label>
+                        <input type="text" id="airportCode" required placeholder="e.g. JFK" maxlength="3" style="text-transform: uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label for="cityName">City Name</label>
+                        <input type="text" id="cityName" placeholder="e.g. New York">
+                    </div>
+                    <div class="form-group">
+                        <label for="stateName">State Name</label>
+                        <input type="text" id="stateName" placeholder="e.g. NY">
+                    </div>
+                    <div class="form-group">
+                        <label for="airportName">Airport Name</label>
+                        <input type="text" id="airportName" placeholder="e.g. John F. Kennedy International">
+                    </div>
+                    <div class="terminals-section">
+                        <h3>Terminals by airline</h3>
+                        <div id="terminalRowsContainer"></div>
+                        <button type="button" class="add-terminal-btn add-airport-btn" id="addTerminalRowBtn">+ Add terminal</button>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancelAirportBtn">Cancel</button>
+                        <button type="submit" class="btn-primary" id="saveAirportBtn">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/api.js"></script>
+    <script>
+        let airportsAPI = null;
+        let airlinesAPI = null;
+        let airlinesCache = [];
+
+        async function waitForAPI() {
+            if (window.airportsAPI && window.airlinesAPI) {
+                airportsAPI = window.airportsAPI;
+                airlinesAPI = window.airlinesAPI;
+                return;
+            }
+            await new Promise((resolve) => {
+                if (window.airportsAPI && window.airlinesAPI) {
+                    airportsAPI = window.airportsAPI;
+                    airlinesAPI = window.airlinesAPI;
+                    resolve();
+                    return;
+                }
+                window.addEventListener('apiReady', () => {
+                    airportsAPI = window.airportsAPI;
+                    airlinesAPI = window.airlinesAPI;
+                    resolve();
+                }, { once: true });
+                setTimeout(resolve, 2000);
+            });
+        }
+
+        function canManageLocations() {
+            try {
+                const user = getCurrentUser();
+                if (!user) return false;
+                if (typeof hasPermission === 'function') return hasPermission(user.role, 'canEditLocations');
+                return user.role === 'admin' || user.role === 'issuing-carrier-agent';
+            } catch (e) { return false; }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function loadAirlines() {
+            if (airlinesCache.length) return airlinesCache;
+            await waitForAPI();
+            if (airlinesAPI) {
+                airlinesCache = await airlinesAPI.getAll();
+                return airlinesCache;
+            }
+            return [];
+        }
+
+        function addTerminalRow(terminal = {}) {
+            const container = document.getElementById('terminalRowsContainer');
+            const row = document.createElement('div');
+            row.className = 'terminal-row';
+            const airlinesOpts = airlinesCache.map(a => {
+                const sel = (a.id === (terminal.airlineId || '')) ? ' selected' : '';
+                return `<option value="${escapeHtml(a.id)}"${sel}>${escapeHtml(a.companyName || a.id)}</option>`;
+            }).join('');
+            row.innerHTML = `
+                <div class="form-group">
+                    <label>Airline</label>
+                    <select class="terminal-airline" data-airline>
+                        <option value="">-- Select --</option>${airlinesOpts}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" class="terminal-phone" placeholder="Phone" value="${escapeHtml(terminal.terminalPhone || '')}">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" class="terminal-email" placeholder="Email" value="${escapeHtml(terminal.terminalEmail || '')}">
+                </div>
+                <div class="form-group">
+                    <button type="button" class="btn-remove btn-delete" data-remove>Remove</button>
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label>Address</label>
+                    <input type="text" class="terminal-address" placeholder="Address" value="${escapeHtml(terminal.terminalAddress || '')}">
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label>Pick-up hours</label>
+                    <input type="text" class="terminal-hours" placeholder="Pick-up hours" value="${escapeHtml(terminal.terminalPickUpHours || '')}">
+                </div>
+            `;
+            row.querySelector('[data-remove]').addEventListener('click', () => row.remove());
+            container.appendChild(row);
+        }
+
+        function collectTerminals() {
+            const rows = document.querySelectorAll('#terminalRowsContainer .terminal-row');
+            const terminals = [];
+            rows.forEach(r => {
+                const airlineId = (r.querySelector('.terminal-airline') || {}).value;
+                if (!airlineId) return;
+                terminals.push({
+                    airlineId,
+                    terminalPhone: (r.querySelector('.terminal-phone') || {}).value || '',
+                    terminalEmail: (r.querySelector('.terminal-email') || {}).value || '',
+                    terminalAddress: (r.querySelector('.terminal-address') || {}).value || '',
+                    terminalPickUpHours: (r.querySelector('.terminal-hours') || {}).value || ''
+                });
+            });
+            return terminals;
+        }
+
+        async function renderAirports() {
+            const listEl = document.getElementById('airportsList');
+            await waitForAPI();
+            let airports = [];
+            try {
+                if (airportsAPI) airports = await airportsAPI.getAll();
+            } catch (e) {
+                console.warn('Error loading airports:', e);
+            }
+            if (airports.length === 0) {
+                listEl.innerHTML = '<div class="empty-state"><p>No airports yet. Add one to get started.</p></div>';
+                return;
+            }
+            const canManage = canManageLocations();
+            const rows = airports.map(a => {
+                const termCount = Array.isArray(a.terminals) ? a.terminals.length : 0;
+                const idEsc = (a.id || '').replace(/'/g, "\\'");
+                const delBtn = canManage ? `<button class="btn-delete" onclick="deleteAirport('${idEsc}')">Delete</button>` : '';
+                return `<tr>
+                    <td>${escapeHtml(a.airportCode || '')}</td>
+                    <td>${escapeHtml(a.cityName || '')}</td>
+                    <td>${escapeHtml(a.stateName || '')}</td>
+                    <td>${escapeHtml(a.airportName || '')}</td>
+                    <td>${termCount}</td>
+                    <td><div class="airport-actions"><button class="btn-edit" onclick="editAirport('${idEsc}')">Edit</button>${delBtn}</div></td>
+                </tr>`;
+            }).join('');
+            listEl.innerHTML = `
+                <table class="airports-table">
+                    <thead><tr>
+                        <th>Code</th><th>City</th><th>State</th><th>Airport Name</th><th>Terminals</th><th>Actions</th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+        }
+
+        async function openAirportModal(airportId) {
+            if (!airportId && !canManageLocations()) {
+                alert('Only administrators and issuing carrier agents can add airports.');
+                return;
+            }
+            await loadAirlines();
+            const modal = document.getElementById('airportModal');
+            const title = document.getElementById('airportModalTitle');
+            const idInput = document.getElementById('airportId');
+            document.getElementById('terminalRowsContainer').innerHTML = '';
+            if (airportId) {
+                const airports = await airportsAPI.getAll();
+                const a = airports.find(x => x.id === airportId);
+                if (a) {
+                    title.textContent = 'Edit Airport';
+                    idInput.value = a.id;
+                    document.getElementById('airportCode').value = a.airportCode || '';
+                    document.getElementById('cityName').value = a.cityName || '';
+                    document.getElementById('stateName').value = a.stateName || '';
+                    document.getElementById('airportName').value = a.airportName || '';
+                    (a.terminals || []).forEach(t => addTerminalRow(t));
+                }
+            } else {
+                title.textContent = 'Add Airport';
+                document.getElementById('airportForm').reset();
+                idInput.value = '';
+                addTerminalRow();
+            }
+            if (document.getElementById('terminalRowsContainer').children.length === 0) addTerminalRow();
+            modal.style.display = 'flex';
+        }
+
+        function closeAirportModal() {
+            document.getElementById('airportModal').style.display = 'none';
+            document.getElementById('airportForm').reset();
+        }
+
+        function editAirport(id) { openAirportModal(id); }
+
+        async function deleteAirport(id) {
+            if (!canManageLocations()) {
+                alert('Only administrators and issuing carrier agents can delete airports.');
+                return;
+            }
+            if (!confirm('Delete this airport?')) return;
+            await waitForAPI();
+            try {
+                await airportsAPI.delete(id);
+                alert('Airport deleted.');
+                await renderAirports();
+            } catch (e) {
+                console.error(e);
+                alert('Error deleting airport.');
+            }
+        }
+
+        async function handleSaveAirport(e) {
+            e.preventDefault();
+            const id = document.getElementById('airportId').value || `airport_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+            const airportCode = document.getElementById('airportCode').value.trim().toUpperCase();
+            if (!airportCode) {
+                alert('Airport Code is required.');
+                return;
+            }
+            const airport = {
+                id,
+                airportCode,
+                cityName: document.getElementById('cityName').value.trim(),
+                stateName: document.getElementById('stateName').value.trim(),
+                airportName: document.getElementById('airportName').value.trim(),
+                terminals: collectTerminals()
+            };
+            await waitForAPI();
+            try {
+                const list = await airportsAPI.getAll();
+                const exists = list.find(a => a.id === id);
+                if (exists) {
+                    await airportsAPI.update(airport);
+                } else {
+                    if (!canManageLocations()) {
+                        alert('Only administrators and issuing carrier agents can add airports.');
+                        return;
+                    }
+                    await airportsAPI.create(airport);
+                }
+                closeAirportModal();
+                alert('Airport saved.');
+                await renderAirports();
+            } catch (err) {
+                console.error(err);
+                alert('Error saving airport.');
+            }
+        }
+
+        window.deleteAirport = deleteAirport;
+        window.editAirport = editAirport;
+
+        async function init() {
+            let n = 0;
+            while (typeof getCurrentUser === 'undefined' && n < 50) {
+                await new Promise(r => setTimeout(r, 100));
+                n++;
+            }
+            await renderAirports();
+            const addBtn = document.getElementById('addAirportBtn');
+            if (addBtn) {
+                const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+                addBtn.style.display = (user && (user.role === 'admin' || user.role === 'issuing-carrier-agent')) ? 'block' : 'none';
+                addBtn.addEventListener('click', () => openAirportModal(null));
+            }
+            const addTermBtn = document.getElementById('addTerminalRowBtn');
+            if (addTermBtn) addTermBtn.addEventListener('click', () => addTerminalRow());
+            document.getElementById('closeAirportModal').addEventListener('click', closeAirportModal);
+            document.getElementById('cancelAirportBtn').addEventListener('click', closeAirportModal);
+            document.getElementById('airportForm').addEventListener('submit', handleSaveAirport);
+            document.getElementById('airportModal').addEventListener('click', e => {
+                if (e.target.id === 'airportModal') closeAirportModal();
+            });
+        }
+
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+        else init();
+    </script>
+</body>
+</html>

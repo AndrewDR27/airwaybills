@@ -4872,28 +4872,25 @@ async function updateContactDropdowns() {
     // Populate airline dropdown (now async)
     await populateAirlineDropdown(airlineSelect1, addAirlineBtn1, currentAirlineValue1);
     
-    // Populate destination dropdown
+    // Populate destination dropdown from Airports
     if (destinationSelect) {
         const currentDestinationValue = destinationSelect.value;
         destinationSelect.innerHTML = '<option value="">-- Select Destination --</option>';
         
-        // Only load from destinationsAPI - no localStorage fallback
         let destinations = [];
-        if (window.destinationsAPI) {
+        if (window.airportsAPI) {
             try {
-                destinations = await window.destinationsAPI.getAll();
-                console.log('Loaded destinations from API:', destinations.length);
+                destinations = await window.airportsAPI.getAll();
+                console.log('Loaded airports for destination dropdown:', destinations.length);
             } catch (error) {
-                console.error('Could not load destinations from API:', error);
-                // Don't fallback to localStorage - destinations should only be in API
+                console.error('Could not load airports:', error);
                 destinations = [];
             }
         } else {
-            console.warn('destinationsAPI not available - destinations can only be managed in Locations > Destinations');
+            console.warn('airportsAPI not available - manage airports in Locations > Airports');
             destinations = [];
         }
         
-        // Deduplicate destinations by ID, airport code, and display text to prevent duplicates
         const seenIds = new Set();
         const seenCodes = new Set();
         const seenDisplayTexts = new Set();
@@ -6543,17 +6540,16 @@ function fillContactField(fieldPrefix, contactIdOrUser) {
 async function fillDestinationFields(destinationId) {
     if (!generatedForm) return;
     
-    // Get destinations from API only - no localStorage fallback
     let destinations = [];
-    if (window.destinationsAPI) {
+    if (window.airportsAPI) {
         try {
-            destinations = await window.destinationsAPI.getAll();
+            destinations = await window.airportsAPI.getAll();
         } catch (error) {
-            console.error('Could not load destinations from API:', error);
+            console.error('Could not load airports:', error);
             destinations = [];
         }
     } else {
-        console.warn('destinationsAPI not available');
+        console.warn('airportsAPI not available');
         destinations = [];
     }
     

@@ -705,24 +705,24 @@
                 return;
             }
             try {
-                if (!window.airlinesAPI || !window.destinationsAPI) {
+                if (!window.airlinesAPI || !window.airportsAPI) {
                     section.style.display = 'none';
                     return;
                 }
-                const [airlines, destinations] = await Promise.all([
+                const [airlines, airports] = await Promise.all([
                     window.airlinesAPI.getAll(),
-                    window.destinationsAPI.getAll()
+                    window.airportsAPI.getAll()
                 ]);
-                if (!destinationId && Array.isArray(destinations) && Object.keys(formData).length > 0) {
+                if (!destinationId && Array.isArray(airports) && Object.keys(formData).length > 0) {
                     const codeMatch = /^[A-Za-z]{3}$/;
                     for (const key of Object.keys(formData)) {
                         const val = formData[key];
                         if (typeof val !== 'string') continue;
                         const code = val.trim().toUpperCase();
                         if (!codeMatch.test(code)) continue;
-                        const dest = destinations.find(d => (d.airportCode || '').toUpperCase() === code);
-                        if (dest) {
-                            destinationId = dest.id;
+                        const ap = airports.find(d => (d.airportCode || '').toUpperCase() === code);
+                        if (ap) {
+                            destinationId = ap.id;
                             break;
                         }
                     }
@@ -732,9 +732,9 @@
                     return;
                 }
                 const airline = Array.isArray(airlines) ? airlines.find(a => a.id === airlineId) : null;
-                const destination = Array.isArray(destinations) ? destinations.find(d => d.id === destinationId) : null;
-                const locationDetails = (airline && airline.locationDetails && Array.isArray(airline.locationDetails)) ? airline.locationDetails : [];
-                const terminal = locationDetails.find(l => l.destinationId === destinationId || (l.originId === destinationId));
+                const destination = Array.isArray(airports) ? airports.find(d => d.id === destinationId) : null;
+                const terminalList = (destination && Array.isArray(destination.terminals)) ? destination.terminals : [];
+                const terminal = terminalList.find(t => t.airlineId === airlineId);
                 const hasGeneral = airline && (airline.generalCustomerServicePhone || airline.generalCustomerServiceEmail);
                 const hasTerminal = terminal && (terminal.terminalPhone || terminal.terminalEmail || terminal.terminalAddress || terminal.terminalPickUpHours);
                 if (!airline || (!hasGeneral && !hasTerminal)) {

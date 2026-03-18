@@ -184,6 +184,60 @@ export const originsAPI = {
     }
 };
 
+// Airports API (single list; terminals by airline on each airport)
+export const airportsAPI = {
+    async getAll() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/airports`);
+            if (!response.ok) throw new Error('Failed to fetch airports');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching airports:', error);
+            throw error;
+        }
+    },
+    async create(airport) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/airports`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(airport)
+            });
+            if (!response.ok) throw new Error('Failed to create airport');
+            return await response.json();
+        } catch (error) {
+            console.error('Error creating airport:', error);
+            throw error;
+        }
+    },
+    async update(airport) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/airports`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(airport)
+            });
+            if (!response.ok) throw new Error('Failed to update airport');
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating airport:', error);
+            throw error;
+        }
+    },
+    async delete(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/airports?id=${id}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Failed to delete airport');
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting airport:', error);
+            throw error;
+        }
+    }
+};
+
 // Terminals API
 export const terminalsAPI = {
     async getAll() {
@@ -655,6 +709,7 @@ if (typeof window !== 'undefined') {
     window.airlinesAPI = airlinesAPI;
     window.destinationsAPI = destinationsAPI;
     window.originsAPI = originsAPI;
+    window.airportsAPI = airportsAPI;
     window.terminalsAPI = terminalsAPI;
     window.templatesAPI = templatesAPI;
     window.userProfileAPI = userProfileAPI;
