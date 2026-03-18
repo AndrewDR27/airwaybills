@@ -4544,31 +4544,15 @@ function getContacts() {
 }
 
 async function loadContactsFromAPI() {
+    if (!window.contactsAPI) return;
     try {
-        const user = typeof getCurrentUserAsync === 'function' ? await getCurrentUserAsync() : (typeof getCurrentUser === 'function' ? getCurrentUser() : null);
-        if (user && user.id && window.userProfileAPI) {
-            const profile = await window.userProfileAPI.get(user.id);
-            contactsCache = (profile && Array.isArray(profile.contacts)) ? profile.contacts : [];
-        } else if (window.contactsAPI) {
-            const list = await window.contactsAPI.getAll();
-            contactsCache = Array.isArray(list) ? list : [];
-        } else {
-            contactsCache = [];
-        }
+        const list = await window.contactsAPI.getAll();
+        contactsCache = Array.isArray(list) ? list : [];
+        // Ensure contact section is visible and dropdowns are populated when contacts load
         if (contactControlsSection) contactControlsSection.style.display = 'block';
         if (typeof updateContactDropdowns === 'function') await updateContactDropdowns();
     } catch (e) {
-        console.warn('Could not load contacts:', e);
-        if (window.contactsAPI) {
-            try {
-                const list = await window.contactsAPI.getAll();
-                contactsCache = Array.isArray(list) ? list : [];
-            } catch (e2) {
-                contactsCache = [];
-            }
-        } else {
-            contactsCache = [];
-        }
+        console.warn('Could not load contacts from API:', e);
     }
 }
 
@@ -4714,14 +4698,9 @@ async function saveUserProfile(profile) {
         showError('Cannot save profile: not logged in or API not available.');
         return false;
     }
-    const existing = getUserProfile() || {};
-    const merged = { ...existing, ...profile };
-    if (!Array.isArray(merged.contacts) && Array.isArray(existing.contacts)) {
-        merged.contacts = existing.contacts;
-    }
     try {
-        await window.userProfileAPI.save(user.id, merged);
-        profileCache = merged;
+        await window.userProfileAPI.save(user.id, profile);
+        profileCache = profile;
         return true;
     } catch (e) {
         console.warn('Could not save user profile to API:', e);

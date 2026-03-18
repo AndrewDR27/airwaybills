@@ -600,24 +600,38 @@
         
         // Contact management functions (shared with create-awb.html)
         async function getContacts(retry = true) {
-            const user = await resolveCurrentUserForProfile();
-            if (user && user.id && window.userProfileAPI) {
-                let profile = getUserProfile();
-                if (!profile) {
-                    try {
-                        profile = await window.userProfileAPI.get(user.id);
-                        if (profile && typeof profile === 'object') userProfileCache = profile;
-                    } catch (e) {
-                        console.warn('Could not load profile for contacts:', e);
-                    }
-                }
-                const list = (profile && Array.isArray(profile.contacts)) ? profile.contacts : [];
-                return normalizeContactList(list);
+            if (!contactsAPI) {
+                return getContactsFromLocalStorage();
             }
-            if (!contactsAPI) return getContactsFromLocalStorage();
+            
             try {
                 const contacts = await contactsAPI.getAll();
-                return normalizeContactList(Array.isArray(contacts) ? contacts : []);
+                // Migrate old contacts to new structure if needed
+                const migratedContacts = (Array.isArray(contacts) ? contacts : []).map(contact => {
+                    if (!contact) return null;
+                    
+                    const migrated = {
+                        id: contact.id,
+                        type: contact.type,
+                        companyName: contact.companyName || '',
+                        email: contact.email || '',
+                        formattedValue: contact.formattedValue || '',
+                        linkedUserId: contact.linkedUserId || null,
+                        agentCustomFields: contact.agentCustomFields || {}
+                    };
+                    
+                    if (contact.type === 'Consignee' && contact.accountInfo) {
+                        migrated.accountInfo = contact.accountInfo;
+                    }
+                    // Preserve field33 (commodity list) for Shipper, Consignee, User, etc.
+                    if (contact.field33 && Array.isArray(contact.field33)) {
+                        migrated.field33 = contact.field33;
+                    }
+                    
+                    return migrated;
+                }).filter(c => c !== null && c.id && c.type);
+                
+                return migratedContacts;
             } catch (error) {
                 console.error('Error fetching contacts from API:', error);
                 if (retry) {
@@ -627,59 +641,27 @@
                 return [];
             }
         }
-
-        function normalizeContactList(contacts) {
-            return (Array.isArray(contacts) ? contacts : []).map(contact => {
-                if (!contact || !contact.id || !contact.type) return null;
-                const migrated = {
-                    id: contact.id,
-                    type: contact.type,
-                    companyName: contact.companyName || '',
-                    email: contact.email || '',
-                    formattedValue: contact.formattedValue || '',
-                    linkedUserId: contact.linkedUserId || null,
-                    agentCustomFields: contact.agentCustomFields || {}
-                };
-                if (contact.type === 'Consignee' && contact.accountInfo) migrated.accountInfo = contact.accountInfo;
-                if (contact.field33 && Array.isArray(contact.field33)) migrated.field33 = contact.field33;
-                return migrated;
-            }).filter(c => c !== null);
-        }
         
         function getContactsFromLocalStorage() {
             return [];
         }
 
         async function saveContacts(contacts) {
-            const user = await resolveCurrentUserForProfile();
-            const list = Array.isArray(contacts) ? contacts : [];
-            if (user && user.id && window.userProfileAPI) {
-                try {
-                    const profile = getUserProfile() || {};
-                    const next = { ...profile, contacts: list };
-                    const ok = await saveUserProfile(next);
-                    if (ok) {
-                        await loadContacts();
-                        return true;
-                    }
-                    return false;
-                } catch (error) {
-                    console.error('Error saving contacts to profile:', error);
-                    alert('Error saving contacts. Please try again.');
-                    return false;
-                }
-            }
             if (!contactsAPI) {
-                alert('Database not available. Please log in or try again.');
+                alert('Database not available. Please try again.');
                 return false;
             }
+            const list = Array.isArray(contacts) ? contacts : [];
             try {
                 for (const contact of list) {
                     if (!contact || !contact.id) continue;
                     const existing = await contactsAPI.getAll();
                     const exists = Array.isArray(existing) && existing.some(c => c && String(c.id) === String(contact.id));
-                    if (exists) await contactsAPI.update(contact);
-                    else await contactsAPI.create(contact);
+                    if (exists) {
+                        await contactsAPI.update(contact);
+                    } else {
+                        await contactsAPI.create(contact);
+                    }
                 }
                 await new Promise(r => setTimeout(r, 100));
                 await loadContacts();
@@ -753,14 +735,9 @@
                 alert('Cannot save profile right now. Please log in again or refresh.');
                 return false;
             }
-            const existing = getUserProfile() || {};
-            const merged = { ...existing, ...profile };
-            if (!Array.isArray(merged.contacts) && Array.isArray(existing.contacts)) {
-                merged.contacts = existing.contacts;
-            }
             try {
-                await window.userProfileAPI.save(user.id, merged);
-                userProfileCache = merged;
+                await window.userProfileAPI.save(user.id, profile);
+                userProfileCache = profile;
                 loadContactsAutofills();
                 loadRoutingAutofills();
                 loadDescriptionsAutofills();
@@ -839,7 +816,7 @@
                 });
             }
 
-            const out = {
+            return {
                 ...existingProfile,
                 companyName,
                 email,
@@ -855,10 +832,6 @@
                 ...(aoDEPInfoGroup && aoDEPInfoGroup.style.display !== 'none' ? { aoDEP } : {}),
                 field33
             };
-            if (Array.isArray(existingProfile.contacts)) {
-                out.contacts = existingProfile.contacts;
-            }
-            return out;
         }
 
         async function saveUserProfileFromModal(silent = true) {
