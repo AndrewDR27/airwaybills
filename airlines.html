@@ -765,11 +765,15 @@
             container.appendChild(row);
         }
         
-        document.getElementById('addAirlineLocationBtn').addEventListener('click', async () => {
-            const container = document.getElementById('airlineLocationDetailsList');
-            const { destinations, origins } = await getDestinationsAndOrigins();
-            addAirlineLocationEntryRow(container, destinations, origins, {});
-        });
+        const addAirlineLocationBtn = document.getElementById('addAirlineLocationBtn');
+        if (addAirlineLocationBtn) {
+            addAirlineLocationBtn.addEventListener('click', async () => {
+                const container = document.getElementById('airlineLocationDetailsList');
+                if (!container) return;
+                const { destinations, origins } = await getDestinationsAndOrigins();
+                addAirlineLocationEntryRow(container, destinations, origins, {});
+            });
+        }
         
         function collectAirlineLocationDetails() {
             const container = document.getElementById('airlineLocationDetailsList');
