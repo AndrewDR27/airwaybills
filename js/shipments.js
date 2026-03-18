@@ -859,11 +859,21 @@ async function uploadFactoryInvoice(spaceId, fileBase64) {
         return { success: false, message: 'Factory invoices can only be uploaded for confirmed active shipments' };
     }
     
-    shipment.factoryInvoice = fileBase64;
-    shipment.factoryInvoiceUploadedAt = new Date().toISOString();
-    shipment.factoryInvoiceUploadedBy = user.id;
-    
-    return updateShipment(spaceId, shipment.toJSON ? shipment.toJSON() : shipment);
+    const uploadedAt = new Date().toISOString();
+    const minimalUpdate = {
+        spaceId,
+        factoryInvoice: fileBase64,
+        factoryInvoiceUploadedAt: uploadedAt,
+        factoryInvoiceUploadedBy: user.id
+    };
+
+    try {
+        const saved = await shipmentsAPI.update(minimalUpdate);
+        return { success: true, shipment: saved };
+    } catch (error) {
+        console.error('Error updating shipment via API for factory invoice:', error);
+        throw error;
+    }
 }
 
 // Save AWB form data to shipment
