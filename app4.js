@@ -1399,25 +1399,20 @@ function generateForm() {
         const customsFieldsContainer = document.getElementById('customsFieldsContainer');
         const customsFieldsRows = document.getElementById('customsFieldsRows');
         if (customsFieldsContainer && customsFieldsRows && hasRightSideFields) {
-            // Create 4 rows for customs fields: 50-53, 51-54, 52-55, and Chargeable Weight / Rate per kg (→ 30, 31)
+            // Create 4 rows: 50-53, 51-54, 52-55, and upper Field 30 / Field 31 (not tied to any PDF field names)
             const customsRows = [
                 ['50', '53'],
                 ['51', '54'],
                 ['52', '55'],
-                ['56', '57']  // PDF names; upper area shows as Chargeable Weight (→30) and Rate per kg (→31)
+                ['upper30', 'upper31']
             ];
             
-            // Include PDF fields used for Chargeable Weight / Rate per kg (they autofill to 30 and 31)
             const customsFieldsAll = { ...rightSideFields };
-            const customs56Prefixes = ['56', '57'];
-            customs56Prefixes.forEach(prefix => {
+            ['50', '51', '52', '53', '54', '55'].forEach(prefix => {
                 const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
-                if (matchingField) {
-                    customsFieldsAll[prefix] = matchingField;
-                }
+                if (matchingField) customsFieldsAll[prefix] = matchingField;
             });
             
-            // Store references to upper area input elements for autofill
             const upperAreaInputs = {};
             
             customsRows.forEach(rowPrefixes => {
@@ -1427,98 +1422,51 @@ function generateForm() {
                 row.style.gap = '8px';
                 
                 rowPrefixes.forEach(prefix => {
-                    const fieldName = customsFieldsAll[prefix];
-                    if (fieldName) {
-                        const fieldsWithSameName = fieldsByName.get(fieldName);
-                        const primaryField = fieldsWithSameName[0];
-                        
-                        primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
-                        primaryField.duplicateCount = fieldsWithSameName.length;
-                        
-                        if (fieldsWithSameName.length > 1) {
-                            console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
-                                fieldsWithSameName.map(f => f.pdfFieldName));
-                        }
-                        
-                        // Create a copy of the field to modify label for upper area
-                        const fieldForUpper = { ...primaryField };
-                        
-                        // Upper area: same format as billing (30. CHARGEABLE WEIGHT / 31. RATE PER KG)
-                        if (prefix === '56') {
-                            fieldForUpper.label = '30. CHARGEABLE WEIGHT';
-                        }
-                        
-                        if (prefix === '57') {
-                            fieldForUpper.label = '31. RATE PER KG';
-                        }
-                        
-                        const formGroup = createFormField(fieldForUpper);
+                    if (prefix === 'upper30' || prefix === 'upper31') {
+                        const is30 = prefix === 'upper30';
+                        const syntheticField = {
+                            name: is30 ? 'upperField30' : 'upperField31',
+                            label: is30 ? '30. CHARGEABLE WEIGHT' : '31. RATE PER KG',
+                            pdfFieldName: is30 ? 'upperField30' : 'upperField31',
+                            htmlType: 'text',
+                            value: '',
+                            required: true
+                        };
+                        const formGroup = createFormField(syntheticField);
                         formGroup.style.flex = '1';
-                        row.appendChild(formGroup);
-                        
-                        // Store reference to the input element for autofill
                         const input = formGroup.querySelector('input, textarea, select');
-                        if (input && prefix >= '50' && prefix <= '55') {
-                            upperAreaInputs[prefix] = input;
-                        }
-                        // Store Rate per kg input (autofills to Field 31)
-                        if (input && prefix === '57') {
-                            upperAreaInputs['57'] = input;
-                        }
-                        // Store Chargeable Weight input (autofills to Field 30)
-                        if (input && prefix === '56') {
-                            upperAreaInputs['56'] = input;
-                        }
-                        
-                        // Make labels red for Chargeable Weight and Rate per kg until populated
-                        if (input && (prefix === '56' || prefix === '57')) {
+                        if (input) {
+                            upperAreaInputs[is30 ? '30' : '31'] = input;
                             const label = formGroup.querySelector('label');
                             if (label) {
-                                // Function to update label color based on field value
                                 const updateLabelColor = () => {
-                                    if (!input.value || input.value.trim() === '') {
-                                        label.style.color = 'red';
-                                    } else {
-                                        label.style.color = '';
-                                    }
+                                    label.style.color = (!input.value || input.value.trim() === '') ? 'red' : '';
                                 };
-                                
-                                // Set initial color
                                 updateLabelColor();
-                                
-                                // Listen for changes
                                 input.addEventListener('input', updateLabelColor);
                                 input.addEventListener('change', updateLabelColor);
                             }
                         }
+                        row.appendChild(formGroup);
+                        return;
+                    }
+                    const fieldName = customsFieldsAll[prefix];
+                    if (fieldName) {
+                        const fieldsWithSameName = fieldsByName.get(fieldName);
+                        const primaryField = fieldsWithSameName[0];
+                        primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
+                        primaryField.duplicateCount = fieldsWithSameName.length;
+                        if (fieldsWithSameName.length > 1) {
+                            console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
+                                fieldsWithSameName.map(f => f.pdfFieldName));
+                        }
+                        const formGroup = createFormField(primaryField);
+                        formGroup.style.flex = '1';
+                        row.appendChild(formGroup);
+                        const input = formGroup.querySelector('input, textarea, select');
+                        if (input) upperAreaInputs[prefix] = input;
                     }
                 });
-                
-                // Add read-only reference fields for 30 and 31 on Chargeable Weight / Rate per kg row
-                if (rowPrefixes.indexOf('56') >= 0 && rowPrefixes.indexOf('57') >= 0) {
-                    ['30', '31'].forEach((refPrefix) => {
-                        const refLabel = refPrefix === '30' ? '→ Field 30' : '→ Field 31';
-                        const formGroup = document.createElement('div');
-                        formGroup.className = 'form-group';
-                        formGroup.style.flex = '1';
-                        formGroup.style.minWidth = '80px';
-                        const label = document.createElement('label');
-                        label.textContent = refLabel;
-                        label.style.fontSize = '11px';
-                        label.style.color = '#666';
-                        const input = document.createElement('input');
-                        input.type = 'text';
-                        input.id = 'upperRefField' + refPrefix;
-                        input.readOnly = true;
-                        input.style.backgroundColor = '#f5f5f5';
-                        input.style.cursor = 'default';
-                        input.style.fontSize = '12px';
-                        input.placeholder = '—';
-                        formGroup.appendChild(label);
-                        formGroup.appendChild(input);
-                        row.appendChild(formGroup);
-                    });
-                }
                 
                 if (row.children.length > 0) {
                     customsFieldsRows.appendChild(row);
@@ -1567,72 +1515,25 @@ function generateForm() {
                             }
                         });
                         
-                        // Chargeable Weight and Rate per kg are manually entered; they autofill to Field 30 and Field 31.
-                        
-                        // Refs for upper area: show current Field 30 and Field 31 values
-                        const upperRef30 = document.getElementById('upperRefField30');
-                        const upperRef31 = document.getElementById('upperRefField31');
-                        
-                        // Set up autofill from Rate per kg to Field 31 and update ref display
-                        const field57Input = upperAreaInputs['57'];
-                        if (field57Input) {
-                            const autofillToField31 = function() {
-                                const val = this.value != null ? this.value : '';
-                                fillFieldByPrefix('31', val);
-                                if (upperRef31) upperRef31.value = val;
-                            };
-                            
-                            field57Input.addEventListener('input', autofillToField31);
-                            
-                            // Also sync on change for select elements
-                            if (field57Input.tagName === 'SELECT') {
-                                field57Input.addEventListener('change', autofillToField31);
-                            }
-                            
-                            // Initial sync if Rate per kg has a value
-                            if (field57Input.value) {
-                                fillFieldByPrefix('31', field57Input.value);
-                                if (upperRef31) upperRef31.value = field57Input.value;
-                            }
+                        // Upper Field 30 and 31 only populate lower. No PDF 56/57; no lower→upper.
+                        const upper30Input = upperAreaInputs['30'];
+                        const upper31Input = upperAreaInputs['31'];
+                        if (upper31Input) {
+                            upper31Input.addEventListener('input', function() {
+                                fillFieldByPrefix('31', this.value != null ? this.value : '');
+                            });
+                            upper31Input.addEventListener('change', function() {
+                                fillFieldByPrefix('31', this.value != null ? this.value : '');
+                            });
                         }
-                        
-                        // Set up autofill from Chargeable Weight to Field 30 and update ref display
-                        const field56Input = upperAreaInputs['56'];
-                        if (field56Input) {
-                            const autofillToField30 = function() {
-                                const val = this.value != null ? this.value : '';
-                                fillFieldByPrefix('30', val);
-                                if (upperRef30) upperRef30.value = val;
-                            };
-                            
-                            field56Input.addEventListener('input', autofillToField30);
-                            
-                            // Also sync on change for select elements
-                            if (field56Input.tagName === 'SELECT') {
-                                field56Input.addEventListener('change', autofillToField30);
-                            }
-                            
-                            // Initial sync if Chargeable Weight has a value
-                            if (field56Input.value) {
-                                fillFieldByPrefix('30', field56Input.value);
-                                if (upperRef30) upperRef30.value = field56Input.value;
-                            }
+                        if (upper30Input) {
+                            upper30Input.addEventListener('input', function() {
+                                fillFieldByPrefix('30', this.value != null ? this.value : '');
+                            });
+                            upper30Input.addEventListener('change', function() {
+                                fillFieldByPrefix('30', this.value != null ? this.value : '');
+                            });
                         }
-                        
-                        // Sync ref fields from current Field 30/31 (e.g. after resume or when form already has values)
-                        const syncUpperRefsFromForm = () => {
-                            const formsToCheck = [document.getElementById('generatedForm'), document.getElementById('billingFieldsForm')].filter(Boolean);
-                            const getVal = (prefix) => {
-                                for (const form of formsToCheck) {
-                                    const el = Array.from(form.elements).find(e => e.name === prefix || e.name.startsWith(prefix + '.') || e.name.startsWith(prefix + ' '));
-                                    if (el) return el.value != null ? el.value : '';
-                                }
-                                return '';
-                            };
-                            if (upperRef30) upperRef30.value = getVal('30');
-                            if (upperRef31) upperRef31.value = getVal('31');
-                        };
-                        syncUpperRefsFromForm();
                     }
                 }, 100);
             }
@@ -6131,39 +6032,19 @@ async function restoreFormData(optionalSavedData) {
                     el.dispatchEvent(new Event('input', { bubbles: true }));
                 });
             });
-            // Sync Chargeable Weight and Rate per kg (→ 30, 31) from billing form to upper area so they match the lower section
-            if (billingFieldsForm) {
-                ['56', '57'].forEach((prefix) => {
-                    const matches = (el) => el.name === prefix || el.name.startsWith(prefix + '.') || el.name.startsWith(prefix + ' ');
-                    const billingEl = Array.from(billingFieldsForm.elements).find(matches);
-                    const upperEls = Array.from(customsFieldsRows.querySelectorAll('input, select, textarea')).filter(matches);
-                    if (billingEl && upperEls.length) {
-                        const v = billingEl.value != null ? billingEl.value : '';
-                        upperEls.forEach((el) => {
-                            if (el.type === 'checkbox') {
-                                el.checked = billingEl.checked;
-                            } else {
-                                el.value = v;
-                            }
-                        });
-                    }
-                });
-            }
-            // Update ref fields (→ Field 30 / → Field 31) from current form values after restore
-            const upperRef30 = document.getElementById('upperRefField30');
-            const upperRef31 = document.getElementById('upperRefField31');
-            if (upperRef30 || upperRef31) {
-                const formsToCheck = [generatedForm, document.getElementById('billingFieldsForm')].filter(Boolean);
-                const getVal = (prefix) => {
-                    for (const form of formsToCheck) {
-                        const el = Array.from(form.elements).find(e => e.name === prefix || e.name.startsWith(prefix + '.') || e.name.startsWith(prefix + ' '));
-                        if (el) return el.value != null ? el.value : '';
-                    }
-                    return '';
-                };
-                if (upperRef30) upperRef30.value = getVal('30');
-                if (upperRef31) upperRef31.value = getVal('31');
-            }
+            // After restore: set upper Field 30/31 inputs from form so both areas show the same (upper has name upperField30/upperField31, not PDF 56/57)
+            const getForm30Or31 = (prefix) => {
+                const formsToCheck = [generatedForm, billingFieldsForm].filter(Boolean);
+                for (const form of formsToCheck) {
+                    const el = Array.from(form.elements).find(e => e.name === prefix || e.name.startsWith(prefix + '.') || e.name.startsWith(prefix + ' '));
+                    if (el) return el.value != null ? el.value : '';
+                }
+                return '';
+            };
+            const upperField30El = document.querySelector('input[name="upperField30"], select[name="upperField30"]');
+            const upperField31El = document.querySelector('input[name="upperField31"], select[name="upperField31"]');
+            if (upperField30El) upperField30El.value = getForm30Or31('30');
+            if (upperField31El) upperField31El.value = getForm30Or31('31');
         }
         
         // Restore dropdown selections
