@@ -3871,6 +3871,65 @@ async function fillPdfWithData(formData, flatten = false) {
             console.log(`Found ${fields.length} PDF fields with name "${name}"`);
         }
     });
+
+    /**
+     * Re-apply center alignment for field 102. COPY after form.updateFieldAppearances(),
+     * which regenerates streams and drops quadding. Field 102 is often not in the HTML
+     * form list, so fillSinglePdfField never runs for it.
+     */
+    function reapplyField102CopyCenterAlignment() {
+        const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        try {
+            const allFields = form.getFields();
+            const f102 = allFields.find((f) => {
+                try {
+                    const n = norm(f.getName());
+                    return (n.includes('102') && n.includes('copy')) || n === '102copy';
+                } catch (e) {
+                    return false;
+                }
+            });
+            if (!f102 || typeof f102.setText !== 'function') return;
+
+            if (typeof f102.setAlignment === 'function' && PDFLib && PDFLib.TextAlignment) {
+                try {
+                    f102.setAlignment(PDFLib.TextAlignment.Center);
+                } catch (e) {
+                    console.warn('102 setAlignment:', e);
+                }
+            }
+            // PDF quadding: 0=left, 1=center, 2=right (helps viewers + appearance gen)
+            try {
+                const af = f102.acroField;
+                if (af && af.dict) {
+                    af.dict.set(PDFLib.PDFName.of('Q'), PDFLib.PDFNumber.of(1));
+                }
+                const widgets = af && af.getWidgets && af.getWidgets();
+                if (widgets && widgets.length) {
+                    widgets.forEach((w) => {
+                        try {
+                            if (w.dict) w.dict.set(PDFLib.PDFName.of('Q'), PDFLib.PDFNumber.of(1));
+                        } catch (e) { /* ignore */ }
+                    });
+                }
+            } catch (e) {
+                console.warn('102 Q dict:', e);
+            }
+
+            if (helveticaBoldFont) {
+                try {
+                    if (typeof f102.updateAppearances === 'function') {
+                        f102.updateAppearances(helveticaBoldFont);
+                    }
+                } catch (e) {
+                    console.warn('102 updateAppearances:', e);
+                }
+            }
+            console.log('Field 102. COPY: center alignment re-applied');
+        } catch (e) {
+            console.warn('reapplyField102CopyCenterAlignment:', e);
+        }
+    }
     
     console.log('Form data to fill:', formData);
     
@@ -3901,6 +3960,9 @@ async function fillPdfWithData(formData, flatten = false) {
             try {
                 field102.setText(copyLabelStr);
                 if (typeof field102.setFontSize === 'function') field102.setFontSize(12);
+                if (typeof field102.setAlignment === 'function' && PDFLib && PDFLib.TextAlignment) {
+                    field102.setAlignment(PDFLib.TextAlignment.Center);
+                }
                 console.log('Set 102. COPY field to:', copyLabelStr);
             } catch (e) {
                 console.warn('Error setting 102. COPY field:', e);
@@ -3952,6 +4014,7 @@ async function fillPdfWithData(formData, flatten = false) {
             console.warn('Could not update all field appearances at once:', e);
         }
     }
+    reapplyField102CopyCenterAlignment();
     
     // Group radio buttons by their group name
     const radioGroups = {};
@@ -4085,9 +4148,25 @@ async function fillPdfWithData(formData, flatten = false) {
                 const isField02 = field.name && field.name.startsWith('02');
                 const isField03 = field.name && field.name.startsWith('03');
                 const isField101 = field.name && field.name.startsWith('101');
-                const fontSize = isField28 ? 7 : (isField98 ? 6 : (isField100 ? 12 : (isField02 ? 12 : (isField01 || isField03 || isField101 ? 12 : 8))));
+                const normPdfFieldName = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                const npPdf = normPdfFieldName(pdfFieldName);
+                const isField102Copy =
+                    (npPdf.includes('102') && npPdf.includes('copy')) || npPdf === '102copy';
+                const fontSize = isField28
+                    ? 7
+                    : isField98
+                      ? 6
+                      : isField100
+                        ? 12
+                        : isField02
+                          ? 12
+                          : isField01 || isField03 || isField101
+                            ? 12
+                            : isField102Copy
+                              ? 12
+                              : 8;
                 
-                // Check if this is field 42, 46, 47, 48 - set center alignment
+                // Check if this is field 42, 46, 47, 48 — or 102. COPY — set center alignment
                 const isField42 = field.name && field.name.startsWith('42');
                 const isField46 = field.name && field.name.startsWith('46');
                 const isField47 = field.name && field.name.startsWith('47');
@@ -4161,8 +4240,8 @@ async function fillPdfWithData(formData, flatten = false) {
                     }
                 }
                 
-                // Set center alignment for fields 42, 46, 47, 48 AFTER setting text
-                if (isField42 || isField46 || isField47 || isField48) {
+                // Set center alignment for fields 42, 46, 47, 48 and 102. COPY AFTER setting text
+                if (isField42 || isField46 || isField47 || isField48 || isField102Copy) {
                     try {
                         // Try different methods to set center alignment
                         if (typeof pdfField.setAlignment === 'function') {
@@ -4346,6 +4425,8 @@ async function fillPdfWithData(formData, flatten = false) {
     }
     
     console.log(`Fields filled: ${fieldsFilled}, Fields skipped: ${fieldsSkipped}`);
+    // Per-field fill calls updateAppearances — re-center 102 before flatten bakes content in
+    reapplyField102CopyCenterAlignment();
     
     // Flatten the form if requested (removes form fields, makes it look clean/printed)
     if (flatten) {

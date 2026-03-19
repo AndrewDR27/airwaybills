@@ -1355,30 +1355,97 @@
                 .map(c => c.value);
         }
 
+        /** Normalize AcroForm widget rect to { x, y, width, height } (PDF coords, y = bottom). */
+        function normalizePdfRect102(r) {
+            if (!r) return null;
+            if (Array.isArray(r) && r.length >= 4) {
+                const x1 = Number(r[0]), y1 = Number(r[1]), x2 = Number(r[2]), y2 = Number(r[3]);
+                if (![x1, y1, x2, y2].every(Number.isFinite)) return null;
+                const x = Math.min(x1, x2), y = Math.min(y1, y2);
+                return { x, y, width: Math.abs(x2 - x1), height: Math.abs(y2 - y1) };
+            }
+            if (typeof r === 'object') {
+                const x = Number(r.x), y = Number(r.y);
+                const w = r.width != null ? Number(r.width) : (r.w != null ? Number(r.w) : NaN);
+                const h = r.height != null ? Number(r.height) : (r.h != null ? Number(r.h) : NaN);
+                if ([x, y, w, h].every(Number.isFinite) && w > 0 && h > 0) return { x, y, width: w, height: h };
+            }
+            return null;
+        }
+
         async function get102RectFromAWB1(awb1Bytes) {
             const pdfDoc = await PDFLib.PDFDocument.load(awb1Bytes);
             const form = pdfDoc.getForm();
             const fields = form.getFields();
             const normalize = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
             for (const f of fields) {
                 const name = (f.getName && f.getName()) ? f.getName() : '';
                 const nn = normalize(name);
                 if ((nn.includes('102') && nn.includes('copy')) || nn === '102copy') {
                     try {
+                        // Field might have multiple widget annotations; pick the largest rect.
                         const widgets = f.acroField && f.acroField.getWidgets && f.acroField.getWidgets();
-                        if (widgets && widgets.length > 0 && widgets[0].getRectangle) {
-                            const r = widgets[0].getRectangle();
-                            return r;
+                        if (widgets && widgets.length > 0) {
+                            let best = null;
+                            let bestArea = -1;
+                            const rects = [];
+
+                            for (const w of widgets) {
+                                if (!w || !w.getRectangle) continue;
+                                try {
+                                    const r = w.getRectangle();
+                                    const n = normalizePdfRect102(r);
+                                    if (n) {
+                                        const area = (n.width || 0) * (n.height || 0);
+                                        rects.push({ x: n.x, y: n.y, width: n.width, height: n.height, area });
+                                        if (area > bestArea) {
+                                            bestArea = area;
+                                            best = n;
+                                        }
+                                    }
+                                } catch (e) {
+                                    // ignore this widget
+                                }
+                            }
+
+                            console.log('AWB1 field 102 widgets found:', { fieldName: name, widgetCount: widgets.length, rects, chosen: best });
+                            if (best) return best;
                         }
+
+                        // Fallback: try the field's aggregate rectangle.
                         if (f.acroField && f.acroField.getRectangle) {
                             const arr = f.acroField.getRectangle();
-                            if (arr && arr.length >= 4) return { x: arr[0], y: arr[1], width: arr[2] - arr[0], height: arr[3] - arr[1] };
+                            if (arr && arr.length >= 4) {
+                                const n = normalizePdfRect102([arr[0], arr[1], arr[2], arr[3]]) ||
+                                    { x: arr[0], y: arr[1], width: arr[2] - arr[0], height: arr[3] - arr[1] };
+                                console.log('AWB1 field 102 using acroField.getRectangle:', { fieldName: name, rect: n });
+                                return n;
+                            }
                         }
                     } catch (e) { console.warn('get102RectFromAWB1:', e); }
                     break;
                 }
             }
             return null;
+        }
+
+        /** Horizontally and vertically center `drawText` in rect; shrink font if label is wider than box. */
+        function centeredDrawTextOpts(label, rect, font, preferredSize, minSize) {
+            const fallback = { x: 400, y: 650, width: 220, height: 18 };
+            const box = (rect && rect.width > 0 && rect.height > 0) ? rect : fallback;
+            let size = preferredSize;
+            let textWidth = font.widthOfTextAtSize(label, size);
+            if (box.width > 0 && textWidth > box.width) {
+                while (size > minSize && textWidth > box.width) {
+                    size -= 0.25;
+                    textWidth = font.widthOfTextAtSize(label, size);
+                }
+            }
+            const lineHeight = font.heightAtSize(size);
+            const x = box.x + Math.max(0, (box.width - textWidth) / 2);
+            const y = box.y + Math.max(0, (box.height - lineHeight) / 2);
+            return { x, y, size };
         }
 
         async function handleSpacePrintSelectedCopies() {
@@ -1397,26 +1464,28 @@
                 const autoOpen = !!(document.getElementById('spaceAutoOpenPrintCopies') && document.getElementById('spaceAutoOpenPrintCopies').checked);
 
                 const awb1Path = (window.parent && window.parent !== window) ? '../AWB1.pdf' : 'AWB1.pdf';
-                const awb1Res = await fetch(awb1Path);
+                // Cache-bust to ensure we re-read the latest AWB1.pdf after editing/moving field 102.
+                const awb1Res = await fetch(`${awb1Path}?t=${Date.now()}`);
                 if (!awb1Res.ok) throw new Error('Could not load AWB1.pdf');
                 const awb1Bytes = new Uint8Array(await awb1Res.arrayBuffer());
                 const rect102 = await get102RectFromAWB1(awb1Bytes);
                 if (!rect102) {
                     alert('Could not find field 102 position in AWB1. Using fallback position.');
                 }
+                console.log('AWB1 path used for rect102:', awb1Path, 'rect102:', rect102);
 
                 const createdPdfBytes = base64ToUint8Array(currentShipment.pdfBase64);
                 const mergedPdf = await PDFLib.PDFDocument.create();
                 const font = await mergedPdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
-                const x = (rect102 && rect102.x != null) ? rect102.x : 400;
-                const y = (rect102 && rect102.y != null) ? rect102.y : 650;
-                const size = 12;
+                const preferredSize = 12;
+                const minSize = 6;
 
                 for (let i = 0; i < selectedCopies.length; i++) {
                     const copyLabel = selectedCopies[i];
                     const sourceDoc = await PDFLib.PDFDocument.load(createdPdfBytes);
                     const [copiedPage] = await mergedPdf.copyPages(sourceDoc, [0]);
-                    copiedPage.drawText(copyLabel, { x, y, size, font });
+                    const opts = centeredDrawTextOpts(copyLabel, rect102, font, preferredSize, minSize);
+                    copiedPage.drawText(copyLabel, { x: opts.x, y: opts.y, size: opts.size, font });
                     mergedPdf.addPage(copiedPage);
                 }
 
