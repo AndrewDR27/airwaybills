@@ -5936,7 +5936,28 @@ async function saveFormDataToStorage() {
     try {
         const formData = collectFormData();
         
-        // Also save dropdown selections
+        // Also save dropdown selections and other UI state
+        const declaredValuesSelect = document.getElementById('declaredValuesSelect');
+        const insuranceSelect = document.getElementById('insuranceSelect');
+        const prepaidCollectSelect = document.getElementById('prepaidCollectSelect');
+        const dangerousGoodsSelect = document.getElementById('dangerousGoodsSelect');
+        const ignoreRemainingChargesCheckbox = document.getElementById('ignoreRemainingChargesCheckbox');
+        const dimensionsContainer = document.getElementById('dimensionsContainer');
+        const dimensionsData = [];
+        if (dimensionsContainer) {
+            dimensionsContainer.querySelectorAll('.dimensions-row').forEach((row) => {
+                const lengthInput = row.querySelector('.dim-length');
+                const widthInput = row.querySelector('.dim-width');
+                const heightInput = row.querySelector('.dim-height');
+                const qtyInput = row.querySelector('.dim-qty');
+                dimensionsData.push({
+                    length: lengthInput ? lengthInput.value : '',
+                    width: widthInput ? widthInput.value : '',
+                    height: heightInput ? heightInput.value : '',
+                    qty: qtyInput ? qtyInput.value : ''
+                });
+            });
+        }
         const dropdownData = {
             shipperContactId: shipperSelect ? shipperSelect.value : '',
             consigneeContactId: consigneeSelect ? consigneeSelect.value : '',
@@ -5944,7 +5965,13 @@ async function saveFormDataToStorage() {
             destination: destinationSelect ? destinationSelect.value : '',
             directFlight: directFlightSelect ? directFlightSelect.value : '',
             interlineCarrier1: interlineCarrierSelect1 ? interlineCarrierSelect1.value : '',
-            interlineCarrier2: interlineCarrierSelect2 ? interlineCarrierSelect2.value : ''
+            interlineCarrier2: interlineCarrierSelect2 ? interlineCarrierSelect2.value : '',
+            declaredValues: declaredValuesSelect ? declaredValuesSelect.value : '',
+            insurance: insuranceSelect ? insuranceSelect.value : '',
+            prepaidCollect: prepaidCollectSelect ? prepaidCollectSelect.value : '',
+            dangerousGoods: dangerousGoodsSelect ? dangerousGoodsSelect.value : '',
+            dimensions: dimensionsData.length ? dimensionsData : undefined,
+            ignoreRemainingCharges: !!(ignoreRemainingChargesCheckbox && ignoreRemainingChargesCheckbox.checked)
         };
         
         const dataToSave = {
@@ -6001,11 +6028,13 @@ async function restoreFormData(optionalSavedData) {
         // Restore form fields
         const formElements = generatedForm.elements;
         const contactFieldsForm = document.getElementById('contactFieldsForm');
+        const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
         const billingFieldsForm = document.getElementById('billingFieldsForm');
         const contactFormElements = contactFieldsForm ? contactFieldsForm.elements : [];
+        const dimensionsFormElements = dimensionsFieldsForm ? dimensionsFieldsForm.elements : [];
         const billingFormElements = billingFieldsForm ? billingFieldsForm.elements : [];
         
-        const allFormElements = [...formElements, ...contactFormElements, ...billingFormElements];
+        const allFormElements = [...formElements, ...contactFormElements, ...dimensionsFormElements, ...billingFormElements];
         
         allFormElements.forEach(element => {
             const name = element.name;
@@ -6028,6 +6057,24 @@ async function restoreFormData(optionalSavedData) {
             // Trigger input event to update any dependent fields
             element.dispatchEvent(new Event('input', { bubbles: true }));
         });
+        
+        // Restore upper-area fields (e.g. Chargeable Weight 56, Rate per kg 57 in customs container) — they are outside the form
+        const customsFieldsRows = document.getElementById('customsFieldsRows');
+        if (customsFieldsRows) {
+            Object.keys(formData).forEach((name) => {
+                if (name.startsWith('_')) return;
+                const value = formData[name];
+                const elList = customsFieldsRows.querySelectorAll(`input[name="${name}"], select[name="${name}"], textarea[name="${name}"]`);
+                elList.forEach((el) => {
+                    if (el.type === 'checkbox') {
+                        el.checked = value === true || value === 'true';
+                    } else {
+                        el.value = value != null ? value : '';
+                    }
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+            });
+        }
         
         // Restore dropdown selections
         if (dropdownData.shipperContactId && shipperSelect) {
@@ -6093,6 +6140,13 @@ async function restoreFormData(optionalSavedData) {
         if (dropdownData.dangerousGoods && dangerousGoodsSelect) {
             dangerousGoodsSelect.value = dropdownData.dangerousGoods;
             dangerousGoodsSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        
+        // Restore Ignore remaining charges checkbox
+        const ignoreRemainingChargesCheckbox = document.getElementById('ignoreRemainingChargesCheckbox');
+        if (ignoreRemainingChargesCheckbox && dropdownData.hasOwnProperty('ignoreRemainingCharges')) {
+            ignoreRemainingChargesCheckbox.checked = !!dropdownData.ignoreRemainingCharges;
+            ignoreRemainingChargesCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
         }
         
         // Restore dimensions data (including QTY)
@@ -6176,11 +6230,12 @@ function setupFormDataAutoSave() {
         }, 500); // Save 500ms after last change
     }
     
-    // Listen for changes on all forms
+    // Listen for changes on all forms and customs container (upper-area chargeable weight, rate per kg, ignore checkbox)
     document.addEventListener('input', (e) => {
         if (generatedForm && (generatedForm.contains(e.target) || 
             document.getElementById('contactFieldsForm')?.contains(e.target) ||
-            document.getElementById('billingFieldsForm')?.contains(e.target))) {
+            document.getElementById('billingFieldsForm')?.contains(e.target) ||
+            document.getElementById('customsFieldsContainer')?.contains(e.target))) {
             debouncedSave();
         }
     });
@@ -6189,6 +6244,8 @@ function setupFormDataAutoSave() {
         if (generatedForm && (generatedForm.contains(e.target) || 
             document.getElementById('contactFieldsForm')?.contains(e.target) ||
             document.getElementById('billingFieldsForm')?.contains(e.target) ||
+            document.getElementById('customsFieldsContainer')?.contains(e.target) ||
+            document.getElementById('ignoreRemainingChargesCheckbox') === e.target ||
             shipperSelect === e.target ||
             consigneeSelect === e.target ||
             airlineSelect1 === e.target ||
