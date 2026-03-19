@@ -145,6 +145,12 @@ function initializeApp() {
     if (printPreviewBtn) {
         printPreviewBtn.addEventListener('click', handlePrintPreview);
     }
+
+    // Print multiple identical AWB copies by changing PDF field 102. COPY
+    const printSelectedCopiesBtn = document.getElementById('printSelectedCopiesBtn');
+    if (printSelectedCopiesBtn) {
+        printSelectedCopiesBtn.addEventListener('click', handlePrintSelectedCopies);
+    }
     
     // Template management event handlers
     if (templateSelect) {
@@ -652,6 +658,143 @@ function initializeApp() {
     
     // Don't auto-save form data on create page - only save when explicitly needed
     // setupFormDataAutoSave(); // Disabled - form should start fresh each time
+}
+
+// Print multiple copies by filling PDF field "102. COPY" with different labels.
+// AWB1 is a single-page PDF; copies are identical aside from the "102. COPY" text.
+async function handlePrintSelectedCopies() {
+    if (!generatedForm) {
+        showError('Error: Form not found. Please refresh the page.');
+        return;
+    }
+    if (!originalPdfBytes) {
+        showError('Error: Original PDF not available. Please refresh the page.');
+        return;
+    }
+
+    // Ensure validation list is accurate before printing.
+    updateTabValidationIndicators();
+    const missingFields = getMissingFieldNames();
+    if (missingFields.length > 0) {
+        const fieldList = missingFields.map(field => `• ${field}`).join('\n');
+        const message = `The following fields are missing:\n\n${fieldList}\n\nDo you want to continue anyway?`;
+        const shouldContinue = await showMissingFieldsModal(missingFields);
+        if (!shouldContinue) return;
+    }
+
+    const copySelections = [
+        { id: 'copyOrig3', value: 'Original 3 (Shipper)' },
+        { id: 'copy8Agent', value: 'Copy 8 (Agent)' },
+        { id: 'copyOrig1', value: 'Original 1 (Issuing Carrier)' },
+        { id: 'copyOrig2', value: 'Original 2 (Consignee)' },
+        { id: 'copy4Delivery', value: 'Copy 4 (Delivery Receipt)' },
+        { id: 'copy5Extra', value: 'Copy 5 (Extra Copy)' },
+        { id: 'copy6Extra', value: 'Copy 6 (Extra Copy)' },
+        { id: 'copy7Extra', value: 'Copy 7 (Extra Copy)' },
+    ];
+
+    const autoOpenPrintCopiesCheckbox = document.getElementById('autoOpenPrintCopies');
+    const autoOpenPrintCopies = !!(autoOpenPrintCopiesCheckbox && autoOpenPrintCopiesCheckbox.checked);
+
+    const selectedCopies = copySelections
+        .filter(c => {
+            const el = document.getElementById(c.id);
+            return !!(el && el.checked);
+        })
+        .map(c => c.value);
+
+    if (selectedCopies.length === 0) {
+        showError('Select at least one copy to print.');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        console.log('Collecting base form data for selected copies...');
+        const baseFormData = collectFormData();
+        const copyFieldKey = findCopyFieldKeyInFormData(baseFormData);
+        if (!copyFieldKey) {
+            throw new Error('Could not find PDF field for "102. COPY" in the generated form.');
+        }
+
+        console.log('Using copy field key:', copyFieldKey);
+
+        // Print/download sequentially to reduce popup blocker issues
+        for (let i = 0; i < selectedCopies.length; i++) {
+            const copyText = selectedCopies[i];
+            const formDataForThisCopy = { ...baseFormData, [copyFieldKey]: copyText };
+
+            console.log(`Generating PDF copy ${i + 1}/${selectedCopies.length}:`, copyText);
+            const filledPdfBytes = await fillPdfWithData(formDataForThisCopy, true);
+
+            const blob = new Blob([filledPdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+
+            if (autoOpenPrintCopies) {
+                const printWindow = window.open(url, '_blank');
+                if (printWindow) {
+                    // Wait for PDF to load, then trigger print
+                    printWindow.onload = () => {
+                        setTimeout(() => {
+                            try {
+                                printWindow.focus();
+                                printWindow.print();
+                            } catch (e) {
+                                console.warn('Could not auto-print window:', e);
+                            }
+                        }, 500);
+                    };
+                    // Cleanup later (after some time for print dialog readiness)
+                    setTimeout(() => URL.revokeObjectURL(url), 30000);
+                } else {
+                    // Popup blocked - fall back to download
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `filled-form_${i + 1}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 30000);
+                }
+            } else {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `filled-form_${i + 1}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 30000);
+            }
+
+            // Small delay between copies to reduce browser load/popup throttling.
+            await new Promise(resolve => setTimeout(resolve, 600));
+        }
+
+        hideLoading();
+        showError(`✓ Generated ${selectedCopies.length} copy PDF(s) for printing.`);
+        setTimeout(() => hideError(), 2500);
+    } catch (err) {
+        console.error('Error printing selected copies:', err);
+        hideLoading();
+        showError('Error printing selected copies: ' + (err.message || err));
+    }
+}
+
+// Find the key in `formData` that corresponds to the PDF widget name "102. COPY".
+// We normalize by removing non-alphanumeric so it works for variations like "102. COPY" / "102_COPY".
+function findCopyFieldKeyInFormData(formData) {
+    if (!formData || typeof formData !== 'object') return null;
+    const keys = Object.keys(formData);
+
+    const normalize = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const target = '102copy';
+
+    // Prefer exact key match if present
+    if (Object.prototype.hasOwnProperty.call(formData, '102. COPY')) return '102. COPY';
+    if (Object.prototype.hasOwnProperty.call(formData, '102_COPY')) return '102_COPY';
+
+    return keys.find(k => normalize(k) === target) || null;
 }
 
 // Load default PDF (AWB1.pdf)

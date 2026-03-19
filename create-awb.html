@@ -307,6 +307,23 @@
                     <button type="button" class="btn-primary" id="fillAndFlattenBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">Create AWB</button>
                     <button type="button" class="btn-secondary" id="saveFormToSpaceBtn" style="display: none;">Save to resume later</button>
                     <button type="button" class="btn-secondary" id="printPreviewBtn">Print Preview</button>
+                    <div id="printCopiesControls" style="margin-left: 10px; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid #e0e0e0; border-radius: 6px; background: #fafafa;">
+                        <div style="font-weight: 600; font-size: 12px; color: #333;">Print Copies (field <span style="font-family: monospace;">102. COPY</span>)</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                            <label style="font-size: 12px;"><input type="checkbox" id="copyOrig3" checked> Original 3 (Shipper)</label>
+                            <label style="font-size: 12px;"><input type="checkbox" id="copy8Agent" checked> Copy 8 (Agent)</label>
+                            <label style="font-size: 12px;"><input type="checkbox" id="copyOrig1" checked> Original 1 (Issuing Carrier)</label>
+                            <label style="font-size: 12px;"><input type="checkbox" id="copyOrig2" checked> Original 2 (Consignee)</label>
+                            <label style="font-size: 12px;"><input type="checkbox" id="copy4Delivery" checked> Copy 4 (Delivery Receipt)</label>
+                            <label style="font-size: 12px;"><input type="checkbox" id="copy5Extra" checked> Copy 5 (Extra)</label>
+                            <label style="font-size: 12px;"><input type="checkbox" id="copy6Extra" checked> Copy 6 (Extra)</label>
+                            <label style="font-size: 12px;"><input type="checkbox" id="copy7Extra" checked> Copy 7 (Extra)</label>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                            <button type="button" class="btn-secondary" id="printSelectedCopiesBtn">Print Selected Copies</button>
+                            <label style="font-size: 12px;"><input type="checkbox" id="autoOpenPrintCopies" checked> Auto-open & print</label>
+                        </div>
+                    </div>
                     <button type="button" class="btn-secondary" id="submitBtn">View Form Data</button>
                 </div>
             </div>
