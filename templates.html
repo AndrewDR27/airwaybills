@@ -10,11 +10,11 @@
     <style>
         /* Modern test styling: scoped to templates.html only */
         .templates-page {
-            padding: 20px;
+            padding: 12px;
         }
         .templates-shell {
             display: grid;
-            gap: 18px;
+            gap: 14px;
         }
         .templates-toolbar,
         .templates-filter-panel,
@@ -24,7 +24,7 @@
             border: 1px solid #e5e7eb;
             box-shadow: 0 2px 10px rgba(17,24,39,0.06);
             border-radius: 12px;
-            padding: 14px;
+            padding: 12px;
         }
         .templates-header-row {
             display: flex;
@@ -63,7 +63,7 @@
         .templates-filters select {
             width: 100%;
             box-sizing: border-box;
-            padding: 8px 10px;
+            padding: 6px 8px;
             border: 1px solid #d1d5db;
             border-radius: 10px;
             background: #fff;
@@ -80,7 +80,7 @@
             justify-content: space-between;
             gap: 12px;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             flex-wrap: wrap;
         }
         .template-table-wrap {
@@ -89,29 +89,32 @@
         .template-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
-            min-width: 1100px;
+            font-size: 12px;
+            min-width: 0;
+            table-layout: fixed;
         }
         .template-table th,
         .template-table td {
             border: 1px solid #e5e7eb;
-            padding: 10px;
+            padding: 8px;
             text-align: left;
             vertical-align: top;
-        }
-        .template-table th {
-            background: #f8fafc;
+            overflow: hidden;
+            text-overflow: ellipsis;
             white-space: nowrap;
         }
+        .template-table th {
+            background: #ecfeff;
+        }
         .template-table tr:hover {
-            background: #f3f6ff;
+            background: #ecfeff;
         }
         .template-actions-cell {
             white-space: nowrap;
         }
         .template-action-btn {
             margin: 0 4px 4px 0;
-            padding: 6px 10px;
+            padding: 5px 8px;
             border: 1px solid #d1d5db;
             border-radius: 10px;
             background: #f3f4f6;
@@ -133,7 +136,7 @@
             display: inline-block;
             padding: 2px 6px;
             border-radius: 10px;
-            background: #eef1ff;
+            background: #ccfbf1;
             font-size: 11px;
         }
         .template-empty {
@@ -147,9 +150,9 @@
             gap: 10px;
         }
         .template-details-item {
-            border: 1px solid #e5e7eb;
+            border: 1px solid #bff7dc;
             padding: 10px;
-            background: #ffffff;
+            background: #f0fdf4;
             border-radius: 12px;
         }
         .template-details-item strong {
@@ -165,6 +168,12 @@
             white-space: pre-wrap;
             word-break: break-word;
             margin: 0;
+        }
+
+        /* Override inline styles in HTML so the modal notes match the teal scheme */
+        #templateDetailsNotes {
+            background: #ecfeff !important;
+            border: 1px solid #bff7dc !important;
         }
     </style>
 </head>
