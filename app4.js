@@ -151,6 +151,18 @@ function initializeApp() {
     if (printSelectedCopiesBtn) {
         printSelectedCopiesBtn.addEventListener('click', handlePrintSelectedCopies);
     }
+
+    // Convenience control to check all copy checkboxes at once
+    const selectAllCopiesBtn = document.getElementById('selectAllCopiesBtn');
+    if (selectAllCopiesBtn) {
+        selectAllCopiesBtn.addEventListener('click', () => {
+            const ids = ['copyOrig3', 'copy8Agent', 'copyOrig1', 'copyOrig2', 'copy4Delivery', 'copy5Extra', 'copy6Extra', 'copy7Extra'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.checked = true;
+            });
+        });
+    }
     
     // Template management event handlers
     if (templateSelect) {
@@ -662,6 +674,73 @@ function initializeApp() {
 
 // Print multiple copies by filling PDF field "102. COPY" with different labels.
 // AWB1 is a single-page PDF; copies are identical aside from the "102. COPY" text.
+function getSelectedCopiesFromUI() {
+    const copySelections = [
+        { id: 'copyOrig3', value: 'Original 3 (for Shipper)' },
+        { id: 'copy8Agent', value: 'Copy 8 (for Agent)' },
+        { id: 'copyOrig1', value: 'Original 1 (for Issuing Carrier)' },
+        { id: 'copyOrig2', value: 'Original 2 (for Consignee)' },
+        { id: 'copy4Delivery', value: 'Copy 4 (for Delivery Receipt)' },
+        { id: 'copy5Extra', value: 'Copy 5 (Extra Copy)' },
+        { id: 'copy6Extra', value: 'Copy 6 (Extra Copy)' },
+        { id: 'copy7Extra', value: 'Copy 7 (Extra Copy)' },
+    ];
+
+    return copySelections
+        .filter(c => {
+            const el = document.getElementById(c.id);
+            return !!(el && el.checked);
+        })
+        .map(c => c.value);
+}
+
+function getAWBNumberFromFormData(formData) {
+    if (!formData || typeof formData !== 'object') return null;
+
+    // Prefer field 101 (it usually contains the real AWB formatted with a "-")
+    for (const key in formData) {
+        if (!Object.prototype.hasOwnProperty.call(formData, key)) continue;
+        if (key.startsWith('101') && formData[key]) {
+            const value = String(formData[key]).trim();
+            if (value && value.includes('-')) return value;
+        }
+    }
+
+    // Fallback: field 01
+    for (const key in formData) {
+        if (!Object.prototype.hasOwnProperty.call(formData, key)) continue;
+        if (key.startsWith('01') && formData[key]) {
+            const value = String(formData[key]).trim();
+            if (value) return value;
+        }
+    }
+
+    return null;
+}
+
+function safeFilenamePart(s) {
+    return String(s).replace(/[\\/:*?"<>|]/g, '_');
+}
+
+// Merge multiple single-page PDFs (bytes) into one multi-page PDF (bytes)
+async function mergePdfPages(pdfBytesList) {
+    if (!Array.isArray(pdfBytesList) || pdfBytesList.length === 0) {
+        throw new Error('No PDF bytes provided for merge.');
+    }
+
+    const mergedPdf = await PDFLib.PDFDocument.create();
+
+    for (let i = 0; i < pdfBytesList.length; i++) {
+        const bytes = pdfBytesList[i];
+        const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+        const pageIndices = pdfDoc.getPageIndices();
+        const copiedPages = await mergedPdf.copyPages(pdfDoc, pageIndices);
+        copiedPages.forEach(p => mergedPdf.addPage(p));
+        console.log(`Merged pages from copy ${i + 1}/${pdfBytesList.length}`);
+    }
+
+    return await mergedPdf.save();
+}
 async function handlePrintSelectedCopies() {
     if (!generatedForm) {
         showError('Error: Form not found. Please refresh the page.');
@@ -682,28 +761,10 @@ async function handlePrintSelectedCopies() {
         if (!shouldContinue) return;
     }
 
-    const copySelections = [
-        { id: 'copyOrig3', value: 'Original 3 (for Shipper)' },
-        { id: 'copy8Agent', value: 'Copy 8 (for Agent)' },
-        { id: 'copyOrig1', value: 'Original 1 (for Issuing Carrier)' },
-        { id: 'copyOrig2', value: 'Original 2 (for Consignee)' },
-        { id: 'copy4Delivery', value: 'Copy 4 (for Delivery Receipt)' },
-        // These values must match the exact text printed into PDF field 102. COPY
-        // (and should match the visible checkbox labels on the page).
-        { id: 'copy5Extra', value: 'Copy 5 (for Extra)' },
-        { id: 'copy6Extra', value: 'Copy 6 (for Extra)' },
-        { id: 'copy7Extra', value: 'Copy 7 (for Extra)' },
-    ];
-
     const autoOpenPrintCopiesCheckbox = document.getElementById('autoOpenPrintCopies');
     const autoOpenPrintCopies = !!(autoOpenPrintCopiesCheckbox && autoOpenPrintCopiesCheckbox.checked);
 
-    const selectedCopies = copySelections
-        .filter(c => {
-            const el = document.getElementById(c.id);
-            return !!(el && el.checked);
-        })
-        .map(c => c.value);
+    const selectedCopies = getSelectedCopiesFromUI();
 
     if (selectedCopies.length === 0) {
         showError('Select at least one copy to print.');
@@ -715,61 +776,64 @@ async function handlePrintSelectedCopies() {
     try {
         console.log('Collecting base form data for selected copies...');
         const baseFormData = collectFormData();
+        const awbNumber = getAWBNumberFromFormData(baseFormData);
+        const downloadName = awbNumber
+            ? `${safeFilenamePart(awbNumber)}.pdf`
+            : 'AWB-copies.pdf';
 
-        // Print/download sequentially to reduce popup blocker issues
+        const filledPdfBytesList = [];
+
+        // Generate each copy's one-page PDF first, then merge into a single multi-page PDF.
         for (let i = 0; i < selectedCopies.length; i++) {
             const copyText = selectedCopies[i];
-            // Pass copy label via special key; fillPdfWithData finds the 102. COPY field by name and sets it
             const formDataForThisCopy = { ...baseFormData, _102_COPY_OVERRIDE: copyText };
-
             console.log(`Generating PDF copy ${i + 1}/${selectedCopies.length}:`, copyText);
             const filledPdfBytes = await fillPdfWithData(formDataForThisCopy, true);
+            filledPdfBytesList.push(filledPdfBytes);
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
 
-            const blob = new Blob([filledPdfBytes], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
+        const mergedPdfBytes = await mergePdfPages(filledPdfBytesList);
+        const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
 
-            if (autoOpenPrintCopies) {
-                const printWindow = window.open(url, '_blank');
-                if (printWindow) {
-                    // Wait for PDF to load, then trigger print
-                    printWindow.onload = () => {
-                        setTimeout(() => {
-                            try {
-                                printWindow.focus();
-                                printWindow.print();
-                            } catch (e) {
-                                console.warn('Could not auto-print window:', e);
-                            }
-                        }, 500);
-                    };
-                    // Cleanup later (after some time for print dialog readiness)
-                    setTimeout(() => URL.revokeObjectURL(url), 30000);
-                } else {
-                    // Popup blocked - fall back to download
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `filled-form_${i + 1}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    setTimeout(() => URL.revokeObjectURL(url), 30000);
-                }
+        if (autoOpenPrintCopies) {
+            const printWindow = window.open(url, '_blank');
+            if (printWindow) {
+                printWindow.onload = () => {
+                    setTimeout(() => {
+                        try {
+                            printWindow.focus();
+                            printWindow.print();
+                        } catch (e) {
+                            console.warn('Could not auto-print window:', e);
+                        }
+                    }, 500);
+                };
+                setTimeout(() => URL.revokeObjectURL(url), 30000);
             } else {
+                // Popup blocked - fall back to download
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `filled-form_${i + 1}.pdf`;
+                a.download = downloadName;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 setTimeout(() => URL.revokeObjectURL(url), 30000);
             }
-
-            // Small delay between copies to reduce browser load/popup throttling.
-            await new Promise(resolve => setTimeout(resolve, 600));
+        } else {
+            // Download combined PDF
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = downloadName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 30000);
         }
 
         hideLoading();
-        showError(`✓ Generated ${selectedCopies.length} copy PDF(s) for printing.`);
+        showError(`✓ Generated ${selectedCopies.length}-page PDF for printing.`);
         setTimeout(() => hideError(), 2500);
     } catch (err) {
         console.error('Error printing selected copies:', err);
@@ -4679,17 +4743,37 @@ async function handlePrintPreview() {
     showLoading();
     
     try {
+        const selectedCopies = getSelectedCopiesFromUI();
+        if (selectedCopies.length === 0) {
+            showError('Select at least one copy to preview.');
+            hideLoading();
+            return;
+        }
+
         console.log('Collecting form data for print preview...');
         const formData = collectFormData();
         console.log('Form data collected:', formData);
-        
-        // Fill and flatten the PDF for clean print preview
-        console.log('Generating print preview PDF...');
-        const filledPdfBytes = await fillPdfWithData(formData, true); // true = flatten for clean preview
-        console.log('Print preview PDF generated');
-        
-        // Create blob and open in new window for print preview
-        const blob = new Blob([filledPdfBytes], { type: 'application/pdf' });
+
+        const awbNumber = getAWBNumberFromFormData(formData);
+        const previewDownloadName = awbNumber
+            ? `${safeFilenamePart(awbNumber)}-Print-Preview.pdf`
+            : 'AWB-Print-Preview.pdf';
+
+        const filledPdfBytesList = [];
+
+        // Generate each selected copy as one-page PDF (flattened), then merge.
+        for (let i = 0; i < selectedCopies.length; i++) {
+            const copyText = selectedCopies[i];
+            const formDataForThisCopy = { ...formData, _102_COPY_OVERRIDE: copyText };
+            console.log(`Generating print preview page ${i + 1}/${selectedCopies.length}:`, copyText);
+            const filledPdfBytes = await fillPdfWithData(formDataForThisCopy, true);
+            filledPdfBytesList.push(filledPdfBytes);
+            await new Promise(resolve => setTimeout(resolve, 150));
+        }
+
+        console.log('Generating merged print preview PDF...');
+        const mergedPdfBytes = await mergePdfPages(filledPdfBytesList);
+        const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         
         // Open PDF in new window for print preview
@@ -4710,7 +4794,7 @@ async function handlePrintPreview() {
             // If popup blocked, create download link as fallback
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'print-preview.pdf';
+            a.download = previewDownloadName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
