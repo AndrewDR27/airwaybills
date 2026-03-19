@@ -6043,8 +6043,14 @@ async function restoreFormData(optionalSavedData) {
             };
             const upperField30El = document.querySelector('input[name="upperField30"], select[name="upperField30"]');
             const upperField31El = document.querySelector('input[name="upperField31"], select[name="upperField31"]');
-            if (upperField30El) upperField30El.value = getForm30Or31('30');
-            if (upperField31El) upperField31El.value = getForm30Or31('31');
+            if (upperField30El) {
+                upperField30El.value = getForm30Or31('30');
+                upperField30El.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (upperField31El) {
+                upperField31El.value = getForm30Or31('31');
+                upperField31El.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         }
         
         // Restore dropdown selections
