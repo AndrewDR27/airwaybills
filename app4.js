@@ -6058,20 +6058,28 @@ async function restoreFormData(optionalSavedData) {
             element.dispatchEvent(new Event('input', { bubbles: true }));
         });
         
-        // Restore upper-area fields (e.g. Chargeable Weight 56, Rate per kg 57 in customs container) — they are outside the form
+        // Restore upper-area fields (e.g. Chargeable Weight 56, Rate per kg 57 in customs container) — they are outside the form.
+        // Only restore names that are customs fields (50–57) to avoid touching other keys. Do not dispatch 'input' for 56/57
+        // so the 57->31 and 56->30 autofill does not overwrite the already-restored billing fields 30 and 31.
         const customsFieldsRows = document.getElementById('customsFieldsRows');
         if (customsFieldsRows) {
+            const customsPrefixes = ['50', '51', '52', '53', '54', '55', '56', '57'];
             Object.keys(formData).forEach((name) => {
                 if (name.startsWith('_')) return;
+                const isCustomsField = customsPrefixes.some(p => name === p || name.startsWith(p + '.') || name.startsWith(p + ' '));
+                if (!isCustomsField) return;
                 const value = formData[name];
                 const elList = customsFieldsRows.querySelectorAll(`input[name="${name}"], select[name="${name}"], textarea[name="${name}"]`);
+                const is56Or57 = name === '56' || name === '57' || name.startsWith('56.') || name.startsWith('56 ') || name.startsWith('57.') || name.startsWith('57 ');
                 elList.forEach((el) => {
                     if (el.type === 'checkbox') {
                         el.checked = value === true || value === 'true';
                     } else {
                         el.value = value != null ? value : '';
                     }
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (!is56Or57) {
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
                 });
             });
         }
@@ -6142,13 +6150,6 @@ async function restoreFormData(optionalSavedData) {
             dangerousGoodsSelect.dispatchEvent(new Event('change', { bubbles: true }));
         }
         
-        // Restore Ignore remaining charges checkbox
-        const ignoreRemainingChargesCheckbox = document.getElementById('ignoreRemainingChargesCheckbox');
-        if (ignoreRemainingChargesCheckbox && dropdownData.hasOwnProperty('ignoreRemainingCharges')) {
-            ignoreRemainingChargesCheckbox.checked = !!dropdownData.ignoreRemainingCharges;
-            ignoreRemainingChargesCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        
         // Restore dimensions data (including QTY)
         if (dropdownData.dimensions && Array.isArray(dropdownData.dimensions)) {
             const dimensionsContainer = document.getElementById('dimensionsContainer');
@@ -6211,6 +6212,13 @@ async function restoreFormData(optionalSavedData) {
         setTimeout(() => {
             updateTabValidationIndicators();
         }, 100);
+        
+        // Restore Ignore remaining charges checkbox last so nothing overwrites it
+        const ignoreRemainingChargesCheckbox = document.getElementById('ignoreRemainingChargesCheckbox');
+        if (ignoreRemainingChargesCheckbox && dropdownData.hasOwnProperty('ignoreRemainingCharges')) {
+            ignoreRemainingChargesCheckbox.checked = !!dropdownData.ignoreRemainingCharges;
+            ignoreRemainingChargesCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+        }
         
         console.log('Form data restored from localStorage');
     } catch (error) {
