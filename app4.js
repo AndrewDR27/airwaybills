@@ -713,17 +713,12 @@ async function handlePrintSelectedCopies() {
     try {
         console.log('Collecting base form data for selected copies...');
         const baseFormData = collectFormData();
-        const copyPdfFieldName = findCopyPdfFieldNameFromPdfWidgets() || findCopyFieldKeyInFormData(baseFormData);
-        if (!copyPdfFieldName) {
-            throw new Error('Could not find PDF field for "102. COPY" (searched both PDF widgets and generated form).');
-        }
-
-        console.log('Using copy PDF field name:', copyPdfFieldName);
 
         // Print/download sequentially to reduce popup blocker issues
         for (let i = 0; i < selectedCopies.length; i++) {
             const copyText = selectedCopies[i];
-            const formDataForThisCopy = { ...baseFormData, [copyPdfFieldName]: copyText };
+            // Pass copy label via special key; fillPdfWithData finds the 102. COPY field by name and sets it
+            const formDataForThisCopy = { ...baseFormData, _102_COPY_OVERRIDE: copyText };
 
             console.log(`Generating PDF copy ${i + 1}/${selectedCopies.length}:`, copyText);
             const filledPdfBytes = await fillPdfWithData(formDataForThisCopy, true);
@@ -3792,6 +3787,29 @@ async function fillPdfWithData(formData, flatten = false) {
     });
     
     console.log('Form data to fill:', formData);
+    
+    // If caller passed a copy label for field 102. COPY (multi-copy print), set it by finding the PDF field by name
+    const copyLabelFor102 = formData._102_COPY_OVERRIDE;
+    if (copyLabelFor102 !== undefined) {
+        const field102 = pdfFields.find(f => {
+            const n = (f.getName() || '').toLowerCase();
+            return n.includes('102') && n.includes('copy');
+        });
+        if (field102) {
+            try {
+                if (typeof field102.setText === 'function') {
+                    field102.setText(String(copyLabelFor102));
+                    if (typeof field102.setFontSize === 'function') field102.setFontSize(12);
+                    console.log('Set 102. COPY field to:', copyLabelFor102);
+                }
+            } catch (e) {
+                console.warn('Error setting 102. COPY field:', e);
+            }
+        } else {
+            console.warn('102. COPY override provided but no PDF field name containing "102" and "copy" found. PDF field names:', pdfFields.map(f => f.getName()));
+        }
+        delete formData._102_COPY_OVERRIDE;
+    }
     
     // Embed regular font for field 98 (non-bold)
     let helveticaRegularFont;
