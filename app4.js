@@ -2204,6 +2204,10 @@ function collectFormDataForTemplate() {
     if (dangerousGoodsSelect) {
         formData['_dangerousGoods'] = dangerousGoodsSelect.value || '';
     }
+    const commoditySelect = document.getElementById('commoditySelect');
+    if (commoditySelect) {
+        formData['_commodity'] = commoditySelect.value || '';
+    }
     
     // Capture billing dropdown selections
     const declaredValuesSelect = document.getElementById('declaredValuesSelect');
@@ -2358,6 +2362,15 @@ async function populateFormFromTemplate(templateData) {
     
     // Populate commodity dropdown from selected shipper/consignee (and user profile)
     if (typeof populateCommodityDropdown === 'function') populateCommodityDropdown();
+    if (templateData['_commodity']) {
+        const commoditySelect = document.getElementById('commoditySelect');
+        if (commoditySelect) {
+            commoditySelect.value = templateData['_commodity'];
+            if (typeof fillField33FromCommodity === 'function' && commoditySelect.value) {
+                fillField33FromCommodity(commoditySelect.value);
+            }
+        }
+    }
     
     // Restore routing dropdown selections
     if (templateData['_airlineContactId1'] && airlineSelect1) {
