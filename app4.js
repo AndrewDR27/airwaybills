@@ -1399,11 +1399,11 @@ function generateForm() {
         const customsFieldsContainer = document.getElementById('customsFieldsContainer');
         const customsFieldsRows = document.getElementById('customsFieldsRows');
         if (customsFieldsContainer && customsFieldsRows && hasRightSideFields) {
-            // Create rows: 50a/50b/53a/53b, 51a/51b/54a/54b, 52a/52b/55a/55b, and upper Field 30/31
+            // Create rows to match lower format: 50/51, 52/53, 54/55, then upper Field 30/31
             const customsRows = [
-                ['50a', '50b', '53a', '53b'],
-                ['51a', '51b', '54a', '54b'],
-                ['52a', '52b', '55a', '55b'],
+                ['50a', '50b', '51a', '51b'],
+                ['52a', '52b', '53a', '53b'],
+                ['54a', '54b', '55a', '55b'],
                 ['upper30', 'upper31']
             ];
             
