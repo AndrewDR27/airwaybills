@@ -1399,27 +1399,23 @@ function generateForm() {
         const customsFieldsContainer = document.getElementById('customsFieldsContainer');
         const customsFieldsRows = document.getElementById('customsFieldsRows');
         if (customsFieldsContainer && customsFieldsRows && hasRightSideFields) {
-            // Create 4 rows: 50-53, 51-54, 52-55, and upper Field 30 / Field 31 (not tied to any PDF field names)
+            // Create rows: 50a/50b/53a/53b, 51a/51b/54a/54b, 52a/52b/55a/55b, and upper Field 30/31
             const customsRows = [
-                ['50', '53'],
-                ['51', '54'],
-                ['52', '55'],
+                ['50a', '50b', '53a', '53b'],
+                ['51a', '51b', '54a', '54b'],
+                ['52a', '52b', '55a', '55b'],
                 ['upper30', 'upper31']
             ];
             
-            const customsFieldsAll = { ...rightSideFields };
-            ['50', '51', '52', '53', '54', '55'].forEach(prefix => {
-                const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
-                if (matchingField) customsFieldsAll[prefix] = matchingField;
-            });
-            
             const upperAreaInputs = {};
+            const chargePrefixes = ['50', '51', '52', '53', '54', '55'];
             
             customsRows.forEach(rowPrefixes => {
                 const row = document.createElement('div');
                 row.className = 'form-row';
                 row.style.display = 'flex';
                 row.style.gap = '8px';
+                row.style.flexWrap = 'wrap';
                 
                 rowPrefixes.forEach(prefix => {
                     if (prefix === 'upper30' || prefix === 'upper31') {
@@ -1434,6 +1430,7 @@ function generateForm() {
                         };
                         const formGroup = createFormField(syntheticField);
                         formGroup.style.flex = '1';
+                        formGroup.style.minWidth = '120px';
                         const input = formGroup.querySelector('input, textarea, select');
                         if (input) {
                             upperAreaInputs[is30 ? '30' : '31'] = input;
@@ -1450,21 +1447,27 @@ function generateForm() {
                         row.appendChild(formGroup);
                         return;
                     }
-                    const fieldName = customsFieldsAll[prefix];
-                    if (fieldName) {
-                        const fieldsWithSameName = fieldsByName.get(fieldName);
-                        const primaryField = fieldsWithSameName[0];
-                        primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
-                        primaryField.duplicateCount = fieldsWithSameName.length;
-                        if (fieldsWithSameName.length > 1) {
-                            console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
-                                fieldsWithSameName.map(f => f.pdfFieldName));
-                        }
-                        const formGroup = createFormField(primaryField);
+                    // 50a/50b style: charge name and rate (two parts per field 50-55)
+                    const match = prefix.match(/^(\d{2})(a|b)$/);
+                    if (match) {
+                        const num = match[1];
+                        const part = match[2];
+                        const label = part === 'a' ? `${num}a. Name` : `${num}b. Rate`;
+                        const syntheticField = {
+                            name: prefix,
+                            label: label,
+                            pdfFieldName: prefix,
+                            htmlType: 'text',
+                            value: '',
+                            required: false
+                        };
+                        const formGroup = createFormField(syntheticField);
                         formGroup.style.flex = '1';
-                        row.appendChild(formGroup);
+                        formGroup.style.minWidth = '80px';
                         const input = formGroup.querySelector('input, textarea, select');
                         if (input) upperAreaInputs[prefix] = input;
+                        row.appendChild(formGroup);
+                        return;
                     }
                 });
                 
@@ -1473,46 +1476,35 @@ function generateForm() {
                 }
             });
             
-            // Set up autofill from upper area to lower area for fields 50-55
+            // Set up autofill from upper area (50a/50b etc.) to lower area for fields 50-55 (combined "Name: Rate")
             if (Object.keys(upperAreaInputs).length > 0) {
-                // Wait for lower area fields to be created, then set up autofill
                 setTimeout(() => {
                     const billingFieldsForm = document.getElementById('billingFieldsForm');
                     if (billingFieldsForm) {
-                        ['50', '51', '52', '53', '54', '55'].forEach(prefix => {
-                            const upperInput = upperAreaInputs[prefix];
-                            if (upperInput) {
-                                // Find corresponding lower area input by name prefix
-                                const lowerInputs = billingFieldsForm.querySelectorAll(`input[name^="${prefix}"], textarea[name^="${prefix}"], select[name^="${prefix}"]`);
-                                
-                                if (lowerInputs.length > 0) {
-                                    // Sync from upper to lower
-                                    upperInput.addEventListener('input', function() {
-                                        lowerInputs.forEach(lowerInput => {
-                                            lowerInput.value = this.value;
-                                            lowerInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                        });
-                                    });
-                                    
-                                    // Also sync on change for select elements
-                                    if (upperInput.tagName === 'SELECT') {
-                                        upperInput.addEventListener('change', function() {
-                                            lowerInputs.forEach(lowerInput => {
-                                                lowerInput.value = this.value;
-                                                lowerInput.dispatchEvent(new Event('change', { bubbles: true }));
-                                            });
-                                        });
-                                    }
-                                    
-                                    // Initial sync if upper has a value
-                                    if (upperInput.value) {
-                                        lowerInputs.forEach(lowerInput => {
-                                            lowerInput.value = upperInput.value;
-                                            lowerInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                        });
-                                    }
-                                }
+                        chargePrefixes.forEach(prefix => {
+                            const nameInput = upperAreaInputs[prefix + 'a'];
+                            const rateInput = upperAreaInputs[prefix + 'b'];
+                            const lowerInputs = billingFieldsForm.querySelectorAll(`input[name^="${prefix}"], textarea[name^="${prefix}"], select[name^="${prefix}"]`);
+                            if (lowerInputs.length === 0) return;
+                            const pushToLower = () => {
+                                const combined = combineChargeNameAndRate(
+                                    nameInput ? nameInput.value : '',
+                                    rateInput ? rateInput.value : ''
+                                );
+                                lowerInputs.forEach(lowerInput => {
+                                    lowerInput.value = combined;
+                                    lowerInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                });
+                            };
+                            if (nameInput) {
+                                nameInput.addEventListener('input', pushToLower);
+                                nameInput.addEventListener('change', pushToLower);
                             }
+                            if (rateInput) {
+                                rateInput.addEventListener('input', pushToLower);
+                                rateInput.addEventListener('change', pushToLower);
+                            }
+                            pushToLower();
                         });
                         
                         // Upper Field 30 and 31 only populate lower. No PDF 56/57; no lower→upper.
@@ -6018,21 +6010,23 @@ async function restoreFormData(optionalSavedData) {
         // (→ 30, 31) sync from billing form so the upper section always matches the lower.
         const customsFieldsRows = document.getElementById('customsFieldsRows');
         if (customsFieldsRows) {
-            const customsPrefixes50to55 = ['50', '51', '52', '53', '54', '55'];
-            Object.keys(formData).forEach((name) => {
-                if (name.startsWith('_')) return;
-                const is50to55 = customsPrefixes50to55.some(p => name === p || name.startsWith(p + '.') || name.startsWith(p + ' '));
-                if (!is50to55) return;
-                const value = formData[name];
-                const elList = customsFieldsRows.querySelectorAll(`input[name="${name}"], select[name="${name}"], textarea[name="${name}"]`);
-                elList.forEach((el) => {
-                    if (el.type === 'checkbox') {
-                        el.checked = value === true || value === 'true';
-                    } else {
-                        el.value = value != null ? value : '';
-                    }
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                });
+            // Upper 50-55 are now 50a/50b etc.; restore them by parsing the lower section's combined "Name: Rate" value
+            const formsForRestore = [generatedForm, billingFieldsForm].filter(Boolean);
+            ['50', '51', '52', '53', '54', '55'].forEach((prefix) => {
+                const combined = typeof getFieldValueByPrefix === 'function'
+                    ? getFieldValueByPrefix(prefix, formsForRestore)
+                    : '';
+                const parsed = typeof parseChargeNameAndRate === 'function' ? parseChargeNameAndRate(combined) : { name: '', rate: '' };
+                const nameEl = customsFieldsRows.querySelector(`input[name="${prefix}a"], select[name="${prefix}a"]`);
+                const rateEl = customsFieldsRows.querySelector(`input[name="${prefix}b"], select[name="${prefix}b"]`);
+                if (nameEl) {
+                    nameEl.value = parsed.name || '';
+                    nameEl.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                if (rateEl) {
+                    rateEl.value = parsed.rate || '';
+                    rateEl.dispatchEvent(new Event('input', { bubbles: true }));
+                }
             });
             // After restore: set upper Field 30/31 inputs from form so both areas show the same (upper has name upperField30/upperField31, not PDF 56/57)
             const getForm30Or31 = (prefix) => {
@@ -7572,12 +7566,12 @@ function updatePrepaidCollectFields() {
     let cdcTotal = 0;
     const cdcPrefixes = ['50', '51', '52', '53', '54'];
     
-    // Check upper area (customs container) first
+    // Check upper area (customs container) first; use rate (b) inputs only (50b, 51b, ...)
     if (customsFieldsRows) {
         cdcPrefixes.forEach(prefix => {
-            const input = customsFieldsRows.querySelector(`input[name^="${prefix}"], textarea[name^="${prefix}"], select[name^="${prefix}"]`);
-            if (input && input.value) {
-                const value = extractNumericValue(input.value);
+            const rateInput = customsFieldsRows.querySelector(`input[name="${prefix}b"], textarea[name="${prefix}b"], select[name="${prefix}b"]`);
+            if (rateInput && rateInput.value) {
+                const value = extractNumericValue(rateInput.value);
                 cdcTotal += value;
             }
         });
@@ -7932,6 +7926,28 @@ function setupField32Calculation() {
             calculateField32();
         }
     });
+}
+
+// Combine charge name + rate for fields 50-55 into "Name: Rate" format used by lower section
+function combineChargeNameAndRate(name, rate) {
+    const n = (name != null ? String(name) : '').trim();
+    const r = (rate != null ? String(rate) : '').trim();
+    if (!n && !r) return '';
+    if (!n) return r;
+    if (!r) return n;
+    return n + ': ' + r;
+}
+
+// Parse "Name: Rate" (or "Name: $X.XX") into { name, rate } for upper 50a/50b restore
+function parseChargeNameAndRate(combined) {
+    if (combined == null || typeof combined !== 'string') return { name: '', rate: '' };
+    const s = combined.trim();
+    const colonIdx = s.indexOf(': ');
+    if (colonIdx < 0) return { name: s, rate: '' };
+    return {
+        name: s.slice(0, colonIdx).trim(),
+        rate: s.slice(colonIdx + 2).trim()
+    };
 }
 
 // Extract numeric value from text (handles letters, numbers, symbols, currency, commas, etc.)
