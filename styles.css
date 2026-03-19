@@ -24,9 +24,8 @@
 
 body {
     font-family: 'MS Sans Serif', 'Arial', sans-serif;
-    background: var(--win98-desktop);
-    background-image: 
-        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
+    background: transparent;
+    background-image: none;
     min-height: 100vh;
     padding: 2px;
     color: var(--win98-text);
