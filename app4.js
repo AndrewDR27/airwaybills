@@ -713,17 +713,17 @@ async function handlePrintSelectedCopies() {
     try {
         console.log('Collecting base form data for selected copies...');
         const baseFormData = collectFormData();
-        const copyFieldKey = findCopyFieldKeyInFormData(baseFormData);
-        if (!copyFieldKey) {
-            throw new Error('Could not find PDF field for "102. COPY" in the generated form.');
+        const copyPdfFieldName = findCopyPdfFieldNameFromPdfWidgets() || findCopyFieldKeyInFormData(baseFormData);
+        if (!copyPdfFieldName) {
+            throw new Error('Could not find PDF field for "102. COPY" (searched both PDF widgets and generated form).');
         }
 
-        console.log('Using copy field key:', copyFieldKey);
+        console.log('Using copy PDF field name:', copyPdfFieldName);
 
         // Print/download sequentially to reduce popup blocker issues
         for (let i = 0; i < selectedCopies.length; i++) {
             const copyText = selectedCopies[i];
-            const formDataForThisCopy = { ...baseFormData, [copyFieldKey]: copyText };
+            const formDataForThisCopy = { ...baseFormData, [copyPdfFieldName]: copyText };
 
             console.log(`Generating PDF copy ${i + 1}/${selectedCopies.length}:`, copyText);
             const filledPdfBytes = await fillPdfWithData(formDataForThisCopy, true);
@@ -795,6 +795,18 @@ function findCopyFieldKeyInFormData(formData) {
     if (Object.prototype.hasOwnProperty.call(formData, '102_COPY')) return '102_COPY';
 
     return keys.find(k => normalize(k) === target) || null;
+}
+
+// Find the exact PDF widget field name for "102. COPY" by scanning extracted PDF widgets.
+// This is more reliable than relying on HTML inputs, since the HTML form may not include it.
+function findCopyPdfFieldNameFromPdfWidgets() {
+    if (!Array.isArray(formFields)) return null;
+    const target = '102copy';
+    const normalize = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    // Prefer an exact normalized match
+    const match = formFields.find(f => f && f.name && normalize(f.name) === target);
+    return match ? match.name : null;
 }
 
 // Load default PDF (AWB1.pdf)
