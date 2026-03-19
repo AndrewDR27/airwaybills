@@ -1348,40 +1348,44 @@
 
             const pdfFields = form.getFields();
             const normalize = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            const candidates = pdfFields
-                .map(f => ({
-                    field: f,
-                    name: (f.getName && f.getName()) ? f.getName() : '',
-                }))
-                .filter(x => x.name && normalize(x.name).includes('102'));
 
-            // Prefer fields that contain both "102" and "copy".
-            // If none match, prefer "102" + "original" (some PDFs use that internal naming).
-            let field102 = null;
-            let bestScore = -Infinity;
-            candidates.forEach(c => {
-                const nn = normalize(c.name);
-                let score = 0;
-                if (nn.includes('copy')) score += 5;
-                if (nn.includes('original') || nn.includes('orig')) score += 2;
-                // slight preference for shorter names once we've matched 102
-                score -= Math.max(0, nn.length - 10) * 0.05;
-                if (typeof c.field.setText === 'function' && score > bestScore) {
-                    bestScore = score;
-                    field102 = c.field;
-                }
-            });
+            // Heuristic:
+            // - In the saved shipment-space PDF, the internal field name may not include "102".
+            // - But it should usually include some combination of "copy", "original", and/or routing-related tokens.
+            // - So we score *all* text-capable fields and pick the best match.
+            const textFields = pdfFields.filter(f => typeof f.setText === 'function' && typeof f.getName === 'function');
 
-            if (field102 && typeof field102.setText === 'function') {
-                field102.setText(String(copyLabel));
-                if (typeof field102.setFontSize === 'function') {
-                    field102.setFontSize(12);
-                }
+            const scored = textFields
+                .map(f => {
+                    const name = f.getName();
+                    const nn = normalize(name);
+                    let score = 0;
+                    if (nn.includes('102')) score += 20;
+                    if (nn.includes('copy')) score += 10;
+                    if (nn.includes('original')) score += 6;
+                    if (nn.includes('orig')) score += 4;
+                    if (nn.includes('routing')) score += 2;
+                    if (nn.endsWith('copy')) score += 2;
+                    if (nn.startsWith('102')) score += 3;
+
+                    // Prefer shorter names once they are in the ballpark
+                    score -= Math.max(0, nn.length - 18) * 0.05;
+                    return { field: f, name, nn, score };
+                })
+                .sort((a, b) => b.score - a.score);
+
+            const best = scored[0];
+            const topNames = scored.slice(0, 15).map(s => ({ name: s.name, score: s.score }));
+
+            if (best && best.score > 0) {
+                best.field.setText(String(copyLabel));
+                if (typeof best.field.setFontSize === 'function') best.field.setFontSize(12);
+                console.log('Shipment-space 102 COPY set using candidate:', { chosen: best.name, score: best.score, topCandidates: topNames });
             } else {
-                console.warn('Could not set 102. COPY for shipment-space copy.', {
+                console.warn('Could not set 102. COPY for shipment-space copy (no good candidates).', {
                     requested: copyLabel,
-                    pdfFieldNamesContaining102: candidates.map(c => c.name).slice(0, 50),
-                    allPdfFieldNamesSample: pdfFields.map(f => f.getName && f.getName()).filter(Boolean).slice(0, 60)
+                    topCandidates: topNames,
+                    allTextFieldNamesSample: textFields.map(f => f.getName()).slice(0, 80)
                 });
             }
 
