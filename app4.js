@@ -6114,7 +6114,6 @@ async function restoreFormData(optionalSavedData) {
         // Restore upper-area fields (customs container). For 50–55 use formData; for Chargeable Weight and Rate per kg
         // (→ 30, 31) sync from billing form so the upper section always matches the lower.
         const customsFieldsRows = document.getElementById('customsFieldsRows');
-        const billingFieldsForm = document.getElementById('billingFieldsForm');
         if (customsFieldsRows) {
             const customsPrefixes50to55 = ['50', '51', '52', '53', '54', '55'];
             Object.keys(formData).forEach((name) => {
