@@ -1503,6 +1503,13 @@ function generateForm() {
                             if (rateInput) {
                                 rateInput.addEventListener('input', pushToLower);
                                 rateInput.addEventListener('change', pushToLower);
+                                rateInput.addEventListener('blur', function() {
+                                    const num = extractNumericValue(this.value);
+                                    if (this.value.trim() !== '' && !isNaN(num)) {
+                                        this.value = formatDollarAmount(num);
+                                        pushToLower();
+                                    }
+                                });
                             }
                             pushToLower();
                         });
@@ -7928,10 +7935,12 @@ function setupField32Calculation() {
     });
 }
 
-// Combine charge name + rate for fields 50-55 into "Name: Rate" format used by lower section
+// Combine charge name + rate for fields 50-55 into "Name: $Rate" format used by lower section (rate in dollars)
 function combineChargeNameAndRate(name, rate) {
     const n = (name != null ? String(name) : '').trim();
-    const r = (rate != null ? String(rate) : '').trim();
+    const rRaw = (rate != null ? String(rate) : '').trim();
+    const rNum = extractNumericValue(rRaw);
+    const r = (rRaw && !isNaN(rNum)) ? formatDollarAmount(rNum) : rRaw;
     if (!n && !r) return '';
     if (!n) return r;
     if (!r) return n;
