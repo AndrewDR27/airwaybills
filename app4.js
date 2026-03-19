@@ -9595,7 +9595,6 @@ function fillField33FromCommodity(commodityName) {
                 element.value = commodity.autofillText;
                 element.dispatchEvent(new Event('input', { bubbles: true }));
                 console.log(`Filled field ${element.name} with autofill text for commodity: ${commodityName}`);
-                break;
             }
         }
     }
@@ -9611,7 +9610,6 @@ function fillField33FromCommodity(commodityName) {
                     element.value = commodity.field41;
                     element.dispatchEvent(new Event('input', { bubbles: true }));
                     console.log(`Filled field ${element.name} with field41 value for commodity: ${commodityName}`);
-                    break;
                 }
             }
         }
@@ -10100,6 +10098,11 @@ function setupDimensionsField34Update() {
                     }
                 }
             });
+            // Re-evaluate missing-field styling when field 34 changes
+            setTimeout(() => {
+                updateTabValidationIndicators();
+                updatePromptIndicators();
+            }, 50);
         } else {
             // Clear field 34 if any input is empty
             const billingFieldsForm = document.getElementById('billingFieldsForm');
@@ -10119,6 +10122,11 @@ function setupDimensionsField34Update() {
                     }
                 }
             });
+            // Re-evaluate missing-field styling when field 34 is cleared
+            setTimeout(() => {
+                updateTabValidationIndicators();
+                updatePromptIndicators();
+            }, 50);
         }
     };
     
@@ -10175,6 +10183,11 @@ function setupDimensionsField35Update() {
                     }
                 }
             });
+            // Re-evaluate missing-field styling when field 35 changes
+            setTimeout(() => {
+                updateTabValidationIndicators();
+                updatePromptIndicators();
+            }, 50);
         } else {
             // Clear field 35 if any input is empty
             const billingFieldsForm = document.getElementById('billingFieldsForm');
@@ -10194,6 +10207,11 @@ function setupDimensionsField35Update() {
                     }
                 }
             });
+            // Re-evaluate missing-field styling when field 35 is cleared
+            setTimeout(() => {
+                updateTabValidationIndicators();
+                updatePromptIndicators();
+            }, 50);
         }
     };
     
@@ -10250,6 +10268,11 @@ function setupDimensionsField36Update() {
                     }
                 }
             });
+            // Re-evaluate missing-field styling when field 36 changes
+            setTimeout(() => {
+                updateTabValidationIndicators();
+                updatePromptIndicators();
+            }, 50);
         } else {
             // Clear field 36 if any input is empty
             const billingFieldsForm = document.getElementById('billingFieldsForm');
@@ -10269,6 +10292,11 @@ function setupDimensionsField36Update() {
                     }
                 }
             });
+            // Re-evaluate missing-field styling when field 36 is cleared
+            setTimeout(() => {
+                updateTabValidationIndicators();
+                updatePromptIndicators();
+            }, 50);
         }
     };
     
