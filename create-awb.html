@@ -535,6 +535,12 @@
             const dangerousGoodsSelect = document.getElementById('dangerousGoodsSelect');
             if (dangerousGoodsSelect) dropdownData.dangerousGoods = dangerousGoodsSelect.value || '';
             
+            // Ignore remaining charges checkbox (so it restores on resume)
+            const ignoreRemainingChargesCheckbox = document.getElementById('ignoreRemainingChargesCheckbox');
+            if (ignoreRemainingChargesCheckbox) {
+                dropdownData.ignoreRemainingCharges = !!ignoreRemainingChargesCheckbox.checked;
+            }
+            
             // Collect dimensions data (including QTY for shipments)
             const dimensionsData = [];
             const dimensionsContainer = document.getElementById('dimensionsContainer');
@@ -558,6 +564,11 @@
             }
             if (dimensionsData.length > 0) {
                 dropdownData.dimensions = dimensionsData;
+            }
+            
+            // Mirror ignore checkbox into formData so restore can use either
+            if (dropdownData.hasOwnProperty('ignoreRemainingCharges')) {
+                formData._ignoreRemainingCharges = dropdownData.ignoreRemainingCharges;
             }
             
             return {
