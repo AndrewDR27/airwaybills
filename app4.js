@@ -1447,12 +1447,13 @@ function generateForm() {
                         row.appendChild(formGroup);
                         return;
                     }
-                    // 50a/50b style: charge name and rate (two parts per field 50-55)
+                    // 50a/50b style: charge name and rate (50-54 = CDC1..CDC5, 55 = CDA1); a/b numbering unchanged
                     const match = prefix.match(/^(\d{2})(a|b)$/);
                     if (match) {
                         const num = match[1];
                         const part = match[2];
-                        const label = part === 'a' ? `${num}a. Name` : `${num}b. Rate`;
+                        const chargeLabel = num === '55' ? 'CDA1' : (num >= '50' && num <= '54' ? 'CDC' + (parseInt(num, 10) - 49) : '');
+                        const label = part === 'a' ? `${num}a. ${chargeLabel} Name` : `${num}b. ${chargeLabel} Rate`;
                         const syntheticField = {
                             name: prefix,
                             label: label,
