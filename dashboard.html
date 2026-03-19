@@ -11,9 +11,7 @@
             margin: 0;
             padding: 0;
             font-family: 'MS Sans Serif', 'Arial', sans-serif;
-            background: #008080;
-            background-image: 
-                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
+            background: #f3f4f6;
         }
         .app-container {
             display: flex;
@@ -21,25 +19,26 @@
         }
         .sidebar {
             width: 250px;
-            background: #C0C0C0;
-            color: #000000;
-            padding: 2px 0;
-            border-right: 2px outset #C0C0C0;
+            background: #f8fafc;
+            color: #111827;
+            padding: 6px 0;
+            border-right: 1px solid #e5e7eb;
             position: fixed;
             height: 100vh;
             overflow-y: auto;
             transition: width 0.2s ease;
+            box-shadow: 4px 0 10px rgba(17, 24, 39, 0.06);
         }
         .sidebar.collapsed {
             width: 70px;
         }
         .sidebar-header {
-            padding: 4px 8px;
-            border-bottom: 2px inset #C0C0C0;
-            margin-bottom: 4px;
+            padding: 10px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 8px;
             position: relative;
-            background: linear-gradient(to bottom, #000080 0%, #000080 100%);
-            color: white;
+            background: linear-gradient(to bottom, #20c997 0%, #1aa87f 100%);
+            color: #ffffff;
         }
         .sidebar-header h2 {
             margin: 0;
@@ -70,9 +69,9 @@
             position: absolute;
             top: 4px;
             right: 4px;
-            background: #C0C0C0;
-            border: 2px outset #C0C0C0;
-            color: #000000;
+            background: #e5e7eb;
+            border: 1px solid #d1d5db;
+            color: #0f172a;
             width: 20px;
             height: 20px;
             cursor: pointer;
@@ -81,13 +80,14 @@
             justify-content: center;
             font-family: 'MS Sans Serif', Arial, sans-serif;
             font-size: 11px;
+            border-radius: 6px;
         }
         .toggle-btn:hover {
-            background: #E8E8E8;
+            background: #d1d5db;
         }
         .toggle-btn:active {
-            border: 2px inset #C0C0C0;
-            background: #808080;
+            background: #9ca3af;
+            border-color: #6b7280;
         }
         .toggle-btn::before {
             content: '←';
@@ -106,10 +106,10 @@
         }
         .nav-menu a {
             display: block;
-            padding: 4px 8px;
-            color: #000000;
+            padding: 8px 12px;
+            color: #0f172a;
             text-decoration: none;
-            border-left: 2px solid transparent;
+            border-left: 3px solid transparent;
             white-space: nowrap;
             overflow: hidden;
             font-size: 15px;
@@ -139,13 +139,13 @@
             display: none;
         }
         .nav-menu a:hover {
-            background: #316AC5;
+            background: rgba(32, 201, 151, 0.18);
             color: white;
         }
         .nav-menu a.active {
-            background: #000080;
-            color: white;
-            border-left-color: #FFFFFF;
+            background: rgba(32, 201, 151, 0.95);
+            color: #ffffff;
+            border-left-color: #ffffff;
         }
         .nav-menu a i {
             margin-right: 4px;
@@ -156,7 +156,8 @@
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.2s ease;
-            background: #808080;
+            background: #f1f5f9;
+            border-left: 1px solid #e5e7eb;
         }
         .nav-menu .submenu.expanded {
             max-height: 500px;
@@ -179,9 +180,9 @@
             bottom: 4px;
             left: 0;
             right: 0;
-            padding: 4px;
-            border-top: 2px inset #C0C0C0;
-            background: #C0C0C0;
+            padding: 10px 12px;
+            border-top: 1px solid #e5e7eb;
+            background: #f8fafc;
         }
         .sidebar.collapsed .user-section {
             padding: 4px;
@@ -201,26 +202,27 @@
         }
         .btn-logout {
             width: 100%;
-            padding: 4px 8px;
-            background: #C0C0C0;
-            color: #000000;
-            border: 2px outset #C0C0C0;
+            padding: 8px 12px;
+            background: #f3f4f6;
+            color: #0f172a;
+            border: 1px solid #e5e7eb;
             cursor: pointer;
             font-size: 11px;
             font-family: 'MS Sans Serif', Arial, sans-serif;
+            border-radius: 10px;
         }
         .btn-logout:hover {
-            background: #E8E8E8;
+            background: #e5e7eb;
         }
         .btn-logout:active {
-            border: 2px inset #C0C0C0;
-            background: #808080;
+            background: #d1d5db;
+            border-color: #cbd5e1;
         }
         .main-content {
             margin-left: 250px;
             flex: 1;
-            padding: 2px;
-            background: #008080;
+            padding: 12px;
+            background: #f3f4f6;
             transition: margin-left 0.2s ease;
         }
         .sidebar.collapsed ~ .main-content {
@@ -228,9 +230,10 @@
         }
         .content-frame {
             width: 100%;
-            height: calc(100vh - 4px);
-            border: 2px inset #C0C0C0;
-            background: #C0C0C0;
+            height: calc(100vh - 24px);
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            border-radius: 12px;
             display: block;
         }
         /* Ensure sidebar is always visible and on top */

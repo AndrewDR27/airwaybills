@@ -56,8 +56,9 @@ body {
 }
 
 .container {
-    max-width: 900px;
-    margin: 0 auto;
+    /* Do not center the main container; it should align with the app chrome (nav/sidebar). */
+    max-width: 100%;
+    margin: 0;
     background: var(--win98-window-bg);
     border: 2px outset var(--win98-button-face);
     /* Allow horizontal overflow so wide UI (e.g., template tables) isn't cut off. */
