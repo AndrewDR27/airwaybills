@@ -123,36 +123,43 @@
                 
                 <!-- Contacts Tab -->
                 <div id="contacts-tab" class="awb-tab-content active">
-                    <div class="contact-controls-section" id="contactControlsSection" style="display: block;">
-                        <div class="contact-controls">
-                            <div class="contact-select-group">
-                                <label for="shipperSelect">Shipper (04. SNA):</label>
-                                <select id="shipperSelect" class="contact-select">
-                                    <option value="">-- Select Shipper --</option>
-                                </select>
-                                <button type="button" class="btn-contact-small" id="addShipperBtn">+ Add</button>
-                            </div>
-                            <div class="contact-select-group">
-                                <label for="consigneeSelect">Consignee (05. CNA):</label>
-                                <select id="consigneeSelect" class="contact-select">
-                                    <option value="">-- Select Consignee --</option>
-                                </select>
-                                <button type="button" class="btn-contact-small" id="addConsigneeBtn">+ Add</button>
+                    <div style="margin-top: 4px; border: 1px solid #bfdbfe; border-radius: 10px; background: #eff6ff; padding: 10px;">
+                        <div style="font-weight: 700; font-size: 12px; color: #1e3a8a; margin-bottom: 8px;">Upper Area</div>
+                        <div class="contact-controls-section" id="contactControlsSection" style="display: block;">
+                            <div class="contact-controls">
+                                <div class="contact-select-group">
+                                    <label for="shipperSelect">Shipper (04. SNA):</label>
+                                    <select id="shipperSelect" class="contact-select">
+                                        <option value="">-- Select Shipper --</option>
+                                    </select>
+                                    <button type="button" class="btn-contact-small" id="addShipperBtn">+ Add</button>
+                                </div>
+                                <div class="contact-select-group">
+                                    <label for="consigneeSelect">Consignee (05. CNA):</label>
+                                    <select id="consigneeSelect" class="contact-select">
+                                        <option value="">-- Select Consignee --</option>
+                                    </select>
+                                    <button type="button" class="btn-contact-small" id="addConsigneeBtn">+ Add</button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-header">
-                        <h2>Contact Information</h2>
+                    <div style="margin-top: 14px; border: 1px solid #bfdbfe; border-radius: 10px; background: #ffffff; padding: 10px;">
+                        <div class="form-header" style="margin-bottom: 10px;">
+                            <h2>Lower Area - Contact Information</h2>
+                        </div>
+                        <form id="contactFieldsForm" onsubmit="return false;">
+                            <!-- Fields 04, 05, 06, 07 will be displayed here -->
+                        </form>
                     </div>
-                    <form id="contactFieldsForm" onsubmit="return false;">
-                        <!-- Fields 04, 05, 06, 07 will be displayed here -->
-                    </form>
                 </div>
                 
                 <!-- Routing Tab -->
                 <div id="routing-tab" class="awb-tab-content">
-                    <div class="routing-controls-section" id="routingControlsSection" style="display: none;">
-                        <div class="routing-controls">
+                    <div style="margin-top: 4px; border: 1px solid #bfdbfe; border-radius: 10px; background: #eff6ff; padding: 10px;">
+                        <div style="font-weight: 700; font-size: 12px; color: #1e3a8a; margin-bottom: 8px;">Upper Area</div>
+                        <div class="routing-controls-section" id="routingControlsSection" style="display: none;">
+                            <div class="routing-controls">
                             <div class="contact-select-group">
                                 <label for="airlineSelect1">Issuing Carrier:</label>
                                 <select id="airlineSelect1" class="contact-select">
@@ -220,20 +227,25 @@
                                     <input type="date" id="flightDateInput" class="contact-select" style="width: 100%;">
                                 </div>
                             </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-header">
-                        <h2>Routing Information</h2>
+                    <div style="margin-top: 14px; border: 1px solid #bfdbfe; border-radius: 10px; background: #ffffff; padding: 10px;">
+                        <div class="form-header" style="margin-bottom: 10px;">
+                            <h2>Lower Area - Routing Information</h2>
+                        </div>
+                        <form id="generatedForm" onsubmit="return false;">
+                            <!-- Dynamically generated form fields will appear here -->
+                        </form>
                     </div>
-                    <form id="generatedForm" onsubmit="return false;">
-                        <!-- Dynamically generated form fields will appear here -->
-                    </form>
                 </div>
                 
                 <!-- Dimensions Tab -->
                 <div id="dimensions-tab" class="awb-tab-content">
-                    <div class="dimensions-controls-section" id="dimensionsControlsSection" style="display: block;">
-                        <div class="routing-controls">
+                    <div style="margin-top: 4px; border: 1px solid #bfdbfe; border-radius: 10px; background: #eff6ff; padding: 10px;">
+                        <div style="font-weight: 700; font-size: 12px; color: #1e3a8a; margin-bottom: 8px;">Upper Area</div>
+                        <div class="dimensions-controls-section" id="dimensionsControlsSection" style="display: block;">
+                            <div class="routing-controls">
                             <div class="contact-select-group dimensions-group">
                                 <label>Dimensions:</label>
                                 <div class="dimensions-container" id="dimensionsContainer">
@@ -257,14 +269,17 @@
                                 <label for="grossWeightInput">Gross Weight:</label>
                                 <input type="number" id="grossWeightInput" class="contact-select" placeholder="Enter weight" min="0" step="0.01" style="width: 100%;">
                             </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-header">
-                        <h2>Description</h2>
+                    <div style="margin-top: 14px; border: 1px solid #bfdbfe; border-radius: 10px; background: #ffffff; padding: 10px;">
+                        <div class="form-header" style="margin-bottom: 10px;">
+                            <h2>Lower Area - Description</h2>
+                        </div>
+                        <form id="dimensionsFieldsForm">
+                            <!-- Dynamically generated dimensions fields will appear here -->
+                        </form>
                     </div>
-                    <form id="dimensionsFieldsForm">
-                        <!-- Dynamically generated dimensions fields will appear here -->
-                    </form>
                 </div>
                 
                 <!-- Billing Tab -->
