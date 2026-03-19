@@ -6182,10 +6182,9 @@ async function restoreFormData(optionalSavedData) {
             updateTabValidationIndicators();
         }, 100);
         
-        // Restore Ignore remaining charges checkbox last; use setTimeout so it runs after any other side effects
-        const ignoreRemainingChargesCheckbox = document.getElementById('ignoreRemainingChargesCheckbox');
-        const savedIgnoreRemaining = dropdownData && dropdownData.hasOwnProperty('ignoreRemainingCharges') ? !!dropdownData.ignoreRemainingCharges : undefined;
-        if (ignoreRemainingChargesCheckbox && savedIgnoreRemaining !== undefined) {
+        // Restore Ignore remaining charges checkbox last; run several times so it sticks after any other DOM updates
+        const savedIgnoreRemaining = dropdownData != null && 'ignoreRemainingCharges' in dropdownData ? !!dropdownData.ignoreRemainingCharges : undefined;
+        if (savedIgnoreRemaining !== undefined) {
             const setIgnoreCheckbox = () => {
                 const cb = document.getElementById('ignoreRemainingChargesCheckbox');
                 if (cb) {
@@ -6195,6 +6194,8 @@ async function restoreFormData(optionalSavedData) {
             };
             setIgnoreCheckbox();
             setTimeout(setIgnoreCheckbox, 50);
+            setTimeout(setIgnoreCheckbox, 200);
+            setTimeout(setIgnoreCheckbox, 500);
         }
         
         console.log('Form data restored from localStorage');
