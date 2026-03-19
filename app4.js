@@ -3403,6 +3403,25 @@ function createFormField(field) {
     if (field.readOnly) input.disabled = true;
     if (field.maxLength) input.maxLength = field.maxLength;
     if (field.placeholder) input.placeholder = field.placeholder;
+
+    // Field 07 (Accounting Information) needs more visible vertical space for autofill text.
+    // Increase the input window height by ~20% without changing font size.
+    if (field.name && field.name.startsWith('07')) {
+        if (input.tagName && input.tagName.toLowerCase() === 'textarea') {
+            const currentRows = Number(input.rows) || 4;
+            input.rows = Math.max(currentRows + 1, Math.ceil(currentRows * 1.2));
+            const computed = window.getComputedStyle(input);
+            const currentMinHeight = parseFloat(computed.minHeight);
+            if (!isNaN(currentMinHeight) && currentMinHeight > 0) {
+                input.style.minHeight = `${Math.round(currentMinHeight * 1.2)}px`;
+            } else {
+                input.style.minHeight = '72px';
+            }
+        } else {
+            // Fallback in case field 07 is represented as a single-line input
+            input.style.minHeight = '36px';
+        }
+    }
     
     // Check if this is field 31, 32, or 42-49 (dollar amounts)
     const isField31 = field.name.startsWith('31');
@@ -4147,7 +4166,6 @@ async function fillPdfWithData(formData, flatten = false) {
                 const isField01 = field.name && field.name.startsWith('01');
                 const isField02 = field.name && field.name.startsWith('02');
                 const isField03 = field.name && field.name.startsWith('03');
-                const isField07 = field.name && field.name.startsWith('07');
                 const isField101 = field.name && field.name.startsWith('101');
                 const normPdfFieldName = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
                 const npPdf = normPdfFieldName(pdfFieldName);
@@ -4161,7 +4179,7 @@ async function fillPdfWithData(formData, flatten = false) {
                         ? 12
                         : isField02
                           ? 12
-                            : isField01 || isField03 || isField07 || isField101
+                            : isField01 || isField03 || isField101
                             ? 12
                             : isField102Copy
                               ? 12
