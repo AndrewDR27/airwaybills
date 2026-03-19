@@ -307,6 +307,105 @@
         .compact-info {
             display: none;
         }
+
+        /* ==========================
+           Modern UI overrides (test)
+           Scoped to shipments/list.html
+           ========================== */
+        :root {
+            --modern-accent: #20c997;
+            --modern-accent-dark: #1aa87f;
+            --modern-border-strong: #d1d5db;
+            --modern-border: #e5e7eb;
+            --modern-shadow: 0 2px 10px rgba(17,24,39,0.06);
+            --modern-radius: 12px;
+        }
+
+        body {
+            background: #f3f4f6;
+            background-image: none;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0;
+            background: #ffffff;
+            border: 1px solid var(--modern-border);
+            border-radius: var(--modern-radius);
+            padding: 12px;
+            box-shadow: var(--modern-shadow);
+        }
+
+        h1 {
+            color: #0f172a;
+        }
+
+        .status-tabs {
+            border-bottom: 1px solid var(--modern-border);
+            padding-bottom: 6px;
+            margin-top: 8px;
+        }
+
+        .status-tab {
+            border: 1px solid var(--modern-border-strong);
+            background: #f3f4f6;
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            top: 0;
+        }
+
+        .status-tab:hover {
+            background: #e5e7eb;
+        }
+
+        .status-tab.active {
+            background: rgba(32, 201, 151, 0.95) !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(26, 168, 127, 0.95) !important;
+            border-bottom: none !important;
+        }
+
+        .status-tab .count {
+            background: var(--modern-accent-dark);
+            color: #ffffff;
+            border: none;
+            border-radius: 999px;
+            font-size: 10px;
+        }
+
+        .shipment-item {
+            border: 1px solid var(--modern-border);
+            background: #ffffff;
+            border-radius: var(--modern-radius);
+            padding: 8px 12px;
+            margin-bottom: 10px;
+        }
+
+        .shipment-item:hover {
+            background: rgba(32, 201, 151, 0.12);
+            color: #0f172a;
+        }
+
+        .shipment-awb,
+        .shipment-space-id {
+            color: #0f172a;
+        }
+
+        .btn-view,
+        .btn-success,
+        .btn-warning,
+        .btn-danger {
+            border: 1px solid var(--modern-border-strong) !important;
+            border-radius: 10px !important;
+            padding: 5px 10px !important;
+            font-size: 11px !important;
+        }
+
+        .empty-state {
+            background: transparent;
+            color: #0f172a;
+        }
     </style>
 </head>
 <body>
