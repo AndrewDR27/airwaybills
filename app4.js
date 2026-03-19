@@ -8597,6 +8597,47 @@ function setupField26Validation() {
     }
 }
 
+// In Dimensions tab, highlight the top 3 inputs (L/W/H) when the user starts entering a dimension row
+// but hasn't provided all required parts yet.
+function updateUpperDimensionsInputRedState() {
+    const dimensionsContainer = document.getElementById('dimensionsContainer');
+    if (!dimensionsContainer) return;
+
+    const firstRow = dimensionsContainer.querySelector('.dimensions-row[data-row-index="0"]') || dimensionsContainer.querySelector('.dimensions-row');
+    if (!firstRow) return;
+
+    const lengthInput = firstRow.querySelector('.dim-length');
+    const widthInput = firstRow.querySelector('.dim-width');
+    const heightInput = firstRow.querySelector('.dim-height');
+    const qtyInput = firstRow.querySelector('.dim-qty');
+
+    if (!lengthInput || !widthInput || !heightInput || !qtyInput) return;
+
+    const length = lengthInput.value.trim();
+    const width = widthInput.value.trim();
+    const height = heightInput.value.trim();
+    const qty = qtyInput.value.trim();
+
+    const hasAny = !!(length || width || height || qty);
+    const allPresent = !!(length && width && height && qty);
+    const shouldMarkMissing = hasAny && !allPresent;
+
+    const setState = (input, missing) => {
+        if (!input) return;
+        if (shouldMarkMissing && missing) {
+            input.style.borderColor = '#c62828';
+            input.style.backgroundColor = '#ffebee';
+        } else {
+            input.style.borderColor = '';
+            input.style.backgroundColor = '';
+        }
+    };
+
+    setState(lengthInput, !length);
+    setState(widthInput, !width);
+    setState(heightInput, !height);
+}
+
 // Update validation indicators for all tabs
 function updateTabValidationIndicators() {
     if (!generatedForm) return;
@@ -8740,6 +8781,8 @@ function updateTabValidationIndicators() {
     const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
     const dimensionsMissing = dimensionsFieldsForm ? countMissingFields(dimensionsFieldsForm) : 0;
     updateTabIndicator('dimensions', dimensionsMissing);
+    // Also visually mark the top L/W/H inputs when the row is incomplete
+    updateUpperDimensionsInputRedState();
     
     // Count missing fields in Billing tab
     const billingFieldsForm = document.getElementById('billingFieldsForm');
@@ -9567,8 +9610,9 @@ function fillField33FromCommodity(commodityName) {
         return;
     }
     if (!commodity.autofillText) {
+        // Do not return early: some commodities may only have field 41 set.
+        // We'll still fill field 41 below if present.
         console.warn(`Autofill text not found for commodity: ${commodityName}`);
-        return;
     }
     
     const billingFieldsForm = document.getElementById('billingFieldsForm');
@@ -9592,7 +9636,7 @@ function fillField33FromCommodity(commodityName) {
         for (let i = 0; i < formElements.length; i++) {
             const element = formElements[i];
             if (element.name && element.name.startsWith('33')) {
-                element.value = commodity.autofillText;
+                element.value = commodity.autofillText || '';
                 element.dispatchEvent(new Event('input', { bubbles: true }));
                 console.log(`Filled field ${element.name} with autofill text for commodity: ${commodityName}`);
                 
@@ -9661,13 +9705,30 @@ function fillField33FromCommodity(commodityName) {
         }
     }
     
-    // Update validation immediately and shortly after to handle any async DOM/label updates.
+    // Update validation immediately and again after short delays so labels stay cleared after any async updates.
     if (typeof updateTabValidationIndicators === 'function') updateTabValidationIndicators();
     if (typeof updatePromptIndicators === 'function') updatePromptIndicators();
     setTimeout(() => {
         if (typeof updateTabValidationIndicators === 'function') updateTabValidationIndicators();
         if (typeof updatePromptIndicators === 'function') updatePromptIndicators();
     }, 50);
+    setTimeout(() => {
+        // Re-clear red on 33/41 in case validation re-ran and re-marked them.
+        for (const form of formsToCheck) {
+            if (!form) continue;
+            for (const el of form.elements) {
+                if (!el.name) continue;
+                if ((el.name.startsWith('33') || el.name.startsWith('41')) && el.value && el.value.trim() !== '') {
+                    const formGroup = el.closest('.form-group');
+                    const label = formGroup ? formGroup.querySelector('label') : null;
+                    if (label) label.style.color = '';
+                    el.style.borderColor = '';
+                    el.style.backgroundColor = '';
+                }
+            }
+        }
+        if (typeof updateTabValidationIndicators === 'function') updateTabValidationIndicators();
+    }, 150);
 }
 
 // ==================== Dimensions Functions ====================
