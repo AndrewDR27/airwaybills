@@ -5928,6 +5928,8 @@ async function saveFormDataToStorage() {
             ignoreRemainingCharges: !!(ignoreRemainingChargesCheckbox && ignoreRemainingChargesCheckbox.checked)
         };
         
+        // Also store in formData so restore can fall back to it if dropdownData is missing the key
+        formData._ignoreRemainingCharges = dropdownData.ignoreRemainingCharges;
         const dataToSave = {
             formData: formData,
             dropdownData: dropdownData,
@@ -6183,7 +6185,9 @@ async function restoreFormData(optionalSavedData) {
         }, 100);
         
         // Restore Ignore remaining charges checkbox last; run several times so it sticks after any other DOM updates
-        const savedIgnoreRemaining = dropdownData != null && 'ignoreRemainingCharges' in dropdownData ? !!dropdownData.ignoreRemainingCharges : undefined;
+        const savedIgnoreRemaining = (dropdownData != null && 'ignoreRemainingCharges' in dropdownData)
+            ? !!dropdownData.ignoreRemainingCharges
+            : (formData && typeof formData._ignoreRemainingCharges === 'boolean' ? formData._ignoreRemainingCharges : undefined);
         if (savedIgnoreRemaining !== undefined) {
             const setIgnoreCheckbox = () => {
                 const cb = document.getElementById('ignoreRemainingChargesCheckbox');
@@ -6240,6 +6244,10 @@ function setupFormDataAutoSave() {
             interlineCarrierSelect1 === e.target ||
             interlineCarrierSelect2 === e.target)) {
             debouncedSave();
+            // Save immediately when ignore checkbox changes so it persists even if user leaves quickly
+            if (document.getElementById('ignoreRemainingChargesCheckbox') === e.target) {
+                saveFormDataToStorage();
+            }
         }
     });
 }
