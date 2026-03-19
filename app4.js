@@ -8032,6 +8032,16 @@ function updatePrepaidCollectFields() {
     // Get source values
     const field32Value = getFieldValueByPrefix('32', formsToCheck);
     const field55Value = getFieldValueByPrefix('55', formsToCheck);
+
+    // Normalize source values so auto-filled monetary fields always show "$xx.xx"
+    const formatMoneySource = (raw) => {
+        const text = String(raw ?? '').trim();
+        if (!text) return '';
+        const num = extractNumericValue(text);
+        return isNaN(num) ? '' : formatDollarAmount(num);
+    };
+    const field32Formatted = formatMoneySource(field32Value);
+    const field55Formatted = formatMoneySource(field55Value);
     
     // Calculate CDC total directly from fields 50-54 (not from field 56)
     let cdcTotal = 0;
@@ -8067,8 +8077,8 @@ function updatePrepaidCollectFields() {
         
         // Prepaid logic: CDC total (50-54) → 44, 32 → 42, 55 → 43, 45 = sum(42,43,44)
         setFieldValueByPrefix('44', cdcTotalFormatted, formsToCheck);
-        setFieldValueByPrefix('42', field32Value, formsToCheck);
-        setFieldValueByPrefix('43', field55Value, formsToCheck);
+        setFieldValueByPrefix('42', field32Formatted, formsToCheck);
+        setFieldValueByPrefix('43', field55Formatted, formsToCheck);
         
         // Calculate field 45
         calculateField45();
@@ -8088,8 +8098,8 @@ function updatePrepaidCollectFields() {
         
         // Collect logic: CDC total (50-54) → 48, 55 → 47, 32 → 46, 49 = sum(46,47,48)
         setFieldValueByPrefix('48', cdcTotalFormatted, formsToCheck);
-        setFieldValueByPrefix('47', field55Value, formsToCheck);
-        setFieldValueByPrefix('46', field32Value, formsToCheck);
+        setFieldValueByPrefix('47', field55Formatted, formsToCheck);
+        setFieldValueByPrefix('46', field32Formatted, formsToCheck);
         
         // Calculate field 49
         calculateField49();
