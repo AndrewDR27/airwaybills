@@ -9595,6 +9595,16 @@ function fillField33FromCommodity(commodityName) {
                 element.value = commodity.autofillText;
                 element.dispatchEvent(new Event('input', { bubbles: true }));
                 console.log(`Filled field ${element.name} with autofill text for commodity: ${commodityName}`);
+                
+                // Force-clear "missing required" red styling for this field immediately.
+                // Some styling updates depend on validation timing; this makes commodity autofill consistent.
+                if (element.value && element.value.trim() !== '') {
+                    const formGroup = element.closest('.form-group');
+                    const label = formGroup ? formGroup.querySelector('label') : null;
+                    if (label) label.style.color = '';
+                    element.style.borderColor = '';
+                    element.style.backgroundColor = '';
+                }
             }
         }
     }
@@ -9610,6 +9620,14 @@ function fillField33FromCommodity(commodityName) {
                     element.value = commodity.field41;
                     element.dispatchEvent(new Event('input', { bubbles: true }));
                     console.log(`Filled field ${element.name} with field41 value for commodity: ${commodityName}`);
+                    
+                    if (element.value && element.value.trim() !== '') {
+                        const formGroup = element.closest('.form-group');
+                        const label = formGroup ? formGroup.querySelector('label') : null;
+                        if (label) label.style.color = '';
+                        element.style.borderColor = '';
+                        element.style.backgroundColor = '';
+                    }
                 }
             }
         }
@@ -9643,7 +9661,13 @@ function fillField33FromCommodity(commodityName) {
         }
     }
     
-    setTimeout(() => updateTabValidationIndicators(), 50);
+    // Update validation immediately and shortly after to handle any async DOM/label updates.
+    if (typeof updateTabValidationIndicators === 'function') updateTabValidationIndicators();
+    if (typeof updatePromptIndicators === 'function') updatePromptIndicators();
+    setTimeout(() => {
+        if (typeof updateTabValidationIndicators === 'function') updateTabValidationIndicators();
+        if (typeof updatePromptIndicators === 'function') updatePromptIndicators();
+    }, 50);
 }
 
 // ==================== Dimensions Functions ====================
