@@ -3793,23 +3793,41 @@ async function fillPdfWithData(formData, flatten = false) {
     // If caller passed a copy label for field 102. COPY (multi-copy print), set it by finding the PDF field by name
     const copyLabelFor102 = formData._102_COPY_OVERRIDE;
     if (copyLabelFor102 !== undefined) {
-        const field102 = pdfFields.find(f => {
-            const n = (f.getName() || '').toLowerCase();
-            return n.includes('102') && n.includes('copy');
+        // Update the actual formData key(s) that correspond to 102. COPY, so the normal
+        // `formFields.forEach(...)` filling loop doesn't overwrite our earlier value.
+        const normalize = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+        const copyLabelStr = String(copyLabelFor102);
+        const updatedKeys = [];
+        Object.keys(formData).forEach(k => {
+            const nk = normalize(k);
+            if ((nk.includes('102') && nk.includes('copy')) || nk === '102copy') {
+                formData[k] = copyLabelStr;
+                updatedKeys.push(k);
+            }
         });
-        if (field102) {
+        console.log('102. COPY override applied to formData keys:', updatedKeys);
+
+        // Also try setting the PDF AcroForm field directly (extra safety in case formFields
+        // doesn't include it for some reason).
+        const field102 = pdfFields.find(f => {
+            const nameN = normalize(f.getName());
+            return (nameN.includes('102') && nameN.includes('copy')) || nameN === '102copy';
+        });
+        if (field102 && typeof field102.setText === 'function') {
             try {
-                if (typeof field102.setText === 'function') {
-                    field102.setText(String(copyLabelFor102));
-                    if (typeof field102.setFontSize === 'function') field102.setFontSize(12);
-                    console.log('Set 102. COPY field to:', copyLabelFor102);
-                }
+                field102.setText(copyLabelStr);
+                if (typeof field102.setFontSize === 'function') field102.setFontSize(12);
+                console.log('Set 102. COPY field to:', copyLabelStr);
             } catch (e) {
                 console.warn('Error setting 102. COPY field:', e);
             }
         } else {
-            console.warn('102. COPY override provided but no PDF field name containing "102" and "copy" found. PDF field names:', pdfFields.map(f => f.getName()));
+            console.warn(
+                '102. COPY override provided but no PDF field found to set directly. PDF field names (first 60):',
+                pdfFields.slice(0, 60).map(f => f.getName())
+            );
         }
+
         delete formData._102_COPY_OVERRIDE;
     }
     
