@@ -2386,6 +2386,9 @@ async function populateFormFromTemplate(templateData) {
         }
     }
     
+    // Populate commodity dropdown from selected shipper/consignee (and user profile)
+    if (typeof populateCommodityDropdown === 'function') populateCommodityDropdown();
+    
     // Restore routing dropdown selections
     if (templateData['_airlineContactId1'] && airlineSelect1) {
         airlineSelect1.value = templateData['_airlineContactId1'];
@@ -6035,6 +6038,12 @@ async function restoreFormData(optionalSavedData) {
         if (dropdownData.consigneeContactId && consigneeSelect) {
             consigneeSelect.value = dropdownData.consigneeContactId;
             consigneeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        
+        // Ensure commodity dropdown is populated from selected shipper/consignee (in case change ran before contacts were ready)
+        if (typeof populateCommodityDropdown === 'function') {
+            populateCommodityDropdown();
+            setTimeout(() => populateCommodityDropdown(), 150);
         }
         
         if (dropdownData.airlineId && airlineSelect1) {
