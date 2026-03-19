@@ -306,7 +306,7 @@
             <div id="agentSection" style="display: none;">
                 <div class="action-buttons">
                     <button class="btn btn-primary" id="createAWBBtn">Create AWB</button>
-                    <button class="btn btn-secondary" id="editPrintAWBBtn" style="display: none;">Edit / Print</button>
+                    <button class="btn btn-secondary" id="editPrintAWBBtn" style="display: none;">Edit</button>
                     <button class="btn btn-success" id="shareAWBBtn" style="display: none;">Share AWB with Participants</button>
                     <button class="btn btn-warning" id="cancelBtn">Cancel Shipment</button>
                     <button class="btn btn-danger" id="deleteBtn" style="display: none;">Delete Shipment</button>
@@ -1243,15 +1243,12 @@
         const editPrintAWBBtn = document.getElementById('editPrintAWBBtn');
         if (editPrintAWBBtn) {
             editPrintAWBBtn.addEventListener('click', function() {
-                const awb = currentShipment && (currentShipment.awbNumber || currentShipment.spaceId);
-                if (!awb) return;
-                const url = (window.parent && window.parent !== window)
-                    ? 'shipments/edit.html?awb=' + encodeURIComponent(awb)
-                    : 'edit.html?awb=' + encodeURIComponent(awb);
+                // Same as Resume: open create-awb with spaceId so form loads with saved data and is editable
+                sessionStorage.setItem('currentSpaceId', spaceId);
                 if (window.parent && window.parent !== window) {
-                    window.parent.document.getElementById('contentFrame').src = url;
+                    window.parent.document.getElementById('contentFrame').src = '../create-awb.html?spaceId=' + spaceId;
                 } else {
-                    window.location.href = url;
+                    window.location.href = '../create-awb.html?spaceId=' + spaceId;
                 }
             });
         }
