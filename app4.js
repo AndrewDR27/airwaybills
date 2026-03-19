@@ -2100,13 +2100,11 @@ function collectFormDataForTemplate() {
         
         if (!name) continue;
         
-        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40, 42-55 - do not save in template
+        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40, 42-49 - do not save in template (50-55 are saved)
         // Note: Field 33 is kept in template (not excluded)
         if (name.startsWith('03') || name.startsWith('20') || name.startsWith('26') || name.startsWith('27') || name.startsWith('30') || name.startsWith('31') || name.startsWith('32') || name.startsWith('40') || 
             name.startsWith('42') || name.startsWith('43') || name.startsWith('44') || name.startsWith('45') || 
-            name.startsWith('46') || name.startsWith('47') || name.startsWith('48') || name.startsWith('49') || 
-            name.startsWith('50') || name.startsWith('51') || name.startsWith('52') || name.startsWith('53') || 
-            name.startsWith('54') || name.startsWith('55')) continue;
+            name.startsWith('46') || name.startsWith('47') || name.startsWith('48') || name.startsWith('49')) continue;
         
         if (element.type === 'checkbox') {
             formData[name] = element.checked.toString();
@@ -2126,13 +2124,11 @@ function collectFormDataForTemplate() {
         
         if (!name) continue;
         
-        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40, 42-55 - do not save in template
+        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40, 42-49 - do not save in template (50-55 are saved)
         // Note: Field 33 is kept in template (not excluded)
         if (name.startsWith('03') || name.startsWith('20') || name.startsWith('26') || name.startsWith('27') || name.startsWith('30') || name.startsWith('31') || name.startsWith('32') || name.startsWith('40') || 
             name.startsWith('42') || name.startsWith('43') || name.startsWith('44') || name.startsWith('45') || 
-            name.startsWith('46') || name.startsWith('47') || name.startsWith('48') || name.startsWith('49') || 
-            name.startsWith('50') || name.startsWith('51') || name.startsWith('52') || name.startsWith('53') || 
-            name.startsWith('54') || name.startsWith('55')) continue;
+            name.startsWith('46') || name.startsWith('47') || name.startsWith('48') || name.startsWith('49')) continue;
         
         if (element.type === 'checkbox') {
             formData[name] = element.checked.toString();
@@ -2152,13 +2148,11 @@ function collectFormDataForTemplate() {
         
         if (!name) continue;
         
-        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40, 42-55 - do not save in template
+        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40, 42-49 - do not save in template (50-55 are saved)
         // Note: Field 33 is kept in template (not excluded)
         if (name.startsWith('03') || name.startsWith('20') || name.startsWith('26') || name.startsWith('27') || name.startsWith('30') || name.startsWith('31') || name.startsWith('32') || name.startsWith('40') || 
             name.startsWith('42') || name.startsWith('43') || name.startsWith('44') || name.startsWith('45') || 
-            name.startsWith('46') || name.startsWith('47') || name.startsWith('48') || name.startsWith('49') || 
-            name.startsWith('50') || name.startsWith('51') || name.startsWith('52') || name.startsWith('53') || 
-            name.startsWith('54') || name.startsWith('55')) continue;
+            name.startsWith('46') || name.startsWith('47') || name.startsWith('48') || name.startsWith('49')) continue;
         
         if (element.type === 'checkbox') {
             formData[name] = element.checked.toString();
@@ -2166,6 +2160,9 @@ function collectFormDataForTemplate() {
             if (element.checked) {
                 formData[name] = element.value;
             }
+        } else if (['50', '51', '52', '53', '54', '55'].includes(name) && typeof parseChargeNameAndRate === 'function') {
+            // Save only the charge name for 50-55, not the rate
+            formData[name] = parseChargeNameAndRate(element.value || '').name || '';
         } else {
             formData[name] = element.value || '';
         }
@@ -2321,6 +2318,26 @@ async function populateFormFromTemplate(templateData) {
         } else {
             element.value = value;
         }
+    }
+    
+    // Sync upper charge fields (50a/50b ... 55a/55b) from lower 50-55 combined values
+    const customsFieldsRows = document.getElementById('customsFieldsRows');
+    if (customsFieldsRows && billingFieldsForm && typeof getFieldValueByPrefix === 'function' && typeof parseChargeNameAndRate === 'function') {
+        const formsForRestore = [generatedForm, billingFieldsForm].filter(Boolean);
+        ['50', '51', '52', '53', '54', '55'].forEach((prefix) => {
+            const combined = getFieldValueByPrefix(prefix, formsForRestore);
+            const parsed = parseChargeNameAndRate(combined);
+            const nameEl = customsFieldsRows.querySelector(`input[name="${prefix}a"], select[name="${prefix}a"]`);
+            const rateEl = customsFieldsRows.querySelector(`input[name="${prefix}b"], select[name="${prefix}b"]`);
+            if (nameEl) {
+                nameEl.value = parsed.name || '';
+                nameEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (rateEl) {
+                rateEl.value = parsed.rate || '';
+                rateEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        });
     }
     
     // Restore contact dropdown selections
