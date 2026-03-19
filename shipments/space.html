@@ -319,6 +319,24 @@
                     <button class="btn btn-success" id="downloadPDFBtn">Download AWB PDF</button>
                     <button class="btn btn-primary" id="previewPDFBtn">Preview AWB PDF</button>
                 </div>
+                <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #e6e6e6;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 14px;">Print Copies (field 102. COPY)</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                        <label style="font-size: 12px;"><input type="checkbox" id="spaceCopyOrig3"> Original 3 (for Shipper)</label>
+                        <label style="font-size: 12px;"><input type="checkbox" id="spaceCopy8Agent"> Copy 8 (for Agent)</label>
+                        <label style="font-size: 12px;"><input type="checkbox" id="spaceCopyOrig1"> Original 1 (for Issuing Carrier)</label>
+                        <label style="font-size: 12px;"><input type="checkbox" id="spaceCopyOrig2"> Original 2 (for Consignee)</label>
+                        <label style="font-size: 12px;"><input type="checkbox" id="spaceCopy4Delivery"> Copy 4 (for Delivery Receipt)</label>
+                        <label style="font-size: 12px;"><input type="checkbox" id="spaceCopy5Extra"> Copy 5 (Extra Copy)</label>
+                        <label style="font-size: 12px;"><input type="checkbox" id="spaceCopy6Extra"> Copy 6 (Extra Copy)</label>
+                        <label style="font-size: 12px;"><input type="checkbox" id="spaceCopy7Extra"> Copy 7 (Extra Copy)</label>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px;">
+                        <button type="button" class="btn btn-secondary" id="spaceSelectAllCopiesBtn">Select All</button>
+                        <button type="button" class="btn btn-primary" id="spacePrintSelectedCopiesBtn">Print Selected Copies</button>
+                        <label style="font-size: 12px;"><input type="checkbox" id="spaceAutoOpenPrintCopies" checked> Auto-open &amp; print</label>
+                    </div>
+                </div>
             </div>
 
             <div id="invoiceSection" class="pdf-section" style="display: none;">
@@ -374,6 +392,7 @@
     <script src="../js/roles.js"></script>
     <script type="module" src="../js/auth.js"></script>
     <script type="module" src="../js/shipments.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 
     <script>
         // Wait for auth functions to be available (modules load asynchronously)
@@ -1290,6 +1309,173 @@
                 mimeType: 'application/pdf'
             });
         });
+
+        // Print selected 102. COPY variations by regenerating only that field from the saved PDF.
+        function safeFilenamePart(s) {
+            return String(s).replace(/[\\/:*?"<>|]/g, '_');
+        }
+
+        function base64ToUint8Array(base64) {
+            const binaryString = atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes;
+        }
+
+        async function mergePdfPages(pdfBytesList) {
+            if (!Array.isArray(pdfBytesList) || pdfBytesList.length === 0) {
+                throw new Error('No PDF bytes provided for merge.');
+            }
+
+            const mergedPdf = await PDFLib.PDFDocument.create();
+
+            for (let i = 0; i < pdfBytesList.length; i++) {
+                const bytes = pdfBytesList[i];
+                const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+                const pageIndices = pdfDoc.getPageIndices();
+                const copiedPages = await mergedPdf.copyPages(pdfDoc, pageIndices);
+                copiedPages.forEach(p => mergedPdf.addPage(p));
+            }
+
+            return await mergedPdf.save();
+        }
+
+        async function set102CopyAndFlattenFromBytes(pdfBytes, copyLabel) {
+            const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+            const form = pdfDoc.getForm();
+
+            const pdfFields = form.getFields();
+            const field102 = pdfFields.find(f => {
+                const n = (f.getName && f.getName()) ? f.getName().toLowerCase() : '';
+                return n.includes('102') && n.includes('copy');
+            });
+
+            if (field102 && typeof field102.setText === 'function') {
+                field102.setText(String(copyLabel));
+                if (typeof field102.setFontSize === 'function') {
+                    field102.setFontSize(12);
+                }
+            }
+
+            // Flatten so printing doesn't depend on interactive form widgets.
+            try {
+                form.flatten();
+            } catch (e) {
+                // Continue even if flatten isn't available.
+            }
+
+            return await pdfDoc.save();
+        }
+
+        function getSelectedCopiesFromSpaceUI() {
+            const copySelections = [
+                { id: 'spaceCopyOrig3', value: 'Original 3 (for Shipper)' },
+                { id: 'spaceCopy8Agent', value: 'Copy 8 (for Agent)' },
+                { id: 'spaceCopyOrig1', value: 'Original 1 (for Issuing Carrier)' },
+                { id: 'spaceCopyOrig2', value: 'Original 2 (for Consignee)' },
+                { id: 'spaceCopy4Delivery', value: 'Copy 4 (for Delivery Receipt)' },
+                { id: 'spaceCopy5Extra', value: 'Copy 5 (Extra Copy)' },
+                { id: 'spaceCopy6Extra', value: 'Copy 6 (Extra Copy)' },
+                { id: 'spaceCopy7Extra', value: 'Copy 7 (Extra Copy)' },
+            ];
+
+            return copySelections
+                .filter(c => {
+                    const el = document.getElementById(c.id);
+                    return !!(el && el.checked);
+                })
+                .map(c => c.value);
+        }
+
+        async function handleSpacePrintSelectedCopies() {
+            try {
+                if (!currentShipment || !currentShipment.pdfBase64) {
+                    alert('AWB PDF not available.');
+                    return;
+                }
+
+                const selectedCopies = getSelectedCopiesFromSpaceUI();
+                if (selectedCopies.length === 0) {
+                    alert('Select at least one copy to print.');
+                    return;
+                }
+
+                const awbNumber = currentShipment.awbNumber || currentShipment.spaceId;
+                const downloadName = `AWB-${safeFilenamePart(awbNumber)}-Copies.pdf`;
+
+                const autoOpenPrintCopiesCheckbox = document.getElementById('spaceAutoOpenPrintCopies');
+                const autoOpenPrintCopies = !!(autoOpenPrintCopiesCheckbox && autoOpenPrintCopiesCheckbox.checked);
+
+                const pdfBytes = base64ToUint8Array(currentShipment.pdfBase64);
+
+                const filledPdfBytesList = [];
+                for (let i = 0; i < selectedCopies.length; i++) {
+                    const copyLabel = selectedCopies[i];
+                    const filledBytes = await set102CopyAndFlattenFromBytes(pdfBytes, copyLabel);
+                    filledPdfBytesList.push(filledBytes);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+                const mergedPdfBytes = await mergePdfPages(filledPdfBytesList);
+
+                const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+
+                if (autoOpenPrintCopies) {
+                    const printWindow = window.open(url, '_blank');
+                    if (printWindow) {
+                        printWindow.onload = () => {
+                            setTimeout(() => {
+                                try {
+                                    printWindow.focus();
+                                    printWindow.print();
+                                } catch (e) {
+                                    console.warn('Could not auto-print window:', e);
+                                }
+                            }, 500);
+                        };
+                        setTimeout(() => URL.revokeObjectURL(url), 30000);
+                    } else {
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = downloadName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        setTimeout(() => URL.revokeObjectURL(url), 30000);
+                    }
+                } else {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = downloadName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 30000);
+                }
+            } catch (err) {
+                console.error('Error printing selected copies from shipment space:', err);
+                alert('Error printing selected copies: ' + (err && err.message ? err.message : String(err)));
+            }
+        }
+
+        const spaceSelectAllCopiesBtn = document.getElementById('spaceSelectAllCopiesBtn');
+        if (spaceSelectAllCopiesBtn) {
+            spaceSelectAllCopiesBtn.addEventListener('click', () => {
+                const ids = ['spaceCopyOrig3', 'spaceCopy8Agent', 'spaceCopyOrig1', 'spaceCopyOrig2', 'spaceCopy4Delivery', 'spaceCopy5Extra', 'spaceCopy6Extra', 'spaceCopy7Extra'];
+                ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.checked = true;
+                });
+            });
+        }
+
+        const spacePrintSelectedCopiesBtn = document.getElementById('spacePrintSelectedCopiesBtn');
+        if (spacePrintSelectedCopiesBtn) {
+            spacePrintSelectedCopiesBtn.addEventListener('click', handleSpacePrintSelectedCopies);
+        }
 
         document.getElementById('previewInvoiceBtn').addEventListener('click', function() {
             openDocumentPreview({

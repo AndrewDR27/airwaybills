@@ -697,16 +697,30 @@ function getSelectedCopiesFromUI() {
 function getAWBNumberFromFormData(formData) {
     if (!formData || typeof formData !== 'object') return null;
 
-    // Prefer field 101 (it usually contains the real AWB formatted with a "-")
+    // Prefer field 101 (it usually contains the formatted AWB)
     for (const key in formData) {
         if (!Object.prototype.hasOwnProperty.call(formData, key)) continue;
         if (key.startsWith('101') && formData[key]) {
             const value = String(formData[key]).trim();
-            if (value && value.includes('-')) return value;
+            if (value) return value;
         }
     }
 
-    // Fallback: field 01
+    // Fallback: compose from fields 01 and 03
+    let field01 = null;
+    let field03 = null;
+    for (const key in formData) {
+        if (!Object.prototype.hasOwnProperty.call(formData, key)) continue;
+        if (key.startsWith('01') && formData[key]) {
+            field01 = String(formData[key]).trim();
+        } else if (key.startsWith('03') && formData[key]) {
+            field03 = String(formData[key]).trim();
+        }
+    }
+
+    if (field01 && field03) return `${field01}-${field03}`;
+
+    // Last fallback: field 01 only
     for (const key in formData) {
         if (!Object.prototype.hasOwnProperty.call(formData, key)) continue;
         if (key.startsWith('01') && formData[key]) {
@@ -778,8 +792,8 @@ async function handlePrintSelectedCopies() {
         const baseFormData = collectFormData();
         const awbNumber = getAWBNumberFromFormData(baseFormData);
         const downloadName = awbNumber
-            ? `${safeFilenamePart(awbNumber)}.pdf`
-            : 'AWB-copies.pdf';
+            ? `AWB-${safeFilenamePart(awbNumber)}-Copies.pdf`
+            : 'AWB-Copies.pdf';
 
         const filledPdfBytesList = [];
 
@@ -4756,7 +4770,7 @@ async function handlePrintPreview() {
 
         const awbNumber = getAWBNumberFromFormData(formData);
         const previewDownloadName = awbNumber
-            ? `${safeFilenamePart(awbNumber)}-Print-Preview.pdf`
+            ? `AWB-${safeFilenamePart(awbNumber)}-Print-Preview.pdf`
             : 'AWB-Print-Preview.pdf';
 
         const filledPdfBytesList = [];
