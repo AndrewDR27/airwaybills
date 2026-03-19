@@ -2204,10 +2204,9 @@ function collectFormDataForTemplate() {
     if (dangerousGoodsSelect) {
         formData['_dangerousGoods'] = dangerousGoodsSelect.value || '';
     }
-    const commoditySelect = document.getElementById('commoditySelect');
-    if (commoditySelect) {
-        formData['_commodity'] = commoditySelect.value || '';
-    }
+    // Commodity dropdown (Dimensions tab) - always set so template has the key
+    const commoditySelect = document.getElementById('commoditySelect') || document.querySelector('select[id="commoditySelect"]');
+    formData['_commodity'] = (commoditySelect && commoditySelect.value) ? commoditySelect.value : '';
     
     // Capture billing dropdown selections
     const declaredValuesSelect = document.getElementById('declaredValuesSelect');
@@ -2365,7 +2364,15 @@ async function populateFormFromTemplate(templateData) {
     if (templateData['_commodity']) {
         const commoditySelect = document.getElementById('commoditySelect');
         if (commoditySelect) {
-            commoditySelect.value = templateData['_commodity'];
+            const savedCommodity = templateData['_commodity'];
+            const hasOption = Array.from(commoditySelect.options).some(opt => opt.value === savedCommodity);
+            if (!hasOption && savedCommodity) {
+                const option = document.createElement('option');
+                option.value = savedCommodity;
+                option.textContent = savedCommodity;
+                commoditySelect.appendChild(option);
+            }
+            commoditySelect.value = savedCommodity;
             if (typeof fillField33FromCommodity === 'function' && commoditySelect.value) {
                 fillField33FromCommodity(commoditySelect.value);
             }
