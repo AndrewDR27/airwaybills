@@ -936,3 +936,123 @@ header p {
         padding: 4px;
     }
 }
+
+/* ===========================
+   Modern Global UI Overrides
+   (aim to match templates.html)
+   =========================== */
+:root {
+    --modern-accent: #20c997;
+    --modern-accent-dark: #1aa87f;
+    --modern-border: #e5e7eb;
+    --modern-border-strong: #d1d5db;
+    --modern-shadow: 0 2px 10px rgba(17, 24, 39, 0.06);
+    --modern-radius: 12px;
+}
+
+.btn-primary {
+    background: var(--modern-accent);
+    border-color: var(--modern-accent-dark);
+    color: #fff;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+}
+.btn-primary:hover {
+    background: var(--modern-accent-dark);
+}
+.btn-primary:active {
+    background: #159074;
+    border-color: #128764;
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    border: 1px solid var(--modern-border-strong);
+    color: #111827;
+}
+.btn-secondary:hover {
+    background: #e5e7eb;
+}
+.btn-secondary:active {
+    background: #d1d5db;
+    border-color: #cbd5e1;
+}
+
+.btn-primary,
+.btn-secondary {
+    border-radius: 10px;
+    padding: 4px 16px;
+    font-size: 11px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    border: 1px solid var(--modern-border-strong);
+    border-radius: 10px;
+    padding: 6px 8px;
+    font-size: 12px;
+}
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(32, 201, 151, 0.18);
+    border-color: var(--modern-accent);
+}
+
+.form-actions {
+    border-top: 1px solid var(--modern-border);
+    padding-top: 8px;
+}
+
+.results {
+    border: 1px solid var(--modern-border);
+    border-radius: var(--modern-radius);
+    box-shadow: var(--modern-shadow);
+    padding: 8px;
+    background: white;
+}
+.results pre {
+    border: 1px solid var(--modern-border-strong);
+    border-radius: 10px;
+}
+
+.template-section {
+    border: 1px solid var(--modern-border);
+    border-radius: var(--modern-radius);
+    box-shadow: var(--modern-shadow);
+    background: #fff;
+    padding: 12px;
+}
+
+/* Modal styles */
+.modal-content {
+    background-color: #fff;
+    border: 1px solid var(--modern-border);
+    border-radius: var(--modern-radius);
+    box-shadow: var(--modern-shadow);
+}
+.modal-header {
+    background: linear-gradient(to bottom, var(--modern-accent) 0%, var(--modern-accent-dark) 100%);
+    border-bottom: 1px solid #0f766e;
+}
+.modal-close {
+    border-radius: 8px;
+    border: 1px solid var(--modern-border-strong);
+    background: #f3f4f6;
+}
+.modal-close:hover {
+    background: #e5e7eb;
+}
+.modal-body {
+    background: #fff;
+}
+.modal-body .form-group input,
+.modal-body .form-group textarea {
+    border: 1px solid var(--modern-border-strong);
+    border-radius: 10px;
+}
+.modal-actions {
+    border-top: 1px solid var(--modern-border);
+    padding: 8px;
+}
