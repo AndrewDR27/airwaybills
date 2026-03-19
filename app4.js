@@ -2033,6 +2033,12 @@ function generateForm() {
         }
         
         const fieldsWithSameName = fieldsByName.get(fieldName);
+        // Hide field 102. COPY from the form (set per copy when printing, not edited by user)
+        const norm102 = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (fieldsWithSameName && (norm102(fieldName).includes('102') && norm102(fieldName).includes('copy'))) {
+            return;
+        }
+
         // Use the first field as the template, but store all PDF field names
         const primaryField = fieldsWithSameName[0];
         
@@ -9289,6 +9295,12 @@ function getMissingFieldNames() {
             
             // Skip field 99 if logo is complete
             if (name.startsWith('99') && element.hasAttribute('data-logo-complete')) {
+                continue;
+            }
+            
+            // Skip field 102. COPY - set when printing copies, not required on form
+            const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (norm(name).includes('102') && norm(name).includes('copy')) {
                 continue;
             }
             
