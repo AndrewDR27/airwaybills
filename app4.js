@@ -10155,6 +10155,19 @@ function setupDimensionsField34Update() {
     
     // Function to update field 34
     const updateField34 = () => {
+        const touchedElements = [];
+        const setFieldVisualState = (element, isFilled) => {
+            if (!element) return;
+            const formGroup = element.closest('.form-group');
+            const label = formGroup ? formGroup.querySelector('label') : null;
+            if (label) {
+                label.style.color = isFilled ? '' : 'red';
+            }
+            // Match the same colors used elsewhere in countMissingFields()
+            element.style.borderColor = isFilled ? '' : '#c62828';
+            element.style.backgroundColor = isFilled ? '' : '#ffebee';
+        };
+
         const length = lengthInput.value.trim();
         const width = widthInput.value.trim();
         const height = heightInput.value.trim();
@@ -10179,14 +10192,18 @@ function setupDimensionsField34Update() {
                     if (element.name && element.name.startsWith('34')) {
                         element.value = formattedValue;
                         element.dispatchEvent(new Event('input', { bubbles: true }));
+                        touchedElements.push(element);
                         break;
                     }
                 }
             });
             // Re-evaluate missing-field styling when field 34 changes
+            touchedElements.forEach(el => setFieldVisualState(el, true));
             setTimeout(() => {
                 updateTabValidationIndicators();
                 updatePromptIndicators();
+                // Re-apply in case validation reset label colors
+                touchedElements.forEach(el => setFieldVisualState(el, true));
             }, 50);
         } else {
             // Clear field 34 if any input is empty
@@ -10203,14 +10220,18 @@ function setupDimensionsField34Update() {
                     if (element.name && element.name.startsWith('34')) {
                         element.value = '';
                         element.dispatchEvent(new Event('input', { bubbles: true }));
+                        touchedElements.push(element);
                         break;
                     }
                 }
             });
             // Re-evaluate missing-field styling when field 34 is cleared
+            touchedElements.forEach(el => setFieldVisualState(el, false));
             setTimeout(() => {
                 updateTabValidationIndicators();
                 updatePromptIndicators();
+                // Re-apply in case validation reset label colors
+                touchedElements.forEach(el => setFieldVisualState(el, false));
             }, 50);
         }
     };
@@ -10240,6 +10261,18 @@ function setupDimensionsField35Update() {
     
     // Function to update field 35
     const updateField35 = () => {
+        const touchedElements = [];
+        const setFieldVisualState = (element, isFilled) => {
+            if (!element) return;
+            const formGroup = element.closest('.form-group');
+            const label = formGroup ? formGroup.querySelector('label') : null;
+            if (label) {
+                label.style.color = isFilled ? '' : 'red';
+            }
+            element.style.borderColor = isFilled ? '' : '#c62828';
+            element.style.backgroundColor = isFilled ? '' : '#ffebee';
+        };
+
         const length = lengthInput.value.trim();
         const width = widthInput.value.trim();
         const height = heightInput.value.trim();
@@ -10264,14 +10297,16 @@ function setupDimensionsField35Update() {
                     if (element.name && element.name.startsWith('35')) {
                         element.value = formattedValue;
                         element.dispatchEvent(new Event('input', { bubbles: true }));
+                        touchedElements.push(element);
                         break;
                     }
                 }
             });
-            // Re-evaluate missing-field styling when field 35 changes
+            touchedElements.forEach(el => setFieldVisualState(el, true));
             setTimeout(() => {
                 updateTabValidationIndicators();
                 updatePromptIndicators();
+                touchedElements.forEach(el => setFieldVisualState(el, true));
             }, 50);
         } else {
             // Clear field 35 if any input is empty
@@ -10288,14 +10323,16 @@ function setupDimensionsField35Update() {
                     if (element.name && element.name.startsWith('35')) {
                         element.value = '';
                         element.dispatchEvent(new Event('input', { bubbles: true }));
+                        touchedElements.push(element);
                         break;
                     }
                 }
             });
-            // Re-evaluate missing-field styling when field 35 is cleared
+            touchedElements.forEach(el => setFieldVisualState(el, false));
             setTimeout(() => {
                 updateTabValidationIndicators();
                 updatePromptIndicators();
+                touchedElements.forEach(el => setFieldVisualState(el, false));
             }, 50);
         }
     };
@@ -10325,6 +10362,18 @@ function setupDimensionsField36Update() {
     
     // Function to update field 36
     const updateField36 = () => {
+        const touchedElements = [];
+        const setFieldVisualState = (element, isFilled) => {
+            if (!element) return;
+            const formGroup = element.closest('.form-group');
+            const label = formGroup ? formGroup.querySelector('label') : null;
+            if (label) {
+                label.style.color = isFilled ? '' : 'red';
+            }
+            element.style.borderColor = isFilled ? '' : '#c62828';
+            element.style.backgroundColor = isFilled ? '' : '#ffebee';
+        };
+
         const length = lengthInput.value.trim();
         const width = widthInput.value.trim();
         const height = heightInput.value.trim();
@@ -10349,14 +10398,16 @@ function setupDimensionsField36Update() {
                     if (element.name && element.name.startsWith('36')) {
                         element.value = formattedValue;
                         element.dispatchEvent(new Event('input', { bubbles: true }));
+                        touchedElements.push(element);
                         break;
                     }
                 }
             });
-            // Re-evaluate missing-field styling when field 36 changes
+            touchedElements.forEach(el => setFieldVisualState(el, true));
             setTimeout(() => {
                 updateTabValidationIndicators();
                 updatePromptIndicators();
+                touchedElements.forEach(el => setFieldVisualState(el, true));
             }, 50);
         } else {
             // Clear field 36 if any input is empty
@@ -10373,14 +10424,16 @@ function setupDimensionsField36Update() {
                     if (element.name && element.name.startsWith('36')) {
                         element.value = '';
                         element.dispatchEvent(new Event('input', { bubbles: true }));
+                        touchedElements.push(element);
                         break;
                     }
                 }
             });
-            // Re-evaluate missing-field styling when field 36 is cleared
+            touchedElements.forEach(el => setFieldVisualState(el, false));
             setTimeout(() => {
                 updateTabValidationIndicators();
                 updatePromptIndicators();
+                touchedElements.forEach(el => setFieldVisualState(el, false));
             }, 50);
         }
     };
