@@ -625,6 +625,12 @@
                         } else {
                             console.error('restoreFormData function not available');
                         }
+                        if (urlParams.get('openPrintCopies') === '1') {
+                            setTimeout(() => {
+                                const el = document.getElementById('printCopiesControls');
+                                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            }, 500);
+                        }
                     }, 1000);
                 } else if (attempts >= maxAttempts) {
                     clearInterval(checkFormReady);
@@ -634,6 +640,12 @@
                         sessionStorage.removeItem('loadShipmentAWB');
                     } else {
                         console.error('restoreFormData function still not available');
+                    }
+                    if (urlParams.get('openPrintCopies') === '1') {
+                        setTimeout(() => {
+                            const el = document.getElementById('printCopiesControls');
+                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }, 500);
                     }
                 } else {
                     // Log progress every 10 attempts
