@@ -68,11 +68,11 @@ body {
 
 header {
     background: var(--win98-active-title);
-    background: linear-gradient(to bottom, #000080 0%, #000080 100%);
+    background: linear-gradient(to bottom, #20c997 0%, #1aa87f 100%);
     color: white;
     padding: 4px 8px;
     text-align: center;
-    border-bottom: 2px solid var(--win98-button-darkshadow);
+    border-bottom: 1px solid rgba(15, 118, 110, 0.55);
 }
 
 header h1 {
