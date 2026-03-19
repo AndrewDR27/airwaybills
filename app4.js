@@ -683,16 +683,16 @@ async function handlePrintSelectedCopies() {
     }
 
     const copySelections = [
-        { id: 'copyOrig3', value: 'Original 3 (Shipper)' },
-        { id: 'copy8Agent', value: 'Copy 8 (Agent)' },
-        { id: 'copyOrig1', value: 'Original 1 (Issuing Carrier)' },
-        { id: 'copyOrig2', value: 'Original 2 (Consignee)' },
-        { id: 'copy4Delivery', value: 'Copy 4 (Delivery Receipt)' },
+        { id: 'copyOrig3', value: 'Original 3 (for Shipper)' },
+        { id: 'copy8Agent', value: 'Copy 8 (for Agent)' },
+        { id: 'copyOrig1', value: 'Original 1 (for Issuing Carrier)' },
+        { id: 'copyOrig2', value: 'Original 2 (for Consignee)' },
+        { id: 'copy4Delivery', value: 'Copy 4 (for Delivery Receipt)' },
         // These values must match the exact text printed into PDF field 102. COPY
         // (and should match the visible checkbox labels on the page).
-        { id: 'copy5Extra', value: 'Copy 5 (Extra)' },
-        { id: 'copy6Extra', value: 'Copy 6 (Extra)' },
-        { id: 'copy7Extra', value: 'Copy 7 (Extra)' },
+        { id: 'copy5Extra', value: 'Copy 5 (for Extra)' },
+        { id: 'copy6Extra', value: 'Copy 6 (for Extra)' },
+        { id: 'copy7Extra', value: 'Copy 7 (for Extra)' },
     ];
 
     const autoOpenPrintCopiesCheckbox = document.getElementById('autoOpenPrintCopies');
