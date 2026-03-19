@@ -2200,11 +2200,10 @@ function collectFormDataForTemplate() {
         const interlineCarrierGroup2 = document.getElementById('interlineCarrierGroup2');
         formData['_showInterlineCarrier2'] = (interlineCarrierSelect2.value || (interlineCarrierGroup2 && interlineCarrierGroup2.style.display !== 'none')) ? 'true' : 'false';
     }
-    // Dangerous Goods is excluded from template - do not save
-    // const dangerousGoodsSelect = document.getElementById('dangerousGoodsSelect');
-    // if (dangerousGoodsSelect) {
-    //     formData['_dangerousGoods'] = dangerousGoodsSelect.value || '';
-    // }
+    const dangerousGoodsSelect = document.getElementById('dangerousGoodsSelect');
+    if (dangerousGoodsSelect) {
+        formData['_dangerousGoods'] = dangerousGoodsSelect.value || '';
+    }
     
     // Capture billing dropdown selections
     const declaredValuesSelect = document.getElementById('declaredValuesSelect');
@@ -2475,12 +2474,11 @@ async function populateFormFromTemplate(templateData) {
             }
         }
     }
-    // Dangerous Goods is excluded from template - do not restore
-    // const dangerousGoodsSelect = document.getElementById('dangerousGoodsSelect');
-    // if (dangerousGoodsSelect && templateData['_dangerousGoods']) {
-    //     dangerousGoodsSelect.value = templateData['_dangerousGoods'];
-    //     handleDangerousGoodsChange(dangerousGoodsSelect.value === 'Yes');
-    // }
+    const dangerousGoodsSelect = document.getElementById('dangerousGoodsSelect');
+    if (dangerousGoodsSelect && templateData['_dangerousGoods']) {
+        dangerousGoodsSelect.value = templateData['_dangerousGoods'];
+        handleDangerousGoodsChange(dangerousGoodsSelect.value === 'Yes');
+    }
     
     // Restore billing dropdown selections
     const declaredValuesSelect = document.getElementById('declaredValuesSelect');
