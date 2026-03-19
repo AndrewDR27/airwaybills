@@ -1062,3 +1062,24 @@ header p {
     border-top: 1px solid var(--modern-border);
     padding: 8px;
 }
+
+/* Layout consistency: make page containers fill iframe/page height */
+.container,
+.contacts-container,
+.users-container,
+.account-container,
+.airlines-container,
+.airports-container {
+    min-height: calc(100vh - 4px);
+    display: flex;
+    flex-direction: column;
+}
+
+.content-wrapper,
+.contacts-content,
+.users-content,
+.account-content,
+.airlines-content,
+.airports-content {
+    flex: 1;
+}
