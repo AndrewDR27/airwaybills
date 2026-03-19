@@ -800,13 +800,54 @@ function findCopyFieldKeyInFormData(formData) {
 // Find the exact PDF widget field name for "102. COPY" by scanning extracted PDF widgets.
 // This is more reliable than relying on HTML inputs, since the HTML form may not include it.
 function findCopyPdfFieldNameFromPdfWidgets() {
-    if (!Array.isArray(formFields)) return null;
-    const target = '102copy';
+    if (!Array.isArray(formFields) || formFields.length === 0) return null;
     const normalize = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
 
-    // Prefer an exact normalized match
-    const match = formFields.find(f => f && f.name && normalize(f.name) === target);
-    return match ? match.name : null;
+    // Try to match variants like:
+    // - "102. COPY"
+    // - "102 COPY"
+    // - "102_COPY"
+    // by checking normalized contains both "102" and "copy".
+    const candidates = formFields
+        .filter(f => f && f.name)
+        .map(f => ({ pdfName: f.name, n: normalize(f.name) }))
+        .filter(x => x.n.includes('102') && x.n.includes('copy'));
+
+    // Exact preferred match
+    const exact = candidates.find(x => x.n === '102copy');
+    if (exact) return exact.pdfName;
+
+    if (candidates.length > 0) {
+        // Score candidates to prefer "102..." and shorter/cleaner matches
+        const scored = candidates
+            .map(x => {
+                let score = 0;
+                if (x.n.startsWith('102')) score += 3;
+                if (x.n.endsWith('copy')) score += 2;
+                if (x.n.includes('102copy')) score += 3;
+                score -= Math.max(0, x.n.length - 10) * 0.1;
+                return { pdfName: x.pdfName, score };
+            })
+            .sort((a, b) => b.score - a.score);
+
+        // Helpful debug log: see what name we picked
+        console.warn('Could not find exact normalized "102copy"; using best candidate:', {
+            candidates: candidates.map(c => c.pdfName).slice(0, 20),
+            picked: scored[0]?.pdfName
+        });
+        return scored[0]?.pdfName || null;
+    }
+
+    // Debug log to help you locate the real field name in the PDF console output
+    const only102 = formFields
+        .filter(f => f && f.name)
+        .map(f => ({ pdfName: f.name, n: normalize(f.name) }))
+        .filter(x => x.n.includes('102'))
+        .map(x => x.pdfName)
+        .slice(0, 30);
+    console.warn('No PDF widget candidates found for 102 COPY. Names containing "102" (first 30):', only102);
+
+    return null;
 }
 
 // Load default PDF (AWB1.pdf)
