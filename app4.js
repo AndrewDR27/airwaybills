@@ -1443,14 +1443,13 @@ function generateForm() {
                         // Create a copy of the field to modify label for upper area
                         const fieldForUpper = { ...primaryField };
                         
-                        // Upper area: label as Chargeable Weight (corresponds to lower Field 30)
+                        // Upper area: same format as billing (30. CHARGEABLE WEIGHT / 31. RATE PER KG)
                         if (prefix === '56') {
-                            fieldForUpper.label = 'Chargeable Weight';
+                            fieldForUpper.label = '30. CHARGEABLE WEIGHT';
                         }
                         
-                        // Upper area: label as Rate per kg (corresponds to lower Field 31)
                         if (prefix === '57') {
-                            fieldForUpper.label = 'Rate per kg';
+                            fieldForUpper.label = '31. RATE PER KG';
                         }
                         
                         const formGroup = createFormField(fieldForUpper);
@@ -1665,7 +1664,7 @@ function generateForm() {
         billingRowContainer9 = document.createElement('div');
         billingRowContainer9.className = 'form-row';
         
-        // Add row fields in correct order (57, 56, 58, 59)
+        // Add row fields in correct order (57, 56, 58, 59); label 56/57 as 30. CHARGEABLE WEIGHT / 31. RATE PER KG
         billingRow9FieldPrefixes.forEach(prefix => {
             const fieldName = billingFieldsToRow9[prefix];
             if (fieldName) {
@@ -1680,7 +1679,10 @@ function generateForm() {
                         fieldsWithSameName.map(f => f.pdfFieldName));
                 }
                 
-                const formGroup = createFormField(primaryField);
+                const fieldForBilling = { ...primaryField };
+                if (prefix === '56') fieldForBilling.label = '30. CHARGEABLE WEIGHT';
+                if (prefix === '57') fieldForBilling.label = '31. RATE PER KG';
+                const formGroup = createFormField(fieldForBilling);
                 billingRowContainer9.appendChild(formGroup);
             }
         });
