@@ -803,18 +803,22 @@ function findCopyPdfFieldNameFromPdfWidgets() {
     if (!Array.isArray(formFields) || formFields.length === 0) return null;
     const normalize = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
 
-    // Try to match variants like:
-    // - "102. COPY"
-    // - "102 COPY"
-    // - "102_COPY"
-    // by checking normalized contains both "102" and "copy".
+    // Try to match variants like "102. COPY" by checking both:
+    // - internal widget field name (f.name)
+    // - visible label/alternateName (f.label)
+    // In some PDFs, the internal field name does NOT contain the human label,
+    // but the alternateName/label does.
     const candidates = formFields
-        .filter(f => f && f.name)
-        .map(f => ({ pdfName: f.name, n: normalize(f.name) }))
-        .filter(x => x.n.includes('102') && x.n.includes('copy'));
+        .filter(f => f && (f.name || f.label))
+        .map(f => ({
+            pdfName: f.name,
+            nameN: f.name ? normalize(f.name) : '',
+            labelN: f.label ? normalize(f.label) : ''
+        }))
+        .filter(x => (x.nameN.includes('102') && x.nameN.includes('copy')) || (x.labelN.includes('102') && x.labelN.includes('copy')));
 
     // Exact preferred match
-    const exact = candidates.find(x => x.n === '102copy');
+    const exact = candidates.find(x => x.nameN === '102copy' || x.labelN === '102copy');
     if (exact) return exact.pdfName;
 
     if (candidates.length > 0) {
@@ -822,17 +826,23 @@ function findCopyPdfFieldNameFromPdfWidgets() {
         const scored = candidates
             .map(x => {
                 let score = 0;
-                if (x.n.startsWith('102')) score += 3;
-                if (x.n.endsWith('copy')) score += 2;
-                if (x.n.includes('102copy')) score += 3;
-                score -= Math.max(0, x.n.length - 10) * 0.1;
+                if (x.nameN && x.nameN.includes('102')) score += 2;
+                if (x.nameN && x.nameN.includes('copy')) score += 2;
+                if (x.labelN && x.labelN.includes('102')) score += 2;
+                if (x.labelN && x.labelN.includes('copy')) score += 2;
+                if (x.nameN.startsWith('102')) score += 2;
+                if (x.labelN.startsWith('102')) score += 2;
+                if (x.nameN.endsWith('copy')) score += 1;
+                if (x.labelN.endsWith('copy')) score += 1;
+                const bestLen = Math.min(x.nameN.length || 9999, x.labelN.length || 9999);
+                score -= Math.max(0, bestLen - 10) * 0.05;
                 return { pdfName: x.pdfName, score };
             })
             .sort((a, b) => b.score - a.score);
 
         // Helpful debug log: see what name we picked
         console.warn('Could not find exact normalized "102copy"; using best candidate:', {
-            candidates: candidates.map(c => c.pdfName).slice(0, 20),
+            candidates: candidates.map(c => ({ pdfName: c.pdfName, nameN: c.nameN, labelN: c.labelN })).slice(0, 20),
             picked: scored[0]?.pdfName
         });
         return scored[0]?.pdfName || null;
@@ -840,12 +850,11 @@ function findCopyPdfFieldNameFromPdfWidgets() {
 
     // Debug log to help you locate the real field name in the PDF console output
     const only102 = formFields
-        .filter(f => f && f.name)
-        .map(f => ({ pdfName: f.name, n: normalize(f.name) }))
-        .filter(x => x.n.includes('102'))
-        .map(x => x.pdfName)
+        .filter(f => f && (f.name || f.label))
+        .map(f => ({ pdfName: f.name, nameN: f.name ? normalize(f.name) : '', labelN: f.label ? normalize(f.label) : '' }))
+        .filter(x => x.nameN.includes('102') || x.labelN.includes('102'))
         .slice(0, 30);
-    console.warn('No PDF widget candidates found for 102 COPY. Names containing "102" (first 30):', only102);
+    console.warn('No PDF widget candidates found for 102 COPY. Fields containing "102" (first 30):', only102);
 
     return null;
 }
