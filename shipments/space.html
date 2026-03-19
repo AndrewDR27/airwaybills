@@ -1304,7 +1304,11 @@
                     alert('AWB not available.');
                     return;
                 }
-                const url = `edit.html?awb=${encodeURIComponent(awb)}&openPrintCopies=1`;
+                        // When embedded, `contentFrame.src` should be relative to the app root.
+                        // Other navigation in this file uses `shipments/edit.html` in iframe mode.
+                        const url = window.parent && window.parent !== window
+                            ? `shipments/edit.html?awb=${encodeURIComponent(awb)}&openPrintCopies=1`
+                            : `edit.html?awb=${encodeURIComponent(awb)}&openPrintCopies=1`;
                 if (window.parent && window.parent !== window) {
                     window.parent.document.getElementById('contentFrame').src = url;
                 } else {
