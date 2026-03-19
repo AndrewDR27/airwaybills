@@ -10193,7 +10193,6 @@ function setupDimensionsField34Update() {
                         element.value = formattedValue;
                         element.dispatchEvent(new Event('input', { bubbles: true }));
                         touchedElements.push(element);
-                        break;
                     }
                 }
             });
@@ -10221,7 +10220,6 @@ function setupDimensionsField34Update() {
                         element.value = '';
                         element.dispatchEvent(new Event('input', { bubbles: true }));
                         touchedElements.push(element);
-                        break;
                     }
                 }
             });
@@ -10298,7 +10296,6 @@ function setupDimensionsField35Update() {
                         element.value = formattedValue;
                         element.dispatchEvent(new Event('input', { bubbles: true }));
                         touchedElements.push(element);
-                        break;
                     }
                 }
             });
@@ -10324,7 +10321,6 @@ function setupDimensionsField35Update() {
                         element.value = '';
                         element.dispatchEvent(new Event('input', { bubbles: true }));
                         touchedElements.push(element);
-                        break;
                     }
                 }
             });
@@ -10399,7 +10395,6 @@ function setupDimensionsField36Update() {
                         element.value = formattedValue;
                         element.dispatchEvent(new Event('input', { bubbles: true }));
                         touchedElements.push(element);
-                        break;
                     }
                 }
             });
@@ -10425,7 +10420,6 @@ function setupDimensionsField36Update() {
                         element.value = '';
                         element.dispatchEvent(new Event('input', { bubbles: true }));
                         touchedElements.push(element);
-                        break;
                     }
                 }
             });
