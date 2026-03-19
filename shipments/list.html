@@ -81,25 +81,26 @@
         }
         .shipments-list {
             margin-top: 12px;
-            background: #ffffff;
-            border: 1px solid #d1d5db;
-            border-radius: 12px;
-            padding: 8px;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 0;
             flex: 1;
         }
         .shipment-item {
-            border: 2px inset #C0C0C0;
-            padding: 4px 8px;
-            margin-bottom: 4px;
-            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            padding: 8px 10px;
+            margin-bottom: 10px;
+            background: #ffffff;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 15px;
         }
         .shipment-item:hover {
-            background: #316AC5;
-            color: white;
+            background: #eff6ff;
+            color: inherit;
         }
         .shipment-content {
             flex: 1;
@@ -125,7 +126,7 @@
             color: #000000;
         }
         .shipment-item:hover .shipment-awb {
-            color: white;
+            color: #000000;
         }
         .shipment-space-id {
             font-size: 10px;
@@ -133,7 +134,7 @@
             margin-top: 1px;
         }
         .shipment-item:hover .shipment-space-id {
-            color: white;
+            color: #000000;
         }
         .shipment-meta {
             display: flex;
