@@ -60,7 +60,9 @@ body {
     margin: 0 auto;
     background: var(--win98-window-bg);
     border: 2px outset var(--win98-button-face);
-    overflow: hidden;
+    /* Allow horizontal overflow so wide UI (e.g., template tables) isn't cut off. */
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 header {
