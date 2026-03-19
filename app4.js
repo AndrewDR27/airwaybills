@@ -4147,6 +4147,7 @@ async function fillPdfWithData(formData, flatten = false) {
                 const isField01 = field.name && field.name.startsWith('01');
                 const isField02 = field.name && field.name.startsWith('02');
                 const isField03 = field.name && field.name.startsWith('03');
+                const isField07 = field.name && field.name.startsWith('07');
                 const isField101 = field.name && field.name.startsWith('101');
                 const normPdfFieldName = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
                 const npPdf = normPdfFieldName(pdfFieldName);
@@ -4160,7 +4161,7 @@ async function fillPdfWithData(formData, flatten = false) {
                         ? 12
                         : isField02
                           ? 12
-                          : isField01 || isField03 || isField101
+                            : isField01 || isField03 || isField07 || isField101
                             ? 12
                             : isField102Copy
                               ? 12
