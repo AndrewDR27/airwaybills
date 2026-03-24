@@ -602,13 +602,56 @@
             });
         });
         
-        // Set default iframe source - always use My Shipments as default
-        // Note: We still save the current page when navigating, but default is always shipments/list.html
-        const savedPage = localStorage.getItem('dashboardCurrentPage');
-        // Only use saved page if it exists and user hasn't explicitly set a preference
-        // For now, always default to shipments/list.html
-        const initialPage = defaultPage; // Always use default (shipments/list.html)
-        document.getElementById('contentFrame').src = initialPage;
+        const contentFrame = document.getElementById('contentFrame');
+
+        function isSafeStoredIframePath(s) {
+            if (!s || typeof s !== 'string') return false;
+            const t = s.trim();
+            if (!t || t.includes('..')) return false;
+            if (/^https?:/i.test(t)) return false;
+            if (t.startsWith('//')) return false;
+            return true;
+        }
+
+        function normalizeStoredIframePath(s) {
+            let t = String(s).trim();
+            if (t.startsWith('/')) t = t.substring(1);
+            return t;
+        }
+
+        function updateNavActiveForIframePath(pathWithQuery) {
+            const pathOnly = (pathWithQuery || '').split('?')[0].split('#')[0];
+            document.querySelectorAll('.nav-menu a').forEach(a => a.classList.remove('active'));
+            document.querySelectorAll('.nav-menu a[href]').forEach(a => {
+                const href = a.getAttribute('href');
+                if (!href || href === '#') return;
+                const hrefPath = href.split('?')[0];
+                if (pathOnly === hrefPath || pathWithQuery === href) {
+                    a.classList.add('active');
+                }
+            });
+        }
+
+        // Per-tab only: localStorage was shared across tabs, so opening a space in one tab
+        // overwrote the saved URL and refresh in another tab jumped to that space.
+        const DASHBOARD_IFRAME_PAGE_KEY = 'dashboardCurrentPage';
+
+        let rawSaved = sessionStorage.getItem(DASHBOARD_IFRAME_PAGE_KEY);
+        if (!rawSaved) {
+            try {
+                rawSaved = localStorage.getItem(DASHBOARD_IFRAME_PAGE_KEY);
+                if (rawSaved) {
+                    sessionStorage.setItem(DASHBOARD_IFRAME_PAGE_KEY, rawSaved);
+                    localStorage.removeItem(DASHBOARD_IFRAME_PAGE_KEY);
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        let initialPage = defaultPage;
+        if (rawSaved && isSafeStoredIframePath(rawSaved)) {
+            initialPage = normalizeStoredIframePath(rawSaved);
+        }
+        contentFrame.src = initialPage;
 
         // Handle navigation
         document.querySelectorAll('.nav-menu a').forEach(link => {
@@ -628,6 +671,10 @@
             sessionStorage.removeItem('awb_auth');
             localStorage.removeItem('isAuthenticated');
             localStorage.removeItem('username');
+            try {
+                sessionStorage.removeItem(DASHBOARD_IFRAME_PAGE_KEY);
+                localStorage.removeItem(DASHBOARD_IFRAME_PAGE_KEY);
+            } catch (e) { /* ignore */ }
             // Redirect to login
             window.location.href = 'login.html';
         };
@@ -647,24 +694,21 @@
             localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
         });
 
-        // Save current page when iframe src changes
-        const contentFrame = document.getElementById('contentFrame');
+        // Save current page when iframe src changes (include query string, e.g. space.html?spaceId=)
         contentFrame.addEventListener('load', function() {
             if (this.src && !this.src.includes('about:blank')) {
                 try {
                     const src = this.src;
-                    // Extract relative path if it's a full URL
                     const url = new URL(src, window.location.href);
-                    let relativePath = url.pathname;
-                    // Remove leading slash and get just the filename/path
-                    if (relativePath.startsWith('/')) {
-                        relativePath = relativePath.substring(1);
+                    let path = url.pathname;
+                    if (path.startsWith('/')) {
+                        path = path.substring(1);
                     }
-                    // Remove any query params or hash
-                    relativePath = relativePath.split('?')[0].split('#')[0];
-                    if (relativePath) {
-                        localStorage.setItem('dashboardCurrentPage', relativePath);
+                    const pathWithQuery = path + (url.search || '');
+                    if (pathWithQuery) {
+                        sessionStorage.setItem(DASHBOARD_IFRAME_PAGE_KEY, pathWithQuery);
                     }
+                    updateNavActiveForIframePath(pathWithQuery);
                 } catch (e) {
                     console.warn('Could not save current page:', e);
                 }
@@ -684,9 +728,9 @@
             }
         });
         
-        // Also handle Ctrl+R
+        // Also handle Ctrl+R / Cmd+R (reload main chrome → refresh iframe only)
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'r' && e.ctrlKey) {
+            if (e.key === 'r' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
                 e.preventDefault();
                 e.stopPropagation();
                 if (contentFrame && contentFrame.src) {

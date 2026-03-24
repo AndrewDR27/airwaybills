@@ -17,26 +17,93 @@
                 repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
             min-height: 100vh;
         }
-        .container {
+        /*
+         * themes.js appends a second copy of styles.css AFTER this block; that sheet ends with
+         * .container { flex-direction: column } (same specificity as a lone .container rule), which
+         * was overriding row layout. Use a page class so this always wins.
+         */
+        .container.shipment-space-page {
             max-width: 1400px;
             margin: 0 auto;
             background: #C0C0C0;
             padding: 8px;
             border: 2px outset #C0C0C0;
             display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: flex-start;
             gap: 8px;
+            box-sizing: border-box;
         }
-        .main-content {
+        .container.shipment-space-page .main-content {
             flex: 1;
             min-width: 0;
         }
-        .participants-sidebar {
+        /* Right column: billing (top) + participants; sticky as one rail */
+        .shipment-space-rail {
             width: 300px;
-            background: #C0C0C0;
-            border: 2px inset #C0C0C0;
-            padding: 8px;
+            min-width: 260px;
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
+            gap: 8px;
+            align-self: flex-start;
+            position: sticky;
+            top: 8px;
+            max-height: calc(100vh - 24px);
+            box-sizing: border-box;
+        }
+        /* Same chrome as .pdf-section (AWB document areas): white, inset border */
+        .container.shipment-space-page .billing-details-panel.pdf-section,
+        .container.shipment-space-page .participants-sidebar.pdf-section {
+            margin: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .container.shipment-space-page .billing-details-panel.pdf-section {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .container.shipment-space-page .participants-sidebar.pdf-section {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .billing-details-body {
+            font-size: 11px;
+            color: #000000;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            line-height: 1.4;
+        }
+        .participants-sidebar-header {
+            margin: 0 0 12px 0;
+            padding: 0 0 10px 0;
+            border-bottom: 1px solid #e6e6e6;
+            flex-shrink: 0;
+        }
+        .participants-sidebar-header h2 {
+            margin: 0 0 6px 0;
+            font-size: 14px;
+            font-weight: bold;
+            color: #000000;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .participants-sidebar-hint {
+            margin: 0;
+            font-size: 11px;
+            color: #000000;
+            line-height: 1.4;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .participants-sidebar-body {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
         }
         .space-header {
             display: flex;
@@ -146,18 +213,24 @@
             flex: 1;
             overflow-y: auto;
         }
-        .role-section {
-            border: 2px inset #C0C0C0;
+        /* Sub-panels: same idea as nested blocks inside AWB PDF section */
+        .participants-sidebar .role-section {
+            margin: 0;
             padding: 8px;
-            background: white;
+            background: #ffffff;
+            border: 2px inset #C0C0C0;
+            box-sizing: border-box;
         }
-        .role-section-header {
+        .participants-sidebar .role-section + .role-section {
+            margin-top: 12px;
+        }
+        .participants-sidebar .role-section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid #C0C0C0;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #e6e6e6;
         }
         .role-section-title {
             font-size: 12px;
@@ -200,8 +273,8 @@
             border: 2px inset #C0C0C0;
             background: #808080;
         }
-        .participant-badge {
-            background: #C0C0C0;
+        .participants-sidebar .participant-badge {
+            background: #ffffff;
             color: #000000;
             padding: 6px 8px;
             border: 2px inset #C0C0C0;
@@ -290,7 +363,7 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container shipment-space-page">
         <div class="main-content">
             <div class="space-header">
                 <div>
@@ -378,13 +451,23 @@
             </div>
         </div>
 
-        <div class="participants-sidebar">
-            <div style="margin-bottom: 8px;">
-                <h2 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">Participants</h2>
-            </div>
-            <div id="participantsList" style="display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto;">
-                <!-- Role sections will be dynamically generated here -->
-            </div>
+        <div class="shipment-space-rail">
+            <aside class="pdf-section billing-details-panel" id="billingDetailsPanel" aria-label="Billing details">
+                <div class="participants-sidebar-header">
+                    <h2>Billing details</h2>
+                    <p class="participants-sidebar-hint">Charges and payment status for this shipment</p>
+                </div>
+                <div id="billingDetailsBody" class="billing-details-body"></div>
+            </aside>
+            <aside class="pdf-section participants-sidebar" aria-label="Shipment participants">
+                <div class="participants-sidebar-header">
+                    <h2>Participants</h2>
+                    <p class="participants-sidebar-hint">Invited accounts for this space</p>
+                </div>
+                <div id="participantsList" class="participants-sidebar-body">
+                    <!-- Role sections will be dynamically generated here -->
+                </div>
+            </aside>
         </div>
     </div>
 
@@ -536,6 +619,118 @@
 
             let currentShipment = null;
 
+            function normId(v) {
+                if (v == null || v === '') return '';
+                return String(v);
+            }
+            function idsMatch(a, b) {
+                return normId(a) === normId(b);
+            }
+
+            async function loadShipmentsArrayForSave() {
+                const SHIPMENTS_STORAGE_KEY = 'awb_shipments';
+                let shipments = [];
+                try {
+                    if (typeof window.getAllShipments === 'function') {
+                        const result = await window.getAllShipments();
+                        if (Array.isArray(result)) shipments = result;
+                    }
+                } catch (e) {
+                    console.warn('getAllShipments failed, using localStorage cache:', e);
+                    try {
+                        const shipmentsJson = localStorage.getItem(SHIPMENTS_STORAGE_KEY);
+                        shipments = shipmentsJson ? JSON.parse(shipmentsJson) : [];
+                        if (!Array.isArray(shipments)) shipments = [];
+                    } catch (e2) {
+                        shipments = [];
+                    }
+                }
+                if (shipments.length === 0) {
+                    try {
+                        const shipmentsJson = localStorage.getItem(SHIPMENTS_STORAGE_KEY);
+                        const parsed = shipmentsJson ? JSON.parse(shipmentsJson) : [];
+                        if (Array.isArray(parsed) && parsed.length) shipments = parsed;
+                    } catch (e3) { /* ignore */ }
+                }
+                return shipments;
+            }
+
+            function mergeShipmentIntoLocalStorageCache(plainShipment) {
+                const SHIPMENTS_STORAGE_KEY = 'awb_shipments';
+                try {
+                    const raw = localStorage.getItem(SHIPMENTS_STORAGE_KEY);
+                    let arr = raw ? JSON.parse(raw) : [];
+                    if (!Array.isArray(arr)) arr = [];
+                    const sid = normId(plainShipment.spaceId);
+                    const idx = arr.findIndex((s) => idsMatch(s.spaceId, sid));
+                    if (idx >= 0) {
+                        arr[idx] = { ...arr[idx], ...plainShipment };
+                    } else {
+                        arr.push(plainShipment);
+                    }
+                    localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(arr));
+                } catch (e) {
+                    console.warn('Could not update shipment cache:', e);
+                }
+            }
+
+            /**
+             * Save currentShipment to the server by spaceId (does not depend on getAllShipments
+             * containing this row — fixes "Shipment not found in shipments list").
+             */
+            async function persistCurrentShipment() {
+                if (!currentShipment) {
+                    return { ok: false, message: 'No shipment loaded.' };
+                }
+                let uWait = 0;
+                while (!window.shipmentsAPI && uWait < 50) {
+                    await new Promise((r) => setTimeout(r, 100));
+                    uWait++;
+                }
+                if (!window.shipmentsAPI) {
+                    return { ok: false, message: 'Shipments API is not ready. Refresh the page or check your connection.' };
+                }
+                let payload;
+                try {
+                    payload =
+                        typeof currentShipment.toJSON === 'function'
+                            ? currentShipment.toJSON()
+                            : JSON.parse(JSON.stringify(currentShipment));
+                } catch (e) {
+                    return { ok: false, message: 'Could not serialize shipment.' };
+                }
+                payload.spaceId = normId(spaceId);
+                try {
+                    await window.shipmentsAPI.update(payload);
+                    mergeShipmentIntoLocalStorageCache(payload);
+                    return { ok: true };
+                } catch (e) {
+                    console.error('shipmentsAPI.update failed:', e);
+                    return { ok: false, message: e.message || 'Server rejected the update.' };
+                }
+            }
+
+            function wireParticipantListActions() {
+                const root = document.getElementById('participantsList');
+                if (!root) return;
+                root.querySelectorAll('button.participant-remove[data-user-id]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const raw = btn.getAttribute('data-user-id');
+                        const id = raw ? decodeURIComponent(raw) : '';
+                        if (id) removeParticipant(id);
+                    });
+                });
+                root.querySelectorAll('button.participant-leave').forEach((btn) => {
+                    btn.addEventListener('click', () => leaveSpace());
+                });
+                root.querySelectorAll('button.role-add-btn[data-add-role]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const role = btn.getAttribute('data-add-role');
+                        if (role) addParticipantForRole(role);
+                    });
+                });
+            }
+
         // Load shipment space
         async function loadSpace() {
             try {
@@ -550,9 +745,9 @@
                 // Check if user has access (admins can access all shipments)
                 const isAdmin = user.role === 'admin';
                 const participants = currentShipment.participants || [];
-                const hasAccess = isAdmin || 
-                                currentShipment.createdBy === user.id || 
-                                participants.some(p => p.userId === user.id);
+                const hasAccess = isAdmin ||
+                                idsMatch(currentShipment.createdBy, user.id) ||
+                                participants.some(p => idsMatch(p.userId, user.id));
                 
                 if (!hasAccess) {
                     console.error('Access denied:', {
@@ -669,7 +864,7 @@
             loadParticipants();
             
             // Setup add participant functionality if user is creator or admin/agent
-            const isCreator = currentShipment.createdBy === user.id;
+            const isCreator = idsMatch(currentShipment.createdBy, user.id);
             if (isCreator || isAgent || isAdmin) {
                 setupAddParticipant();
             }
@@ -717,6 +912,20 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        /** Account display name (same idea as shipments list: not AWB PDF contacts). */
+        function participantAccountDisplayName(user) {
+            if (!user) return 'Unknown user';
+            const n = (user.name || user.company || user.companyName || '').trim();
+            if (n) return n;
+            return (user.email || '').trim() || 'Unknown user';
+        }
+
+        function roleSectionLabelFor(role) {
+            if (typeof ROLE_LABELS !== 'undefined' && ROLE_LABELS[role]) return ROLE_LABELS[role];
+            if (typeof getRoleLabel === 'function') return getRoleLabel(role);
+            return role || '—';
         }
 
         async function updateCarrierTerminalSection(shipment) {
@@ -767,7 +976,12 @@
                     section.style.display = 'none';
                     return;
                 }
-                const destLabel = destination ? (destination.airportCode || destination.id) + (destination.cityName ? ' – ' + destination.cityName : '') : destinationId;
+                const destLoc = destination
+                    ? [destination.cityName, destination.stateName, destination.country].filter(Boolean).join(', ')
+                    : '';
+                const destLabel = destination
+                    ? (destination.airportCode || destination.id) + (destLoc ? ' – ' + destLoc : '')
+                    : destinationId;
                 let html = '<p style="margin: 0 0 8px 0;"><strong>' + escapeHtml(airline.companyName || 'Carrier') + '</strong>';
                 if (destLabel) html += ' at ' + escapeHtml(destLabel);
                 html += '</p>';
@@ -806,7 +1020,7 @@
             }
             
             // Check if current user can add/remove participants (creator, admin, or agent)
-            const isCreator = currentShipment.createdBy === user.id;
+            const isCreator = idsMatch(currentShipment.createdBy, user.id);
             const isAdmin = user.role === 'admin';
             const isAgent = user.role === 'issuing-carrier-agent';
             const canManage = isCreator || isAdmin || isAgent;
@@ -830,6 +1044,21 @@
             allDisplayRoles.forEach(r => {
                 participantsByRole[r.role] = [];
             });
+            participants.forEach((p) => {
+                if (p && p.role && participantsByRole[p.role] === undefined) {
+                    participantsByRole[p.role] = [];
+                }
+            });
+
+            const configuredRoleKeys = new Set(allDisplayRoles.map((r) => r.role));
+            const extraRoleKeys = Object.keys(participantsByRole).filter((k) => !configuredRoleKeys.has(k));
+            extraRoleKeys.sort((a, b) => roleSectionLabelFor(a).localeCompare(roleSectionLabelFor(b)));
+            const extraDisplayRoles = extraRoleKeys.map((role) => ({
+                role,
+                label: roleSectionLabelFor(role),
+                addable: false
+            }));
+            const rolesToRender = allDisplayRoles.concat(extraDisplayRoles);
             
             // Fetch participant user data and group by role
             const participantPromises = participants.map(async (p) => {
@@ -863,7 +1092,7 @@
             // Build HTML for each role section
             let html = '';
 
-            for (const roleInfo of allDisplayRoles) {
+            for (const roleInfo of rolesToRender) {
                 const roleParticipants = participantsByRole[roleInfo.role] || [];
                 const roleId = roleInfo.role.replace(/-/g, '_');
                 const isAddable = roleInfo.addable !== false;
@@ -880,15 +1109,16 @@
                     html += `<p style="font-size: 10px; color: #666; margin: 0;">No ${roleInfo.label}s</p>`;
                 } else {
                     roleParticipants.forEach(p => {
-                        const name = p.user ? p.user.name : 'Unknown User';
-                        const isSelf = p.userId === user.id;
+                        const name = participantAccountDisplayName(p.user);
+                        const isSelf = idsMatch(p.userId, user.id);
+                        const uidEnc = encodeURIComponent(normId(p.userId));
 
                         let actionButton = '';
                         if (isAddable) {
                             if (isSelf) {
-                                actionButton = `<button class="participant-leave" onclick="leaveSpace()" title="Leave this space">Leave</button>`;
+                                actionButton = `<button type="button" class="participant-leave" title="Leave this space">Leave</button>`;
                             } else if (canManage) {
-                                actionButton = `<button class="participant-remove" onclick="removeParticipant('${p.userId}')" title="Remove participant">×</button>`;
+                                actionButton = `<button type="button" class="participant-remove" data-user-id="${uidEnc}" title="Remove participant">×</button>`;
                             }
                         }
                         // Display-only roles (agent, admin): no Leave/Remove
@@ -907,7 +1137,7 @@
                     html += `<select id="userSelect_${roleId}" class="role-add-select">`;
                     html += `<option value="">-- Add ${roleInfo.label} --</option>`;
                     html += `</select>`;
-                    html += `<button class="role-add-btn" onclick="addParticipantForRole('${roleInfo.role}')">Add</button>`;
+                    html += `<button type="button" class="role-add-btn" data-add-role="${escapeHtml(roleInfo.role)}">Add</button>`;
                     html += `</div>`;
                 }
 
@@ -915,11 +1145,26 @@
             }
             
             list.innerHTML = html;
-            
+            wireParticipantListActions();
+
             // Load users for each role dropdown
             if (canManage) {
                 await loadUsersForAllRoles();
             }
+        }
+
+        function showParticipantUserLoadError(message) {
+            if (typeof ROLES === 'undefined') return;
+            [ROLES.SHIPPER, ROLES.CONSIGNEE, ROLES.CUSTOMS_BROKER, ROLES.COURIER].forEach((role) => {
+                const roleId = role.replace(/-/g, '_');
+                const select = document.getElementById(`userSelect_${roleId}`);
+                if (!select) return;
+                select.innerHTML = '';
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = message;
+                select.appendChild(opt);
+            });
         }
         
         async function loadUsersForAllRoles() {
@@ -929,28 +1174,36 @@
                 return;
             }
             
-            // Wait for getAllUsers to be available
             let attempts = 0;
-            while (typeof getAllUsers === 'undefined' && attempts < 50) {
+            while (typeof window.getAllUsers !== 'function' && attempts < 80) {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 attempts++;
             }
-            
-            if (typeof getAllUsers === 'undefined') {
-                console.error('getAllUsers not available');
+
+            if (typeof window.getAllUsers !== 'function') {
+                console.error('getAllUsers not available on window');
+                showParticipantUserLoadError('User directory is not ready. Refresh the page or check your connection.');
                 return;
             }
-            
-            const allUsers = await getAllUsers();
-            
+
+            let allUsers;
+            try {
+                allUsers = await window.getAllUsers();
+            } catch (err) {
+                console.error('getAllUsers failed:', err);
+                showParticipantUserLoadError('Could not load users: ' + (err.message || 'unknown error'));
+                return;
+            }
+
             if (!Array.isArray(allUsers)) {
                 console.error('getAllUsers did not return an array:', allUsers);
+                showParticipantUserLoadError('Invalid user list from server.');
                 return;
             }
-            
+
             // Get current participants to exclude them
             const currentParticipants = currentShipment.participants || [];
-            const participantIds = currentParticipants.map(p => p.userId);
+            const participantIds = currentParticipants.map(p => normId(p.userId));
             
             // Define the 4 addable roles
             const addableRoles = [
@@ -968,10 +1221,10 @@
                 if (!select) continue;
                 
                 // Filter users by role and exclude existing participants
-                const filteredUsers = allUsers.filter(u => 
-                    u.role === role && 
-                    u.isActive !== false && 
-                    !participantIds.includes(u.id)
+                const filteredUsers = allUsers.filter(u =>
+                    u.role === role &&
+                    u.isActive !== false &&
+                    !participantIds.includes(normId(u.id))
                 );
                 
                 // Clear and populate dropdown
@@ -1004,9 +1257,9 @@
             const userId = select.value;
             
             try {
-                const selectedUser = await getUserById(userId);
+                const selectedUser = await window.getUserById(userId);
                 if (selectedUser && selectedUser.role === role) {
-                    await addParticipantToSpace(selectedUser.id, role, user.id);
+                    await addParticipantToSpace(normId(selectedUser.id), role, normId(user.id));
                     // Clear the dropdown selection
                     select.value = '';
                     // Reload participants to update all sections (don't reload full space)
@@ -1029,83 +1282,33 @@
             }
 
             try {
-                const SHIPMENTS_STORAGE_KEY = 'awb_shipments';
-                
-                // Use currentShipment as source of truth to preserve existing participants
                 if (!currentShipment) {
                     alert('Shipment not loaded. Please refresh the page.');
                     return;
                 }
                 
-                // Get current participants from currentShipment
                 let participants = currentShipment.participants || [];
-                
-                // Remove the participant
                 const originalCount = participants.length;
-                participants = participants.filter(p => p.userId !== userId);
-                
-                if (participants.length === originalCount) {
+                const targetId = normId(userId);
+                const nextParticipants = participants.filter((p) => !idsMatch(p.userId, targetId));
+
+                if (nextParticipants.length === originalCount) {
                     alert('Participant not found in shipment.');
                     return;
                 }
-                
-                console.log('Removing participant:', userId);
-                console.log('Remaining participants:', participants);
 
-                // Update currentShipment with the filtered participants
-                currentShipment.participants = participants;
-                
-                // Get shipments array for saving
-                let shipments = [];
-                if (typeof getAllShipments === 'function') {
-                    const result = await getAllShipments();
-                    shipments = Array.isArray(result) ? result : [];
-                } else {
-                    // Fallback to localStorage
-                    try {
-                        const shipmentsJson = localStorage.getItem(SHIPMENTS_STORAGE_KEY);
-                        shipments = shipmentsJson ? JSON.parse(shipmentsJson) : [];
-                        if (!Array.isArray(shipments)) {
-                            shipments = [];
-                        }
-                    } catch (e) {
-                        console.error('Error reading shipments from localStorage:', e);
-                        shipments = [];
-                    }
-                }
-                
-                // Update the shipment in the shipments array
-                const shipmentIndex = shipments.findIndex(s => s.spaceId === spaceId);
-                if (shipmentIndex === -1) {
-                    alert('Shipment not found in shipments list.');
+                const prevParticipants = currentShipment.participants;
+                currentShipment.participants = nextParticipants;
+
+                const saveResult = await persistCurrentShipment();
+                if (!saveResult.ok) {
+                    currentShipment.participants = prevParticipants;
+                    alert('Could not save removal: ' + saveResult.message);
+                    await loadParticipants();
                     return;
                 }
-                
-                // Update the shipment with currentShipment's participants (preserving all other data)
-                shipments[shipmentIndex].participants = currentShipment.participants;
-                
-                // Save to localStorage
-                localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
-                
-                // Update via API if available
-                if (window.shipmentsAPI) {
-                    try {
-                        // Use currentShipment data to ensure we're sending the complete, up-to-date shipment
-                        // The update function expects a single shipment object with spaceId
-                        const shipmentToUpdate = {
-                            ...shipments[shipmentIndex],
-                            spaceId: spaceId, // Ensure spaceId is present
-                            participants: currentShipment.participants
-                        };
-                        await window.shipmentsAPI.update(shipmentToUpdate);
-                    } catch (error) {
-                        console.warn('Could not update shipment via API:', error);
-                    }
-                }
-                
+
                 alert('Participant removed successfully.');
-                // Reload participants to update all role sections
-                // Don't call loadSpace() as it will fetch from API which might not be updated yet
                 await loadParticipants();
             } catch (error) {
                 console.error('Error removing participant:', error);
@@ -1128,13 +1331,6 @@
         // Make function available globally
         window.leaveSpace = leaveSpace;
         
-        // Escape HTML to prevent XSS
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        
         // Setup add participant functionality (now handled in loadParticipants)
         async function setupAddParticipant() {
             // Functionality is now integrated into loadParticipants()
@@ -1144,84 +1340,37 @@
         // Add participant to existing space
         async function addParticipantToSpace(userId, role, invitedBy) {
             try {
-                const SHIPMENTS_STORAGE_KEY = 'awb_shipments';
-                
-                // Use currentShipment as source of truth to preserve existing participants
                 if (!currentShipment) {
                     alert('Shipment not loaded. Please refresh the page.');
                     return;
                 }
-                
-                // Check if participant already exists in currentShipment
+
                 const existingParticipants = currentShipment.participants || [];
-                const existing = existingParticipants.find(p => p.userId === userId);
+                const addId = normId(userId);
+                const existing = existingParticipants.find((p) => idsMatch(p.userId, addId));
                 if (existing) {
                     alert('This participant is already added to the space.');
                     return;
                 }
-                
-                // Add new participant to the existing participants list
+
                 const newParticipant = {
-                    userId: userId,
+                    userId: addId,
                     role: role,
                     invitedAt: new Date().toISOString(),
-                    invitedBy: invitedBy
+                    invitedBy: normId(invitedBy)
                 };
-                
-                // Update currentShipment with the new participant
+
+                const prevParticipants = currentShipment.participants;
                 currentShipment.participants = [...existingParticipants, newParticipant];
-                
-                // Get shipments array for saving
-                let shipments = [];
-                if (typeof getAllShipments === 'function') {
-                    const result = await getAllShipments();
-                    shipments = Array.isArray(result) ? result : [];
-                } else {
-                    // Fallback to localStorage
-                    try {
-                        const shipmentsJson = localStorage.getItem(SHIPMENTS_STORAGE_KEY);
-                        shipments = shipmentsJson ? JSON.parse(shipmentsJson) : [];
-                        if (!Array.isArray(shipments)) {
-                            shipments = [];
-                        }
-                    } catch (e) {
-                        console.error('Error reading shipments from localStorage:', e);
-                        shipments = [];
-                    }
-                }
-                
-                // Update the shipment in the shipments array with currentShipment data
-                const shipmentIndex = shipments.findIndex(s => s.spaceId === spaceId);
-                if (shipmentIndex === -1) {
-                    alert('Shipment not found in shipments list.');
+
+                const saveResult = await persistCurrentShipment();
+                if (!saveResult.ok) {
+                    currentShipment.participants = prevParticipants;
+                    alert('Could not add participant: ' + saveResult.message);
+                    await loadParticipants();
                     return;
                 }
-                
-                // Update the shipment with currentShipment's participants (preserving all other data)
-                shipments[shipmentIndex].participants = currentShipment.participants;
-                
-                // Save to localStorage first
-                localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(shipments));
-                
-                // Update via API if available
-                if (window.shipmentsAPI) {
-                    try {
-                        // Use currentShipment data to ensure we're sending the complete, up-to-date shipment
-                        // The update function expects a single shipment object with spaceId
-                        const shipmentToUpdate = {
-                            ...shipments[shipmentIndex],
-                            spaceId: spaceId, // Ensure spaceId is present
-                            participants: currentShipment.participants
-                        };
-                        await window.shipmentsAPI.update(shipmentToUpdate);
-                    } catch (error) {
-                        console.warn('Could not update shipment via API:', error);
-                        // Continue even if API update fails - localStorage is saved
-                    }
-                }
-                
-                // Reload participants list immediately without full page reload
-                // Don't call loadSpace() as it will fetch from API which might not be updated yet
+
                 await loadParticipants();
             } catch (error) {
                 console.error('Error adding participant:', error);

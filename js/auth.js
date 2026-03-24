@@ -360,6 +360,10 @@ async function logout() {
     sessionStorage.removeItem('awb_auth');
     sessionStorage.removeItem('isAuthenticated');
     sessionStorage.removeItem('username');
+    try {
+        sessionStorage.removeItem('dashboardCurrentPage');
+        localStorage.removeItem('dashboardCurrentPage');
+    } catch (e) { /* ignore */ }
     
     // Clear any session-related data
     if (sessionToken) {

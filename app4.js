@@ -5165,6 +5165,19 @@ async function saveUserProfile(profile) {
     }
 }
 
+/** Label for destination / airport dropdowns (includes country when set). */
+function formatAirportDropdownLabel(d) {
+    if (!d) return '';
+    const code = (d.airportCode || '').trim();
+    const name = (d.airportName || '').trim();
+    const country = (d.country || '').trim();
+    let label = name ? `${code} - ${name}` : code;
+    if (country) {
+        label = label ? `${label} — ${country}` : country;
+    }
+    return label || code || String(d.id || '');
+}
+
 /**
  * Populate upper-routing Destination from airports API only.
  * Kept separate from updateContactDropdowns so the list fills even when contact dropdown
@@ -5203,9 +5216,7 @@ async function refreshDestinationDropdownFromAirports() {
             console.warn('Duplicate airport code found:', destination.airportCode, 'ID:', destination.id);
             return false;
         }
-        const displayText = destination.airportName
-            ? `${destination.airportCode} - ${destination.airportName}`
-            : destination.airportCode;
+        const displayText = formatAirportDropdownLabel(destination);
         const displayKey = displayText.toLowerCase().trim();
         if (displayKey && seenDisplayTexts.has(displayKey)) {
             console.warn('Duplicate destination display text found:', displayText, 'ID:', destination.id);
@@ -5222,10 +5233,7 @@ async function refreshDestinationDropdownFromAirports() {
     uniqueDestinations.forEach(destination => {
         const option = document.createElement('option');
         option.value = String(destination.id);
-        const displayText = destination.airportName
-            ? `${destination.airportCode} - ${destination.airportName}`
-            : destination.airportCode;
-        option.textContent = displayText;
+        option.textContent = formatAirportDropdownLabel(destination);
         destEl.appendChild(option);
     });
 
@@ -7137,9 +7145,7 @@ async function ensureDestinationSelectHasOption(destinationId) {
     }
     const d = list.find(x => String(x.id) === idStr);
     if (!d) return;
-    const displayText = d.airportName
-        ? `${d.airportCode} - ${d.airportName}`
-        : d.airportCode;
+    const displayText = formatAirportDropdownLabel(d);
     const option = document.createElement('option');
     option.value = idStr;
     option.textContent = displayText;

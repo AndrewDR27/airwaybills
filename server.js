@@ -83,7 +83,7 @@ app.get('/api/users', async (req, res) => {
                     return;
                 }
                 
-                const user = users.find(u => u.id === sessionData.userId);
+                const user = users.find(u => String(u.id) === String(sessionData.userId));
                 if (user) {
                     const { password, ...safeUser } = user;
                     res.json(safeUser);
@@ -94,7 +94,7 @@ app.get('/api/users', async (req, res) => {
                 res.json(null);
             }
         } else if (userId) {
-            const user = users.find(u => u.id === userId);
+            const user = users.find(u => String(u.id) === String(userId));
             if (user) {
                 const { password, ...safeUser } = user;
                 res.json(safeUser);
@@ -557,13 +557,13 @@ app.get('/api/shipments', async (req, res) => {
         if (action === 'all') {
             res.json(shipmentsArray);
         } else if (action === 'user') {
-            const userShipments = shipmentsArray.filter(s => 
-                s && (s.createdBy === userId || 
-                s.participants?.some(p => p.userId === userId))
+            const userShipments = shipmentsArray.filter(s =>
+                s && (String(s.createdBy) === String(userId) ||
+                s.participants?.some(p => String(p.userId) === String(userId)))
             );
             res.json(userShipments);
         } else if (spaceId) {
-            const shipment = shipmentsArray.find(s => s && s.spaceId === spaceId);
+            const shipment = shipmentsArray.find(s => s && String(s.spaceId) === String(spaceId));
             if (shipment) {
                 res.json(shipment);
             } else {
@@ -653,7 +653,7 @@ app.put('/api/shipments', async (req, res) => {
         
         const shipments = (await redis.get(SHIPMENTS_KEY)) || [];
         const shipmentsArray = Array.isArray(shipments) ? shipments : [];
-        const index = shipmentsArray.findIndex(s => s && s.spaceId === req.body.spaceId);
+        const index = shipmentsArray.findIndex(s => s && String(s.spaceId) === String(req.body.spaceId));
         
         if (index >= 0) {
             shipmentsArray[index] = { ...shipmentsArray[index], ...req.body };

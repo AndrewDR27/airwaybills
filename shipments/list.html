@@ -293,8 +293,40 @@
             border-top: 1px inset #C0C0C0;
             display: flex;
             align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        .status-actions-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
             gap: 4px;
             flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+        .shipment-party-line {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 11px;
+            color: #333333;
+            margin-left: auto;
+            text-align: right;
+            max-width: min(100%, 520px);
+        }
+        .shipment-party {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 240px;
+        }
+        .shipment-party-sep {
+            color: #888888;
+            user-select: none;
         }
         .status-actions label {
             font-size: 10px;
@@ -411,6 +443,17 @@
         .empty-state {
             background: transparent;
             color: #0f172a;
+        }
+
+        .status-actions {
+            border-top: 1px solid var(--modern-border);
+            justify-content: flex-start;
+        }
+        .shipment-party-line {
+            color: #475569;
+        }
+        .shipment-party-sep {
+            color: #94a3b8;
         }
     </style>
 </head>
@@ -769,6 +812,8 @@
                     shipments = [];
                 }
                 
+                const usersMap = await loadUsersMapForShipments(shipments);
+                
                 const container = document.getElementById('shipmentsList');
                 if (!container) {
                     console.error('Shipments list container not found');
@@ -849,11 +894,96 @@
                     return;
                 }
                 
-                let html = displayShipments.map(shipment => renderShipmentItem(shipment)).join('');
+                let html = displayShipments.map(shipment => renderShipmentItem(shipment, usersMap)).join('');
                 container.innerHTML = html;
             }
             
-            function renderShipmentItem(shipment) {
+            async function loadUsersMapForShipments(shipments) {
+                const map = new Map();
+                let uWait = 0;
+                while (!window.usersAPI && uWait < 40) {
+                    await new Promise((r) => setTimeout(r, 100));
+                    uWait++;
+                }
+                if (!window.usersAPI) return map;
+                try {
+                    if (typeof window.usersAPI.getAll === 'function') {
+                        const all = await window.usersAPI.getAll();
+                        if (Array.isArray(all) && all.length > 0) {
+                            all.forEach((u) => {
+                                if (u && u.id != null) map.set(String(u.id), u);
+                            });
+                            return map;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not load users list for shipment party labels:', e);
+                }
+                const ids = new Set();
+                (shipments || []).forEach((s) => {
+                    (s.participants || []).forEach((p) => {
+                        if (p && p.userId && (p.role === 'shipper' || p.role === 'consignee')) {
+                            ids.add(String(p.userId));
+                        }
+                    });
+                });
+                if (typeof window.usersAPI.getById !== 'function' || ids.size === 0) return map;
+                await Promise.all(
+                    [...ids].map(async (id) => {
+                        try {
+                            const u = await window.usersAPI.getById(id);
+                            if (u && u.id != null) map.set(String(u.id), u);
+                        } catch (e) {
+                            /* ignore */
+                        }
+                    })
+                );
+                return map;
+            }
+            
+            function escapeHtml(str) {
+                return String(str ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+            
+            function getParticipantUserId(participants, role) {
+                const p = (participants || []).find((x) => x && x.role === role);
+                return p && p.userId != null ? String(p.userId) : '';
+            }
+            
+            /** Display name from the logged-in user account (not AWB contacts). */
+            function resolveAccountUserName(usersMap, userId) {
+                if (!userId) return '';
+                const u = usersMap.get(String(userId));
+                if (!u) return '';
+                const n = (u.name || u.company || u.companyName || '').trim();
+                if (n) return n;
+                return (u.email || '').trim() || '';
+            }
+            
+            function buildShipperConsigneePartyHtml(shipment, usersMap) {
+                const participants = shipment.participants || [];
+                const shipperUid = getParticipantUserId(participants, 'shipper');
+                const consigneeUid = getParticipantUserId(participants, 'consignee');
+                const um = usersMap instanceof Map ? usersMap : new Map();
+                const shipper = resolveAccountUserName(um, shipperUid);
+                const consignee = resolveAccountUserName(um, consigneeUid);
+                const shipperDisp = shipper || '—';
+                const consigneeDisp = consignee || '—';
+                const tip = `Shipper: ${shipperDisp} · Consignee: ${consigneeDisp}`;
+                return `
+                    <span class="shipment-party-line" title="${escapeHtml(tip)}">
+                        <span class="shipment-party"><strong>Shipper:</strong> ${escapeHtml(shipperDisp)}</span>
+                        <span class="shipment-party-sep" aria-hidden="true">·</span>
+                        <span class="shipment-party"><strong>Consignee:</strong> ${escapeHtml(consigneeDisp)}</span>
+                    </span>
+                `;
+            }
+
+            function renderShipmentItem(shipment, usersMap) {
                 const participants = shipment.participants || [];
                 const spaceId = shipment.spaceId || 'N/A';
                 const awbNumber = shipment.awbNumber || 'Not created yet';
@@ -862,6 +992,8 @@
                 const isCourier = user.role === 'courier';
                 const isShipper = user.role === 'shipper';
                 const isAdmin = user.role === 'admin';
+                const um = usersMap instanceof Map ? usersMap : new Map();
+                const partyLineHtml = buildShipperConsigneePartyHtml(shipment, um);
                 
                 // Determine effective status for display
                 let displayStatus = shipment.status;
@@ -890,8 +1022,11 @@
                     
                     statusActions = `
                         <div class="status-actions">
-                            <button class="btn-view" onclick="viewShipmentSpace('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">View</button>
-                            ${confirmButton}
+                            <div class="status-actions-buttons">
+                                <button class="btn-view" onclick="viewShipmentSpace('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">View</button>
+                                ${confirmButton}
+                            </div>
+                            ${partyLineHtml}
                         </div>
                     `;
                 }
@@ -926,8 +1061,11 @@
                     // Status change actions for Active shipments
                     statusActions = `
                         <div class="status-actions">
-                            <button class="btn-view" onclick="viewShipmentSpace('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">View</button>
-                            ${isAgent ? `<button class="btn-warning" onclick="setStatus('${spaceId}', 'in-transit', null)" style="padding: 4px 10px; font-size: 11px;">Mark as In Transit</button>` : ''}
+                            <div class="status-actions-buttons">
+                                <button class="btn-view" onclick="viewShipmentSpace('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">View</button>
+                                ${isAgent ? `<button class="btn-warning" onclick="setStatus('${spaceId}', 'in-transit', null)" style="padding: 4px 10px; font-size: 11px;">Mark as In Transit</button>` : ''}
+                            </div>
+                            ${partyLineHtml}
                         </div>
                     `;
                 }
@@ -941,10 +1079,13 @@
                     // Substatus actions for In Transit
                     statusActions = `
                         <div class="status-actions">
-                            <button class="btn-view" onclick="viewShipmentSpace('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">View</button>
-                            ${(isConsignee || isAgent) ? `<button class="btn-warning" onclick="setStatus('${spaceId}', 'in-transit', 'at-destination')" style="padding: 4px 10px; font-size: 11px;">At Destination</button>` : ''}
-                            ${(isConsignee || isAgent) ? `<button class="btn-warning" onclick="setStatus('${spaceId}', 'in-transit', 'ready-for-pickup')" style="padding: 4px 10px; font-size: 11px;">Ready for Pickup</button>` : ''}
-                            ${(isConsignee || isCourier) ? `<button class="btn-success" onclick="setStatus('${spaceId}', 'in-transit', 'delivered')" style="padding: 4px 10px; font-size: 11px;">Delivered</button>` : ''}
+                            <div class="status-actions-buttons">
+                                <button class="btn-view" onclick="viewShipmentSpace('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">View</button>
+                                ${(isConsignee || isAgent) ? `<button class="btn-warning" onclick="setStatus('${spaceId}', 'in-transit', 'at-destination')" style="padding: 4px 10px; font-size: 11px;">At Destination</button>` : ''}
+                                ${(isConsignee || isAgent) ? `<button class="btn-warning" onclick="setStatus('${spaceId}', 'in-transit', 'ready-for-pickup')" style="padding: 4px 10px; font-size: 11px;">Ready for Pickup</button>` : ''}
+                                ${(isConsignee || isCourier) ? `<button class="btn-success" onclick="setStatus('${spaceId}', 'in-transit', 'delivered')" style="padding: 4px 10px; font-size: 11px;">Delivered</button>` : ''}
+                            </div>
+                            ${partyLineHtml}
                         </div>
                     `;
                 }

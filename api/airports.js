@@ -24,6 +24,7 @@ function toAirport(item, id, terminals = []) {
         airportCode: (item.airportCode || '').trim().toUpperCase() || item.id,
         cityName: item.cityName || '',
         stateName: item.stateName || '',
+        country: item.country != null ? String(item.country).trim() : '',
         airportName: item.airportName || '',
         terminals: Array.isArray(terminals) ? terminals : [],
         created_at: item.created_at || new Date().toISOString()

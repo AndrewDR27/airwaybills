@@ -58,16 +58,16 @@ export default async function handler(req, res) {
                 if (!userId) {
                     return res.status(400).json({ error: 'userId is required for user action' });
                 }
-                const userShipments = shipments.filter(s => 
+                const userShipments = shipments.filter(s =>
                     s && (
-                        s.createdBy === userId || 
-                        (Array.isArray(s.participants) && s.participants.some(p => p && p.userId === userId))
+                        String(s.createdBy) === String(userId) ||
+                        (Array.isArray(s.participants) && s.participants.some(p => p && String(p.userId) === String(userId)))
                     )
                 );
                 res.status(200).json(userShipments);
             } else if (spaceId) {
                 // Get shipment by spaceId
-                const shipment = shipments.find(s => s.spaceId === spaceId);
+                const shipment = shipments.find(s => s && String(s.spaceId) === String(spaceId));
                 if (shipment) {
                     res.status(200).json(shipment);
                 } else {
@@ -119,8 +119,9 @@ export default async function handler(req, res) {
         } else if (req.method === 'PUT') {
             // Update existing shipment
             const shipments = (await redis.get(SHIPMENTS_KEY)) || [];
-            const index = shipments.findIndex(s => s.spaceId === req.body.spaceId);
-            
+            const bodySpaceId = req.body && req.body.spaceId;
+            const index = shipments.findIndex(s => s && String(s.spaceId) === String(bodySpaceId));
+
             if (index >= 0) {
                 shipments[index] = { ...shipments[index], ...req.body };
                 await redis.set(SHIPMENTS_KEY, shipments);
@@ -131,7 +132,7 @@ export default async function handler(req, res) {
         } else if (req.method === 'DELETE') {
             // Delete shipment (soft delete by setting status)
             const shipments = (await redis.get(SHIPMENTS_KEY)) || [];
-            const index = shipments.findIndex(s => s.spaceId === req.query.spaceId);
+            const index = shipments.findIndex(s => s && String(s.spaceId) === String(req.query.spaceId));
             
             if (index >= 0) {
                 shipments[index] = {

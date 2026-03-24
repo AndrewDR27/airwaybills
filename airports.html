@@ -205,8 +205,12 @@
                         <input type="text" id="cityName" placeholder="e.g. New York">
                     </div>
                     <div class="form-group">
-                        <label for="stateName">State Name</label>
+                        <label for="stateName">State / Province</label>
                         <input type="text" id="stateName" placeholder="e.g. NY">
+                    </div>
+                    <div class="form-group">
+                        <label for="country">Country</label>
+                        <input type="text" id="country" placeholder="e.g. United States" autocomplete="country-name">
                     </div>
                     <div class="form-group">
                         <label for="airportName">Airport Name</label>
@@ -383,6 +387,7 @@
                     <td>${escapeHtml(a.airportCode || '')}</td>
                     <td>${escapeHtml(a.cityName || '')}</td>
                     <td>${escapeHtml(a.stateName || '')}</td>
+                    <td>${escapeHtml(a.country || '')}</td>
                     <td>${escapeHtml(a.airportName || '')}</td>
                     <td>${termCount}</td>
                     <td><div class="airport-actions"><button class="btn-edit" onclick="editAirport('${idEsc}')">Edit</button>${delBtn}</div></td>
@@ -391,7 +396,7 @@
             listEl.innerHTML = `
                 <table class="airports-table">
                     <thead><tr>
-                        <th>Code</th><th>City</th><th>State</th><th>Airport Name</th><th>Terminals</th><th>Actions</th>
+                        <th>Code</th><th>City</th><th>State</th><th>Country</th><th>Airport Name</th><th>Terminals</th><th>Actions</th>
                     </tr></thead>
                     <tbody>${rows}</tbody>
                 </table>`;
@@ -416,6 +421,7 @@
                     document.getElementById('airportCode').value = a.airportCode || '';
                     document.getElementById('cityName').value = a.cityName || '';
                     document.getElementById('stateName').value = a.stateName || '';
+                    document.getElementById('country').value = a.country || '';
                     document.getElementById('airportName').value = a.airportName || '';
                     (a.terminals || []).forEach(t => addTerminalRow(t));
                 }
@@ -466,6 +472,7 @@
                 airportCode,
                 cityName: document.getElementById('cityName').value.trim(),
                 stateName: document.getElementById('stateName').value.trim(),
+                country: document.getElementById('country').value.trim(),
                 airportName: document.getElementById('airportName').value.trim(),
                 terminals: collectTerminals()
             };
