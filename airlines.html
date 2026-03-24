@@ -536,7 +536,7 @@
 
     <script type="module" src="js/auth.js"></script>
     <script type="module">
-        import { airlinesAPI, destinationsAPI, originsAPI } from './js/api.js';
+        import { airlinesAPI, destinationsAPI, originsAPI, resolveApiAssetUrl } from './js/api.js';
         
         // Function to get image dimensions
         function getImageDimensions(imageDataUrl) {
@@ -676,10 +676,11 @@
             
             airlines.forEach(airline => {
                 const hasImage = airline.image;
+                const logoSrc = hasImage ? resolveApiAssetUrl(airline.image) : '';
                 tableHTML += `
                     <tr>
                         <td>
-                            ${hasImage ? `<img src="${airline.image}" alt="${escapeHtml(airline.companyName)}" class="airline-logo">` : '<span style="color: #999;">No logo</span>'}
+                            ${hasImage ? `<img src="${logoSrc}" alt="${escapeHtml(airline.companyName)}" class="airline-logo">` : '<span style="color: #999;">No logo</span>'}
                         </td>
                         <td>
                             <strong>${escapeHtml(airline.companyName)}</strong>
@@ -783,7 +784,7 @@
                             // Clear any "removed" flag
                             airlineImagePreviewImg.removeAttribute('data-removed');
                             // Show the image (resizing will happen on save if needed)
-                            airlineImagePreviewImg.src = airline.image;
+                            airlineImagePreviewImg.src = resolveApiAssetUrl(airline.image);
                             airlineImagePreview.style.display = 'block';
                             console.log('✓ Airline logo loaded in preview');
                         } else if (airlineImagePreview) {

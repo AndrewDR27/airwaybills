@@ -338,7 +338,8 @@ async function logout() {
             // Logout with session token
             if (sessionToken) {
                 try {
-                    await fetch(`${window.location.origin}/api/users?action=logout`, {
+                    const apiOrigin = (typeof window !== 'undefined' && window.API_BASE_URL) ? window.API_BASE_URL : window.location.origin;
+                    await fetch(`${apiOrigin}/api/users?action=logout`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ sessionToken })

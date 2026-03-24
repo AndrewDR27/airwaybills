@@ -1012,12 +1012,18 @@ async function handlePDF(file) {
             if (typeof loadTemplatesFromAPI === 'function') await loadTemplatesFromAPI().catch(() => {});
             if (typeof ensureUserProfileLoadedForForm === 'function') await ensureUserProfileLoadedForForm();
             if (typeof ensureContactsLoadedForForm === 'function') await ensureContactsLoadedForForm();
+            if (typeof refreshDestinationDropdownFromAirports === 'function') {
+                await refreshDestinationDropdownFromAirports().catch((e) => console.warn('Destination dropdown refresh failed:', e));
+            }
             await applyPendingTemplateSelection();
             autoFillUserProfile();
             // Retry profile + contacts load after delay in case APIs or auth weren't ready yet
             setTimeout(() => {
                 if (typeof ensureUserProfileLoadedForForm === 'function') ensureUserProfileLoadedForForm();
                 if (typeof ensureContactsLoadedForForm === 'function') ensureContactsLoadedForForm();
+                if (typeof refreshDestinationDropdownFromAirports === 'function') {
+                    refreshDestinationDropdownFromAirports().catch((e) => console.warn('Destination dropdown refresh retry failed:', e));
+                }
             }, 1500);
         } catch (e) {
             console.warn('Data load failed:', e);
@@ -2262,8 +2268,17 @@ function buildTemplateRecord(formData, existingRecord = null, options = {}) {
         meta.lastUsedAt = existingMeta.lastUsedAt;
     }
 
+    // Merge with existing template fields so a partial collectFormDataForTemplate() snapshot
+    // (or save before all forms are ready) does not wipe most stored keys.
+    const stripMeta = (obj) => {
+        if (!obj || typeof obj !== 'object') return {};
+        const { _meta: _drop, ...rest } = obj;
+        return rest;
+    };
+
     return {
-        ...formData,
+        ...stripMeta(existingRecord),
+        ...stripMeta(formData),
         _meta: meta
     };
 }
@@ -2370,89 +2385,53 @@ function updateTemplateDropdown() {
     }
 }
 
-function collectFormDataForTemplate() {
-    if (!generatedForm) return {};
-    
-    const formData = {};
-    const formElements = generatedForm.elements;
-    const contactFieldsForm = document.getElementById('contactFieldsForm');
-    const billingFieldsForm = document.getElementById('billingFieldsForm');
-    const contactFormElements = contactFieldsForm ? contactFieldsForm.elements : [];
-    const billingFormElements = billingFieldsForm ? billingFieldsForm.elements : [];
-    
-    for (let i = 0; i < formElements.length; i++) {
-        const element = formElements[i];
+/** Field name prefixes not persisted in templates (same rules across all AWB forms). */
+function shouldSkipFieldNameForTemplate(name) {
+    if (!name) return true;
+    return name.startsWith('03') || name.startsWith('20') || name.startsWith('26') || name.startsWith('27') || name.startsWith('30') || name.startsWith('31') || name.startsWith('32') || name.startsWith('40') ||
+        name.startsWith('42') || name.startsWith('43') || name.startsWith('44') || name.startsWith('45') ||
+        name.startsWith('46') || name.startsWith('47') || name.startsWith('48') || name.startsWith('49');
+}
+
+/**
+ * Collect named controls from a form for template save.
+ * Uses querySelectorAll (not form.elements) so disabled / edge-case controls still contribute values
+ * and template merge does not drop fields that were omitted from HTMLFormControlsCollection.
+ */
+function appendTemplateFormFields(form, formData, options = {}) {
+    const { isBillingForm = false } = options;
+    if (!form) return;
+    form.querySelectorAll('input[name], select[name], textarea[name]').forEach((element) => {
         const name = element.name;
-        
-        if (!name) continue;
-        
-        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40, 42-49 - do not save in template (50-55 are saved)
-        // Note: Field 33 is kept in template (not excluded)
-        if (name.startsWith('03') || name.startsWith('20') || name.startsWith('26') || name.startsWith('27') || name.startsWith('30') || name.startsWith('31') || name.startsWith('32') || name.startsWith('40') || 
-            name.startsWith('42') || name.startsWith('43') || name.startsWith('44') || name.startsWith('45') || 
-            name.startsWith('46') || name.startsWith('47') || name.startsWith('48') || name.startsWith('49')) continue;
-        
+        if (!name || shouldSkipFieldNameForTemplate(name)) return;
+        const t = element.type;
+        if (t === 'button' || t === 'submit' || t === 'reset') return;
         if (element.type === 'checkbox') {
             formData[name] = element.checked.toString();
         } else if (element.type === 'radio') {
             if (element.checked) {
                 formData[name] = element.value;
             }
-        } else {
-            formData[name] = element.value || '';
-        }
-    }
-    
-    // Also collect from contact fields form
-    for (let i = 0; i < contactFormElements.length; i++) {
-        const element = contactFormElements[i];
-        const name = element.name;
-        
-        if (!name) continue;
-        
-        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40, 42-49 - do not save in template (50-55 are saved)
-        // Note: Field 33 is kept in template (not excluded)
-        if (name.startsWith('03') || name.startsWith('20') || name.startsWith('26') || name.startsWith('27') || name.startsWith('30') || name.startsWith('31') || name.startsWith('32') || name.startsWith('40') || 
-            name.startsWith('42') || name.startsWith('43') || name.startsWith('44') || name.startsWith('45') || 
-            name.startsWith('46') || name.startsWith('47') || name.startsWith('48') || name.startsWith('49')) continue;
-        
-        if (element.type === 'checkbox') {
-            formData[name] = element.checked.toString();
-        } else if (element.type === 'radio') {
-            if (element.checked) {
-                formData[name] = element.value;
-            }
-        } else {
-            formData[name] = element.value || '';
-        }
-    }
-    
-    // Also collect from billing fields form
-    for (let i = 0; i < billingFormElements.length; i++) {
-        const element = billingFormElements[i];
-        const name = element.name;
-        
-        if (!name) continue;
-        
-        // Skip fields 03, 20, 26, 27, 30, 31, 32, 40, 42-49 - do not save in template (50-55 are saved)
-        // Note: Field 33 is kept in template (not excluded)
-        if (name.startsWith('03') || name.startsWith('20') || name.startsWith('26') || name.startsWith('27') || name.startsWith('30') || name.startsWith('31') || name.startsWith('32') || name.startsWith('40') || 
-            name.startsWith('42') || name.startsWith('43') || name.startsWith('44') || name.startsWith('45') || 
-            name.startsWith('46') || name.startsWith('47') || name.startsWith('48') || name.startsWith('49')) continue;
-        
-        if (element.type === 'checkbox') {
-            formData[name] = element.checked.toString();
-        } else if (element.type === 'radio') {
-            if (element.checked) {
-                formData[name] = element.value;
-            }
-        } else if (['50', '51', '52', '53', '54', '55'].includes(name) && typeof parseChargeNameAndRate === 'function') {
-            // Save only the charge name for 50-55, not the rate
+        } else if (isBillingForm && ['50', '51', '52', '53', '54', '55'].includes(name) && typeof parseChargeNameAndRate === 'function') {
             formData[name] = parseChargeNameAndRate(element.value || '').name || '';
         } else {
             formData[name] = element.value || '';
         }
-    }
+    });
+}
+
+function collectFormDataForTemplate() {
+    if (!generatedForm) return {};
+    
+    const formData = {};
+    const contactFieldsForm = document.getElementById('contactFieldsForm');
+    const billingFieldsForm = document.getElementById('billingFieldsForm');
+    const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
+    
+    appendTemplateFormFields(generatedForm, formData);
+    appendTemplateFormFields(contactFieldsForm, formData);
+    appendTemplateFormFields(billingFieldsForm, formData, { isBillingForm: true });
+    appendTemplateFormFields(dimensionsFieldsForm, formData);
     
     // Also capture contact dropdown selections
     if (shipperSelect) {
@@ -2546,8 +2525,10 @@ async function populateFormFromTemplate(templateData) {
     const formElements = generatedForm.elements;
     const contactFieldsForm = document.getElementById('contactFieldsForm');
     const billingFieldsForm = document.getElementById('billingFieldsForm');
+    const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');
     const contactFormElements = contactFieldsForm ? contactFieldsForm.elements : [];
     const billingFormElements = billingFieldsForm ? billingFieldsForm.elements : [];
+    const dimensionsFormElements = dimensionsFieldsForm ? dimensionsFieldsForm.elements : [];
     
     for (let i = 0; i < formElements.length; i++) {
         const element = formElements[i];
@@ -2591,6 +2572,26 @@ async function populateFormFromTemplate(templateData) {
     // Also populate billing fields form
     for (let i = 0; i < billingFormElements.length; i++) {
         const element = billingFormElements[i];
+        const name = element.name;
+        
+        if (!name || !(name in templateData)) continue;
+        
+        const value = templateData[name];
+        
+        if (element.type === 'checkbox') {
+            element.checked = value === 'true' || value === true;
+        } else if (element.type === 'radio') {
+            if (element.value === value) {
+                element.checked = true;
+            }
+        } else {
+            element.value = value;
+        }
+    }
+    
+    // Description tab lower area
+    for (let i = 0; i < dimensionsFormElements.length; i++) {
+        const element = dimensionsFormElements[i];
         const name = element.name;
         
         if (!name || !(name in templateData)) continue;
@@ -2675,11 +2676,24 @@ async function populateFormFromTemplate(templateData) {
     }
     
     if (templateData['_destinationId'] && destinationSelect) {
-        destinationSelect.value = templateData['_destinationId'];
-        if (destinationSelect.value) {
-            await fillDestinationFields(destinationSelect.value);
-            if (addDestinationBtn) {
-                updateContactButtonText('Destination', addDestinationBtn, destinationSelect);
+        const resolvedId = await resolveDestinationIdFromSavedValue(templateData['_destinationId']);
+        const idStr = resolvedId ? String(resolvedId) : '';
+        if (idStr) {
+            const hasOption = Array.from(destinationSelect.options).some(opt => String(opt.value) === idStr);
+            if (!hasOption && typeof refreshDestinationDropdownFromAirports === 'function') {
+                await refreshDestinationDropdownFromAirports();
+            }
+            if (!Array.from(destinationSelect.options).some(opt => String(opt.value) === idStr)) {
+                await ensureDestinationSelectHasOption(idStr);
+            }
+            destinationSelect.value = idStr;
+            if (destinationSelect.value) {
+                await fillDestinationFields(idStr);
+                if (addDestinationBtn) {
+                    updateContactButtonText('Destination', addDestinationBtn, destinationSelect);
+                }
+            } else {
+                console.warn('Saved destination could not be applied:', templateData['_destinationId']);
             }
         }
     }
@@ -2864,6 +2878,9 @@ async function populateFormFromTemplate(templateData) {
             }
         }
     }
+    
+    // Upper Destination dropdown: keep in sync with lower routing field 09 after template restore
+    await syncDestinationSelectFromLowerRoutingField09();
     
     // Calculate field 32 if fields 30 and 31 have values
     setTimeout(() => calculateField32(), 100);
@@ -5148,6 +5165,80 @@ async function saveUserProfile(profile) {
     }
 }
 
+/**
+ * Populate upper-routing Destination from airports API only.
+ * Kept separate from updateContactDropdowns so the list fills even when contact dropdown
+ * refresh is skipped, fails early, or hits the concurrent-update guard.
+ */
+async function refreshDestinationDropdownFromAirports() {
+    const destEl = document.getElementById('destinationSelect');
+    if (!destEl) return;
+
+    const currentValue = destEl.value;
+    destEl.innerHTML = '<option value="">-- Select Destination --</option>';
+
+    let destinations = [];
+    if (window.airportsAPI) {
+        try {
+            destinations = await window.airportsAPI.getAll();
+            console.log('Loaded airports for destination dropdown:', destinations.length);
+        } catch (error) {
+            console.error('Could not load airports:', error);
+            destinations = [];
+        }
+    } else {
+        console.warn('airportsAPI not available - manage airports in Locations > Airports');
+    }
+
+    const seenIds = new Set();
+    const seenCodes = new Set();
+    const seenDisplayTexts = new Set();
+    const uniqueDestinations = destinations.filter(destination => {
+        if (seenIds.has(destination.id)) {
+            console.warn('Duplicate destination ID found:', destination.id, destination.airportCode);
+            return false;
+        }
+        const codeKey = (destination.airportCode || '').toLowerCase().trim();
+        if (codeKey && seenCodes.has(codeKey)) {
+            console.warn('Duplicate airport code found:', destination.airportCode, 'ID:', destination.id);
+            return false;
+        }
+        const displayText = destination.airportName
+            ? `${destination.airportCode} - ${destination.airportName}`
+            : destination.airportCode;
+        const displayKey = displayText.toLowerCase().trim();
+        if (displayKey && seenDisplayTexts.has(displayKey)) {
+            console.warn('Duplicate destination display text found:', displayText, 'ID:', destination.id);
+            return false;
+        }
+        seenIds.add(destination.id);
+        if (codeKey) seenCodes.add(codeKey);
+        if (displayKey) seenDisplayTexts.add(displayKey);
+        return true;
+    });
+
+    console.log(`Displaying ${uniqueDestinations.length} unique destinations (${destinations.length} total loaded)`);
+
+    uniqueDestinations.forEach(destination => {
+        const option = document.createElement('option');
+        option.value = String(destination.id);
+        const displayText = destination.airportName
+            ? `${destination.airportCode} - ${destination.airportName}`
+            : destination.airportCode;
+        option.textContent = displayText;
+        destEl.appendChild(option);
+    });
+
+    if (currentValue && currentValue !== 'edit') {
+        destEl.value = currentValue;
+    }
+
+    const addBtn = document.getElementById('addDestinationBtn');
+    if (addBtn) {
+        updateContactButtonText('Destination', addBtn, destEl);
+    }
+}
+
 // Update contact dropdowns
 let isUpdatingDropdowns = false;
 async function updateContactDropdowns() {
@@ -5311,78 +5402,7 @@ async function updateContactDropdowns() {
     // Populate airline dropdown (now async)
     await populateAirlineDropdown(airlineSelect1, addAirlineBtn1, currentAirlineValue1);
     
-    // Populate destination dropdown from Airports
-    if (destinationSelect) {
-        const currentDestinationValue = destinationSelect.value;
-        destinationSelect.innerHTML = '<option value="">-- Select Destination --</option>';
-        
-        let destinations = [];
-        if (window.airportsAPI) {
-            try {
-                destinations = await window.airportsAPI.getAll();
-                console.log('Loaded airports for destination dropdown:', destinations.length);
-            } catch (error) {
-                console.error('Could not load airports:', error);
-                destinations = [];
-            }
-        } else {
-            console.warn('airportsAPI not available - manage airports in Locations > Airports');
-            destinations = [];
-        }
-        
-        const seenIds = new Set();
-        const seenCodes = new Set();
-        const seenDisplayTexts = new Set();
-        const uniqueDestinations = destinations.filter(destination => {
-            // Check for duplicate ID
-            if (seenIds.has(destination.id)) {
-                console.warn('Duplicate destination ID found:', destination.id, destination.airportCode);
-                return false;
-            }
-            // Check for duplicate airport code (case-insensitive)
-            const codeKey = (destination.airportCode || '').toLowerCase().trim();
-            if (codeKey && seenCodes.has(codeKey)) {
-                console.warn('Duplicate airport code found:', destination.airportCode, 'ID:', destination.id);
-                return false;
-            }
-            // Check for duplicate display text (what will actually show in dropdown)
-            const displayText = destination.airportName 
-                ? `${destination.airportCode} - ${destination.airportName}`
-                : destination.airportCode;
-            const displayKey = displayText.toLowerCase().trim();
-            if (displayKey && seenDisplayTexts.has(displayKey)) {
-                console.warn('Duplicate destination display text found:', displayText, 'ID:', destination.id);
-                return false;
-            }
-            seenIds.add(destination.id);
-            if (codeKey) seenCodes.add(codeKey);
-            if (displayKey) seenDisplayTexts.add(displayKey);
-            return true;
-        });
-        
-        console.log(`Displaying ${uniqueDestinations.length} unique destinations (${destinations.length} total loaded)`);
-        
-        uniqueDestinations.forEach(destination => {
-            const option = document.createElement('option');
-            option.value = destination.id;
-            // Display as "Airport Code - Airport Name" or just "Airport Code" if no name
-            const displayText = destination.airportName 
-                ? `${destination.airportCode} - ${destination.airportName}`
-                : destination.airportCode;
-            option.textContent = displayText;
-            destinationSelect.appendChild(option);
-        });
-        
-        // Restore selection if it still exists
-        if (currentDestinationValue && currentDestinationValue !== 'edit') {
-            destinationSelect.value = currentDestinationValue;
-        }
-        
-        // Update button text based on selection
-        if (addDestinationBtn) {
-            updateContactButtonText('Destination', addDestinationBtn, destinationSelect);
-        }
-    }
+    await refreshDestinationDropdownFromAirports();
     
     // Populate interline carrier dropdown (now async)
     const currentInterlineCarrierValue1 = interlineCarrierSelect1 ? interlineCarrierSelect1.value : null;
@@ -6265,6 +6285,9 @@ function displayAirlineLogoInField99(imageDataUrl) {
 // Update field 99 to display an image
 function updateField99WithImage(inputElement, imageDataUrl) {
     if (!inputElement) return;
+    const resolvedSrc = (imageDataUrl && typeof window !== 'undefined' && typeof window.resolveApiAssetUrl === 'function')
+        ? window.resolveApiAssetUrl(imageDataUrl)
+        : imageDataUrl;
     
     // Find the form group container
     let formGroup = inputElement.closest('.form-group');
@@ -6283,7 +6306,7 @@ function updateField99WithImage(inputElement, imageDataUrl) {
     // Hide the input field
     inputElement.style.display = 'none';
     
-    if (imageDataUrl) {
+    if (resolvedSrc) {
         // Create image display container
         const imageContainer = document.createElement('div');
         imageContainer.className = 'airline-logo-display-99';
@@ -6297,7 +6320,7 @@ function updateField99WithImage(inputElement, imageDataUrl) {
         `;
         
         const img = document.createElement('img');
-        img.src = imageDataUrl;
+        img.src = resolvedSrc;
         img.alt = 'Airline Logo';
         img.style.cssText = `
             max-width: 200px;
@@ -7080,6 +7103,86 @@ function fillContactField(fieldPrefix, contactIdOrUser) {
     setTimeout(() => updateTabValidationIndicators(), 50);
 }
 
+// Normalize template/API airport id (string vs number) and support legacy code-only saves
+async function resolveDestinationIdFromSavedValue(saved) {
+    if (saved === undefined || saved === null) return '';
+    const s = String(saved).trim();
+    if (!s) return '';
+    if (!window.airportsAPI) return s;
+    let list = [];
+    try {
+        list = await window.airportsAPI.getAll();
+    } catch (e) {
+        console.warn('Could not load airports for destination resolve:', e);
+        return s;
+    }
+    const byId = list.find(d => String(d.id) === s);
+    if (byId) return String(byId.id);
+    const key = s.toLowerCase();
+    const byCode = list.find(d => (d.airportCode || '').toLowerCase() === key);
+    if (byCode) return String(byCode.id);
+    return s;
+}
+
+async function ensureDestinationSelectHasOption(destinationId) {
+    if (!destinationSelect || !destinationId) return;
+    const idStr = String(destinationId);
+    if (Array.from(destinationSelect.options).some(o => String(o.value) === idStr)) return;
+    if (!window.airportsAPI) return;
+    let list = [];
+    try {
+        list = await window.airportsAPI.getAll();
+    } catch {
+        return;
+    }
+    const d = list.find(x => String(x.id) === idStr);
+    if (!d) return;
+    const displayText = d.airportName
+        ? `${d.airportCode} - ${d.airportName}`
+        : d.airportCode;
+    const option = document.createElement('option');
+    option.value = idStr;
+    option.textContent = displayText;
+    destinationSelect.appendChild(option);
+}
+
+function getFirstFormValueByNamePrefix(form, prefix) {
+    if (!form || !form.elements) return '';
+    const els = form.elements;
+    for (let i = 0; i < els.length; i++) {
+        const el = els[i];
+        const name = el.name;
+        if (!name || !name.startsWith(prefix)) continue;
+        if (el.type === 'checkbox' || el.type === 'radio') continue;
+        const v = el.value != null ? String(el.value).trim() : '';
+        if (v) return v;
+    }
+    return '';
+}
+
+/** Lower routing (field 09) often restores from template while upper Destination dropdown stays blank — sync from airport code. */
+async function syncDestinationSelectFromLowerRoutingField09() {
+    if (!destinationSelect || !generatedForm) return;
+    if (destinationSelect.value) return;
+    const airportCode = getFirstFormValueByNamePrefix(generatedForm, '09');
+    if (!airportCode) return;
+    const resolvedId = await resolveDestinationIdFromSavedValue(airportCode);
+    if (!resolvedId) return;
+    const idStr = String(resolvedId);
+    if (!Array.from(destinationSelect.options).some(opt => String(opt.value) === idStr)) {
+        if (typeof refreshDestinationDropdownFromAirports === 'function') {
+            await refreshDestinationDropdownFromAirports();
+        }
+    }
+    if (!Array.from(destinationSelect.options).some(opt => String(opt.value) === idStr)) {
+        await ensureDestinationSelectHasOption(idStr);
+    }
+    destinationSelect.value = idStr;
+    if (destinationSelect.value && addDestinationBtn) {
+        updateContactButtonText('Destination', addDestinationBtn, destinationSelect);
+    }
+}
+
 // Fill destination fields (09 with airport code, 18 with airport name)
 async function fillDestinationFields(destinationId) {
     if (!generatedForm) return;
@@ -7097,7 +7200,7 @@ async function fillDestinationFields(destinationId) {
         destinations = [];
     }
     
-    const destination = destinations.find(d => d.id === destinationId);
+    const destination = destinations.find(d => String(d.id) === String(destinationId));
     
     if (!destination) {
         console.warn(`Destination not found for ${destinationId}`);
@@ -8247,7 +8350,9 @@ async function showContactSection() {
     // Show routing controls section
     if (routingControlsSection) {
         routingControlsSection.style.display = 'block';
-        // Don't call updateContactDropdowns again - already called above
+        if (typeof refreshDestinationDropdownFromAirports === 'function') {
+            refreshDestinationDropdownFromAirports().catch((e) => console.warn('Destination dropdown refresh failed:', e));
+        }
         
         // Check if Interline Shipment is already set to Yes and show Interline Carrier if needed
         const interlineShipmentSelect = document.getElementById('interlineShipmentSelect');
@@ -9095,6 +9200,15 @@ function updateUpperDimensionsInputRedState() {
     setState(heightInput, !height);
 }
 
+/** Label for upper routing inputs (Air Waybill / Flight / Flight Date); prefers `labels` over DOM walk. */
+function getLabelForUpperRoutingInput(inputEl) {
+    if (!inputEl) return null;
+    if (inputEl.labels && inputEl.labels.length > 0) {
+        return inputEl.labels[0];
+    }
+    return inputEl.closest('div')?.querySelector('label') ?? null;
+}
+
 // Update validation indicators for all tabs
 function updateTabValidationIndicators() {
     if (!generatedForm) return;
@@ -9148,25 +9262,10 @@ function updateTabValidationIndicators() {
         }
     }
     
-    // Check Air Waybill No. (Field 03)
+    // Check Air Waybill No. (Field 03) — upper routing row only (mirrors PDF via fillFieldByPrefix)
     const airWaybillNoInput = document.getElementById('airWaybillNoInput');
-    const airWaybillNoLabel = airWaybillNoInput ? airWaybillNoInput.closest('div')?.querySelector('label') : null;
-    let field03Filled = false;
-    if (airWaybillNoInput && airWaybillNoInput.value.trim()) {
-        field03Filled = true;
-    } else {
-        // Also check if field 03 is filled in the form
-        if (generatedForm) {
-            const formElements = generatedForm.elements;
-            for (let i = 0; i < formElements.length; i++) {
-                const element = formElements[i];
-                if (element.name && element.name.startsWith('03') && element.value.trim()) {
-                    field03Filled = true;
-                    break;
-                }
-            }
-        }
-    }
+    const airWaybillNoLabel = getLabelForUpperRoutingInput(airWaybillNoInput);
+    const field03Filled = !!(airWaybillNoInput && airWaybillNoInput.value.trim());
     if (!field03Filled) {
         routingMissing++;
         if (airWaybillNoLabel) {
@@ -9176,25 +9275,10 @@ function updateTabValidationIndicators() {
         airWaybillNoLabel.style.color = '';
     }
     
-    // Check Flight No. (Field 19)
+    // Check Flight No. (Field 19) — upper routing row only
     const flightNoInput = document.getElementById('flightNoInput');
-    const flightNoLabel = flightNoInput ? flightNoInput.closest('div')?.querySelector('label') : null;
-    let field19Filled = false;
-    if (flightNoInput && flightNoInput.value.trim()) {
-        field19Filled = true;
-    } else {
-        // Also check if field 19 is filled in the form
-        if (generatedForm) {
-            const formElements = generatedForm.elements;
-            for (let i = 0; i < formElements.length; i++) {
-                const element = formElements[i];
-                if (element.name && element.name.startsWith('19') && element.value.trim()) {
-                    field19Filled = true;
-                    break;
-                }
-            }
-        }
-    }
+    const flightNoLabel = getLabelForUpperRoutingInput(flightNoInput);
+    const field19Filled = !!(flightNoInput && flightNoInput.value.trim());
     if (!field19Filled) {
         routingMissing++;
         if (flightNoLabel) {
@@ -9204,25 +9288,10 @@ function updateTabValidationIndicators() {
         flightNoLabel.style.color = '';
     }
     
-    // Check Flight Date (Field 20)
+    // Check Flight Date (Field 20) — upper routing row only
     const flightDateInput = document.getElementById('flightDateInput');
-    const flightDateLabel = flightDateInput ? flightDateInput.closest('div')?.querySelector('label') : null;
-    let field20Filled = false;
-    if (flightDateInput && flightDateInput.value) {
-        field20Filled = true;
-    } else {
-        // Also check if field 20 is filled in the form
-        if (generatedForm) {
-            const formElements = generatedForm.elements;
-            for (let i = 0; i < formElements.length; i++) {
-                const element = formElements[i];
-                if (element.name && element.name.startsWith('20') && element.value.trim()) {
-                    field20Filled = true;
-                    break;
-                }
-            }
-        }
-    }
+    const flightDateLabel = getLabelForUpperRoutingInput(flightDateInput);
+    const field20Filled = !!(flightDateInput && flightDateInput.value);
     if (!field20Filled) {
         routingMissing++;
         if (flightDateLabel) {
@@ -9291,72 +9360,24 @@ function getMissingFieldNames() {
         missingFields.push(label ? label.textContent.trim() : 'Interline Shipment');
     }
     
-    // Check Air Waybill No. (Field 03)
+    // Check Air Waybill No. (Field 03) — upper routing row only
     const airWaybillNoInput = document.getElementById('airWaybillNoInput');
-    let field03Filled = false;
-    if (airWaybillNoInput && airWaybillNoInput.value.trim()) {
-        field03Filled = true;
-    } else {
-        // Also check if field 03 is filled in the form
-        if (generatedForm) {
-            const formElements = generatedForm.elements;
-            for (let i = 0; i < formElements.length; i++) {
-                const element = formElements[i];
-                if (element.name && element.name.startsWith('03') && element.value.trim()) {
-                    field03Filled = true;
-                    break;
-                }
-            }
-        }
-    }
-    if (!field03Filled) {
-        const label = airWaybillNoInput ? airWaybillNoInput.closest('div')?.querySelector('label') : null;
+    if (!airWaybillNoInput || !airWaybillNoInput.value.trim()) {
+        const label = getLabelForUpperRoutingInput(airWaybillNoInput);
         missingFields.push(label ? label.textContent.trim() : 'Air Waybill No.');
     }
     
-    // Check Flight No. (Field 19)
+    // Check Flight No. (Field 19) — upper routing row only
     const flightNoInput = document.getElementById('flightNoInput');
-    let field19Filled = false;
-    if (flightNoInput && flightNoInput.value.trim()) {
-        field19Filled = true;
-    } else {
-        // Also check if field 19 is filled in the form
-        if (generatedForm) {
-            const formElements = generatedForm.elements;
-            for (let i = 0; i < formElements.length; i++) {
-                const element = formElements[i];
-                if (element.name && element.name.startsWith('19') && element.value.trim()) {
-                    field19Filled = true;
-                    break;
-                }
-            }
-        }
-    }
-    if (!field19Filled) {
-        const label = flightNoInput ? flightNoInput.closest('div')?.querySelector('label') : null;
+    if (!flightNoInput || !flightNoInput.value.trim()) {
+        const label = getLabelForUpperRoutingInput(flightNoInput);
         missingFields.push(label ? label.textContent.trim() : 'Flight No.');
     }
     
-    // Check Flight Date (Field 20)
+    // Check Flight Date (Field 20) — upper routing row only
     const flightDateInput = document.getElementById('flightDateInput');
-    let field20Filled = false;
-    if (flightDateInput && flightDateInput.value) {
-        field20Filled = true;
-    } else {
-        // Also check if field 20 is filled in the form
-        if (generatedForm) {
-            const formElements = generatedForm.elements;
-            for (let i = 0; i < formElements.length; i++) {
-                const element = formElements[i];
-                if (element.name && element.name.startsWith('20') && element.value.trim()) {
-                    field20Filled = true;
-                    break;
-                }
-            }
-        }
-    }
-    if (!field20Filled) {
-        const label = flightDateInput ? flightDateInput.closest('div')?.querySelector('label') : null;
+    if (!flightDateInput || !flightDateInput.value) {
+        const label = getLabelForUpperRoutingInput(flightDateInput);
         missingFields.push(label ? label.textContent.trim() : 'Flight Date');
     }
     
@@ -9372,6 +9393,12 @@ function getMissingFieldNames() {
             const name = element.name;
             
             if (!name) continue;
+            
+            // Fields 03, 19, 20: covered by upper routing checks above
+            if (form.id === 'generatedForm' &&
+                (name.startsWith('03') || name.startsWith('19') || name.startsWith('20'))) {
+                continue;
+            }
             
             // Skip buttons and hidden inputs
             if (element.type === 'button' || element.type === 'submit' || element.type === 'hidden') {
@@ -9539,6 +9566,12 @@ function countMissingFields(form) {
         const name = element.name;
         
         if (!name) continue; // Skip elements without names
+        
+        // Fields 03, 19, 20: validated from upper routing inputs only (updateTabValidationIndicators)
+        if (form.id === 'generatedForm' &&
+            (name.startsWith('03') || name.startsWith('19') || name.startsWith('20'))) {
+            continue;
+        }
         
         // Skip buttons and hidden inputs
         if (element.type === 'button' || element.type === 'submit' || element.type === 'hidden') {
@@ -9992,6 +10025,8 @@ function populateCommodityDropdown() {
     const commoditySelect = document.getElementById('commoditySelect');
     if (!commoditySelect) return;
     
+    const previousValue = commoditySelect.value;
+    
     // Clear existing options except the first one
     commoditySelect.innerHTML = '<option value="">-- Select Commodity --</option>';
     
@@ -10003,6 +10038,11 @@ function populateCommodityDropdown() {
             option.textContent = item.commodity;
             commoditySelect.appendChild(option);
         });
+    }
+    
+    // Restore selection after rebuild (e.g. shipper/consignee change) so template save keeps _commodity
+    if (previousValue && Array.from(commoditySelect.options).some((o) => o.value === previousValue)) {
+        commoditySelect.value = previousValue;
     }
 }
 
@@ -10077,6 +10117,8 @@ function fillField33FromCommodity(commodityName) {
         // We'll still fill field 41 below if present.
         console.warn(`Autofill text not found for commodity: ${commodityName}`);
     }
+    
+    const profile = typeof getUserProfile === 'function' ? (getUserProfile() || {}) : {};
     
     const billingFieldsForm = document.getElementById('billingFieldsForm');
     const dimensionsFieldsForm = document.getElementById('dimensionsFieldsForm');

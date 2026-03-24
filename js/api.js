@@ -1,7 +1,53 @@
 // API service for server-side data storage
 // Database required everywhere (localhost and production)
 
-const API_BASE_URL = window.location.origin;
+/** Deployed app origin (Upstash data lives behind this host’s /api routes). */
+const PRODUCTION_APP_ORIGIN = 'https://airwaybills.vercel.app';
+
+/**
+ * When opening HTML from localhost (Live Server, file copy, etc.), still call the
+ * deployed API so local dev uses the same Redis/database as production.
+ * (Matches the pattern used in sync-contacts.html.)
+ */
+function resolveApiBaseUrl() {
+    if (typeof window === 'undefined') return '';
+    try {
+        const h = window.location.hostname;
+        if (h === 'localhost' || h === '127.0.0.1' || h === '[::1]') {
+            return PRODUCTION_APP_ORIGIN;
+        }
+    } catch (e) {
+        /* ignore */
+    }
+    return window.location.origin;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
+
+if (typeof window !== 'undefined' && API_BASE_URL !== window.location.origin) {
+    console.info('[api.js] Local dev: API requests go to', API_BASE_URL, '(same DB as production)');
+}
+
+/**
+ * Resolve image/asset URLs for display when the page is on localhost but data came from production.
+ * Root-relative paths (e.g. /uploads/...) would otherwise load from localhost and 404.
+ * data: and absolute http(s) URLs are unchanged.
+ */
+export function resolveApiAssetUrl(url) {
+    if (url == null || url === '') return url;
+    const s = String(url).trim();
+    if (s.startsWith('data:') || s.startsWith('blob:')) return s;
+    if (s.startsWith('http://') || s.startsWith('https://')) return s;
+    if (s.startsWith('//')) return 'https:' + s;
+    if (s.startsWith('/') && typeof window !== 'undefined') {
+        const h = window.location.hostname;
+        if (h === 'localhost' || h === '127.0.0.1' || h === '[::1]') {
+            const base = (API_BASE_URL || PRODUCTION_APP_ORIGIN).replace(/\/$/, '');
+            return base + s;
+        }
+    }
+    return s;
+}
 
 // Note: APIs are exported below and will be exposed to window at the end of the file
 
@@ -642,6 +688,9 @@ export const awbDraftAPI = {
 // Expose APIs globally for non-module scripts (after all APIs are defined)
 if (typeof window !== 'undefined') {
     console.log('🔧 api.js: Exposing APIs to window object');
+    window.API_BASE_URL = API_BASE_URL;
+    window.PRODUCTION_APP_ORIGIN = PRODUCTION_APP_ORIGIN;
+    window.resolveApiAssetUrl = resolveApiAssetUrl;
     window.usersAPI = usersAPI;
     window.shipmentsAPI = shipmentsAPI;
     window.contactsAPI = contactsAPI;

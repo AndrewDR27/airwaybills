@@ -6,6 +6,7 @@
     <title>Airports - Airway Bills</title>
     <link rel="stylesheet" href="styles.css">
     <script type="module" src="js/themes.js"></script>
+    <!-- Non-module: exposes hasPermission / canEditLocations for airport page -->
     <script src="js/roles.js"></script>
     <style>
         body { margin: 0; padding: 2px; font-family: 'MS Sans Serif', 'Arial', sans-serif; background: transparent; min-height: 100vh; }
@@ -228,6 +229,7 @@
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/api.js"></script>
     <script>
+        // roles.js must load before this script (see head) so canManageLocations can use hasPermission
         let airportsAPI = null;
         let airlinesAPI = null;
         let airlinesCache = [];
@@ -256,11 +258,35 @@
 
         function canManageLocations() {
             try {
-                const user = getCurrentUser();
+                const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
                 if (!user) return false;
                 if (typeof hasPermission === 'function') return hasPermission(user.role, 'canEditLocations');
                 return user.role === 'admin' || user.role === 'issuing-carrier-agent';
             } catch (e) { return false; }
+        }
+
+        /** Add button was hidden when getCurrentUser() was still null before async session load. */
+        async function syncAddAirportButtonVisibility() {
+            const addBtn = document.getElementById('addAirportBtn');
+            if (!addBtn) return;
+            if (!window.usersAPI) {
+                await new Promise((resolve) => {
+                    if (window.usersAPI) {
+                        resolve();
+                        return;
+                    }
+                    window.addEventListener('apiReady', resolve, { once: true });
+                    setTimeout(resolve, 4000);
+                });
+            }
+            try {
+                if (window.usersAPI && typeof getCurrentUserAsync === 'function') {
+                    await getCurrentUserAsync();
+                }
+            } catch (e) {
+                console.warn('Airports: could not resolve current user for permissions:', e);
+            }
+            addBtn.style.display = canManageLocations() ? '' : 'none';
         }
 
         function escapeHtml(text) {
@@ -345,7 +371,7 @@
                 console.warn('Error loading airports:', e);
             }
             if (airports.length === 0) {
-                listEl.innerHTML = '<div class="empty-state"><p>No airports yet. Add one to get started.</p></div>';
+                listEl.innerHTML = '<div class="empty-state"><p>No airports yet.</p><p style="font-size:11px;margin-top:8px;color:#444;">Use <strong>+ Add Airport</strong> above (visible if you can edit locations) or open this page while logged in as an <strong>Administrator</strong> or <strong>Issuing Carrier\'s Agent</strong>.</p></div>';
                 return;
             }
             const canManage = canManageLocations();
@@ -477,9 +503,9 @@
             await renderAirports();
             const addBtn = document.getElementById('addAirportBtn');
             if (addBtn) {
-                const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-                addBtn.style.display = (user && (user.role === 'admin' || user.role === 'issuing-carrier-agent')) ? 'block' : 'none';
                 addBtn.addEventListener('click', () => openAirportModal(null));
+                await syncAddAirportButtonVisibility();
+                window.addEventListener('apiReady', () => { syncAddAirportButtonVisibility(); });
             }
             const addTermBtn = document.getElementById('addTerminalRowBtn');
             if (addTermBtn) addTermBtn.addEventListener('click', () => addTerminalRow());

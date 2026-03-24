@@ -213,6 +213,11 @@
                                     <option value="No">No</option>
                                 </select>
                             </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 14px;">
+                        <div style="display: block; margin-bottom: 24px; padding: 8px; background: var(--win98-window-bg); border: 2px inset var(--win98-button-face); border-bottom: 3px solid var(--win98-button-shadow);">
+                            <div class="routing-controls">
                             <div class="contact-select-group" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                                 <div style="flex: 1; min-width: 150px;">
                                     <label for="airWaybillNoInput">Air Waybill No.</label>
@@ -228,6 +233,7 @@
                                 </div>
                             </div>
                             </div>
+                        </div>
                         </div>
                     </div>
                     <div style="margin-top: 14px; border: 1px solid #bfdbfe; border-radius: 10px; background: #ffffff; padding: 10px;">
@@ -506,6 +512,10 @@
                 // Update active tab content
                 document.querySelectorAll('.awb-tab-content').forEach(content => content.classList.remove('active'));
                 document.getElementById(`${tabName}-tab`).classList.add('active');
+                
+                if (tabName === 'routing' && typeof refreshDestinationDropdownFromAirports === 'function') {
+                    refreshDestinationDropdownFromAirports().catch(() => {});
+                }
                 
                 // Update prompt indicators when switching tabs
                 if (typeof updatePromptIndicators === 'function') {

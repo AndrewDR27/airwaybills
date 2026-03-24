@@ -717,6 +717,35 @@ header p {
     font-family: 'MS Sans Serif', Arial, sans-serif;
 }
 
+/* Upper routing row (AWB / Flight / Flight Date): keep white background when typing or autofill */
+#airWaybillNoInput.contact-select,
+#flightNoInput.contact-select,
+#flightDateInput.contact-select {
+    background-color: #ffffff !important;
+    color: inherit;
+}
+
+#airWaybillNoInput.contact-select:-webkit-autofill,
+#flightNoInput.contact-select:-webkit-autofill,
+#flightDateInput.contact-select:-webkit-autofill,
+#airWaybillNoInput.contact-select:-webkit-autofill:hover,
+#flightNoInput.contact-select:-webkit-autofill:hover,
+#flightDateInput.contact-select:-webkit-autofill:hover,
+#airWaybillNoInput.contact-select:-webkit-autofill:focus,
+#flightNoInput.contact-select:-webkit-autofill:focus,
+#flightDateInput.contact-select:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+    box-shadow: 0 0 0 1000px #ffffff inset;
+}
+
+#airWaybillNoInput.contact-select:focus,
+#flightNoInput.contact-select:focus,
+#flightDateInput.contact-select:focus {
+    outline: 1px dotted var(--win98-text);
+    outline-offset: -3px;
+    background-color: #ffffff !important;
+}
+
 .btn-contact-small {
     padding: 2px 12px;
     border: 2px solid #808080;
