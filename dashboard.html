@@ -619,6 +619,29 @@
             return t;
         }
 
+        /**
+         * Full reload of dashboard.html reads the last iframe URL from sessionStorage.
+         * Deep "space" views should not win on refresh — user lands on default home (e.g. My Shipments).
+         * In-iframe refresh (F5 / Ctrl+R) still reloads the current iframe URL as before.
+         */
+        function shouldRestoreStoredIframePath(pathWithQuery) {
+            if (!pathWithQuery || typeof pathWithQuery !== 'string') return false;
+            const pathOnly = pathWithQuery.split('?')[0].split('#')[0].trim().toLowerCase();
+            if (pathOnly === 'shipments/space.html' || pathOnly.endsWith('/shipments/space.html')) {
+                return false;
+            }
+            try {
+                if (pathOnly === 'create-awb.html' || pathOnly.endsWith('/create-awb.html')) {
+                    const qi = pathWithQuery.indexOf('?');
+                    if (qi >= 0) {
+                        const params = new URLSearchParams(pathWithQuery.slice(qi));
+                        if (params.get('spaceId')) return false;
+                    }
+                }
+            } catch (e) { /* allow restore */ }
+            return true;
+        }
+
         function updateNavActiveForIframePath(pathWithQuery) {
             const pathOnly = (pathWithQuery || '').split('?')[0].split('#')[0];
             document.querySelectorAll('.nav-menu a').forEach(a => a.classList.remove('active'));
@@ -648,8 +671,12 @@
         }
 
         let initialPage = defaultPage;
-        if (rawSaved && isSafeStoredIframePath(rawSaved)) {
+        if (rawSaved && isSafeStoredIframePath(rawSaved) && shouldRestoreStoredIframePath(rawSaved)) {
             initialPage = normalizeStoredIframePath(rawSaved);
+        } else if (rawSaved && isSafeStoredIframePath(rawSaved) && !shouldRestoreStoredIframePath(rawSaved)) {
+            try {
+                sessionStorage.setItem(DASHBOARD_IFRAME_PAGE_KEY, defaultPage);
+            } catch (e) { /* ignore */ }
         }
         contentFrame.src = initialPage;
 

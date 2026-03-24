@@ -367,6 +367,7 @@
         <div class="main-content">
             <div class="space-header">
                 <div>
+                    <button type="button" class="btn btn-secondary" id="backToShipmentsListBtn" style="margin-bottom: 8px;">← Back to list</button>
                     <h1>Shipment Space</h1>
                     <div class="awb-number" id="awbDisplay" style="display: none;"></div>
                     <div class="space-id" id="spaceIdDisplay">Loading...</div>
@@ -1379,6 +1380,13 @@
         }
 
         // Button handlers
+        const backToShipmentsListBtn = document.getElementById('backToShipmentsListBtn');
+        if (backToShipmentsListBtn) {
+            backToShipmentsListBtn.addEventListener('click', function () {
+                goBack();
+            });
+        }
+
         document.getElementById('createAWBBtn').addEventListener('click', function() {
             // Store spaceId and redirect to create-awb.html
             sessionStorage.setItem('currentSpaceId', spaceId);

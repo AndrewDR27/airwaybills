@@ -217,7 +217,7 @@
                 
                 <!-- DIMS & Billing Tab -->
                 <div id="billing-tab" class="awb-tab-content">
-                    <div class="billing-controls-section" id="billingControlsSection" style="display: block;">
+                    <div class="billing-controls-section" id="billingControlsSection" style="display: block; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb;">
                         <div class="routing-controls">
                             <div class="contact-select-group">
                                 <label for="declaredValuesSelect">Declared Values:</label>
@@ -257,6 +257,21 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="billing-upper-customs-block" style="margin-bottom: 12px;">
+                        <div style="font-weight: 600; font-size: 11px; color: #374151; margin-bottom: 6px;">Customs &amp; charges (fields 50–55 &amp; upper 30/31)</div>
+                        <div id="customsFieldsContainer" class="billing-controls-section" style="display: none;">
+                            <div class="routing-controls">
+                                <div class="cdc-charges-toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                    <span class="cdc-charges-toolbar-title" style="font-size: 11px; font-weight: bold; color: var(--win98-text);">CDC / CDA charges and rate/weight helpers</span>
+                                    <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; font-weight: normal; color: var(--win98-text);">
+                                        <input type="checkbox" id="ignoreRemainingChargesCheckbox" style="cursor: pointer;">
+                                        Ignore remaining charge fields
+                                    </label>
+                                </div>
+                                <div id="customsFieldsRows" style="display: flex; flex-direction: column; gap: 8px;"></div>
                             </div>
                         </div>
                     </div>

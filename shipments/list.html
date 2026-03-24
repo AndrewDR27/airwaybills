@@ -90,13 +90,13 @@
         .shipment-item {
             border: 1px solid #d1d5db;
             border-radius: 12px;
-            padding: 8px 10px;
-            margin-bottom: 10px;
+            padding: 4px 8px;
+            margin-bottom: 8px;
             background: #ffffff;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 15px;
+            gap: 10px;
         }
         .shipment-item:hover {
             background: #eff6ff;
@@ -106,18 +106,21 @@
             flex: 1;
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
             min-width: 0;
         }
         .shipment-main {
             flex: 1;
             min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
         .shipment-header-row {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 2px;
+            gap: 8px;
+            margin-bottom: 0;
             flex-wrap: wrap;
         }
         .shipment-awb {
@@ -154,14 +157,25 @@
             font-weight: 500;
         }
         .shipment-status {
-            padding: 2px 8px;
+            padding: 1px 5px;
             border: 1px inset #C0C0C0;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: normal;
             text-transform: uppercase;
             white-space: nowrap;
             background: #C0C0C0;
             color: #000000;
+            line-height: 1.2;
+        }
+        .shipment-status-wrap {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .shipment-table-status-cell {
+            white-space: nowrap;
+            vertical-align: middle;
         }
         .status-pending { background: #FFFFE0; color: #000000; }
         .status-active { background: #E0FFE0; color: #000000; }
@@ -169,18 +183,18 @@
         .status-cancelled { background: #FFE0E0; color: #000000; }
         .substatus-badge {
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-size: 10px;
+            padding: 1px 5px;
+            border-radius: 6px;
+            font-size: 9px;
             font-weight: 500;
-            margin-left: 6px;
             background: #e7f3ff;
             color: #0066cc;
+            line-height: 1.2;
         }
         .shipment-actions {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             flex-shrink: 0;
         }
         .btn-view, .btn-success, .btn-warning, .btn-danger {
@@ -204,6 +218,16 @@
         .btn-view:active {
             border: 2px solid #606060;
             background: #B0B0B0;
+        }
+        #createSpaceBtn {
+            background: #ffffff;
+            color: #000000;
+        }
+        #createSpaceBtn:hover {
+            background: #f2f2f2;
+        }
+        #createSpaceBtn:active {
+            background: #e8e8e8;
         }
         .btn-success:hover {
             background: #E8E8E8;
@@ -243,8 +267,8 @@
             font-size: 11px;
         }
         .factory-invoice-section {
-            margin-top: 4px;
-            padding: 4px 8px;
+            margin-top: 2px;
+            padding: 2px 6px;
             background: #E8E8E8;
             border: 1px inset #C0C0C0;
             font-size: 10px;
@@ -288,13 +312,13 @@
             display: inline-block;
         }
         .status-actions {
-            margin-top: 4px;
-            padding-top: 4px;
+            margin-top: 2px;
+            padding-top: 3px;
             border-top: 1px inset #C0C0C0;
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
             width: 100%;
         }
@@ -344,6 +368,110 @@
         }
         .compact-info {
             display: none;
+        }
+
+        .shipments-page-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .shipments-page-toolbar h1 {
+            margin: 0;
+        }
+        .shipments-toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .shipments-view-toggle {
+            display: inline-flex;
+            border: 2px solid #808080;
+            background: #D4D4D4;
+        }
+        .shipments-view-toggle .view-toggle-btn {
+            padding: 4px 12px;
+            border: none;
+            background: transparent;
+            font-size: 11px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            cursor: pointer;
+            color: #000000;
+        }
+        .shipments-view-toggle .view-toggle-btn:hover {
+            background: #E8E8E8;
+        }
+        .shipments-view-toggle .view-toggle-btn.active {
+            background: #B0B0B0;
+            font-weight: bold;
+            box-shadow: inset 0 0 0 1px #606060;
+        }
+
+        /* List view: data table */
+        .shipments-list.shipments-list--view-list {
+            border: 1px solid #b0b0b0;
+            background: #ffffff;
+            overflow-x: auto;
+        }
+        .shipments-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+        }
+        .shipments-data-table th,
+        .shipments-data-table td {
+            border: 1px solid #b0b0b0;
+            padding: 3px 6px;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .shipments-data-table thead th {
+            background: #e0e0e0;
+            font-weight: bold;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+        .shipments-data-table tbody tr:nth-child(even) {
+            background: #f7f7f7;
+        }
+        .shipments-data-table tbody tr:hover {
+            background: #eff6ff;
+        }
+        .shipments-data-table .shipment-table-cell-actions {
+            min-width: 140px;
+        }
+        .list-row-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+        }
+        .list-row-invoice {
+            margin-top: 4px;
+            padding-top: 4px;
+            border-top: 1px dashed #c0c0c0;
+            font-size: 10px;
+        }
+        button.shipment-table-link {
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+            font: inherit;
+            color: #000080;
+            text-decoration: underline;
+            cursor: pointer;
+            text-align: left;
+        }
+        button.shipment-table-link:hover {
+            color: #0000cc;
+        }
+        .shipment-table-muted {
+            color: #666;
         }
 
         /* ==========================
@@ -416,8 +544,8 @@
             border: 1px solid var(--modern-border);
             background: #ffffff;
             border-radius: var(--modern-radius);
-            padding: 8px 12px;
-            margin-bottom: 10px;
+            padding: 4px 8px;
+            margin-bottom: 8px;
         }
 
         .shipment-item:hover {
@@ -440,6 +568,17 @@
             font-size: 11px !important;
         }
 
+        #createSpaceBtn {
+            background: #ffffff !important;
+            color: #0f172a !important;
+        }
+        #createSpaceBtn:hover {
+            background: #f8fafc !important;
+        }
+        #createSpaceBtn:active {
+            background: #f1f5f9 !important;
+        }
+
         .empty-state {
             background: transparent;
             color: #0f172a;
@@ -455,13 +594,58 @@
         .shipment-party-sep {
             color: #94a3b8;
         }
+
+        .shipments-view-toggle {
+            border: 1px solid var(--modern-border-strong);
+            background: #f3f4f6;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .shipments-view-toggle .view-toggle-btn.active {
+            background: rgba(59, 130, 246, 0.2);
+            box-shadow: none;
+            color: #0f172a;
+        }
+        .shipments-list.shipments-list--view-list {
+            border: 1px solid var(--modern-border);
+            border-radius: var(--modern-radius);
+            overflow-x: auto;
+        }
+        .shipments-data-table th,
+        .shipments-data-table td {
+            border-color: var(--modern-border);
+            vertical-align: middle;
+        }
+        .shipments-data-table thead th {
+            background: #f1f5f9;
+            color: #0f172a;
+            vertical-align: middle;
+        }
+        .shipments-data-table tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        .shipments-data-table tbody tr:hover {
+            background: rgba(96, 165, 250, 0.12);
+        }
+        button.shipment-table-link {
+            color: var(--modern-accent-dark);
+        }
+        button.shipment-table-link:hover {
+            color: #1d4ed8;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1 style="margin: 0;">My Shipments</h1>
-            <button id="createSpaceBtn" class="btn-view" style="display: none;">+ Create Shipment Space</button>
+        <div class="shipments-page-toolbar">
+            <h1>My Shipments</h1>
+            <div class="shipments-toolbar-right">
+                <div class="shipments-view-toggle" role="group" aria-label="Shipment row layout">
+                    <button type="button" class="view-toggle-btn active" data-view="cards" id="viewCardsBtn" aria-pressed="true" title="Card layout">Cards</button>
+                    <button type="button" class="view-toggle-btn" data-view="list" id="viewListBtn" aria-pressed="false" title="Table of shipment details">List</button>
+                </div>
+                <button id="createSpaceBtn" class="btn-view" style="display: none;">+ Create Shipment Space</button>
+            </div>
         </div>
         
         <div class="status-tabs">
@@ -513,9 +697,58 @@
             }
             loadShipments();
         };
+
+        /** Safe value for HTML double-quoted attributes (e.g. data-space-id). */
+        function escapeAttr(s) {
+            return String(s ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;');
+        }
+
+        /**
+         * Open the shipment space page (dashboard iframe or standalone).
+         * Defined before DOMContentLoaded so links work even if async init is slow; list.html has &lt;base href="/"&gt;.
+         */
+        window.viewShipmentSpace = function viewShipmentSpace(spaceId) {
+            const q = 'spaceId=' + encodeURIComponent(String(spaceId));
+            function spacePageHref(baseHref) {
+                return new URL('shipments/space.html?' + q, baseHref).href;
+            }
+            if (window.parent && window.parent !== window) {
+                try {
+                    const contentFrame = window.parent.document.getElementById('contentFrame');
+                    if (contentFrame) {
+                        contentFrame.src = spacePageHref(window.parent.location.href);
+                        return;
+                    }
+                } catch (e) {
+                    /* cross-origin parent */
+                }
+                try {
+                    window.parent.location.href = spacePageHref(window.parent.location.href);
+                } catch (e2) {
+                    window.location.href = new URL('space.html?' + q, window.location.href).href;
+                }
+            } else {
+                window.location.href = new URL('space.html?' + q, window.location.href).href;
+            }
+        };
         
         // Wait for DOM to be ready
         document.addEventListener('DOMContentLoaded', async function() {
+            const shipmentsListEl = document.getElementById('shipmentsList');
+            if (shipmentsListEl) {
+                shipmentsListEl.addEventListener('click', function (e) {
+                    const btn = e.target.closest('button[data-space-id]');
+                    if (!btn) return;
+                    e.preventDefault();
+                    const sid = btn.getAttribute('data-space-id');
+                    if (sid === null || sid === '') return;
+                    window.viewShipmentSpace(sid);
+                });
+            }
+
             // Wait for auth functions to be available
             let attempts = 0;
             while ((typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined' || typeof getCurrentUserAsync === 'undefined') && attempts < 50) {
@@ -704,6 +937,39 @@
 
             let currentTab = 'pending';
 
+            const SHIPMENTS_LIST_VIEW_KEY = 'shipmentsListView';
+            function getShipmentsListView() {
+                try {
+                    const v = localStorage.getItem(SHIPMENTS_LIST_VIEW_KEY);
+                    return v === 'list' ? 'list' : 'cards';
+                } catch (e) {
+                    return 'cards';
+                }
+            }
+            function setShipmentsListView(view) {
+                const v = view === 'list' ? 'list' : 'cards';
+                try {
+                    localStorage.setItem(SHIPMENTS_LIST_VIEW_KEY, v);
+                } catch (e) {}
+                applyShipmentsListView();
+                if (typeof loadShipments === 'function') {
+                    void loadShipments();
+                }
+            }
+            function applyShipmentsListView() {
+                const el = document.getElementById('shipmentsList');
+                const v = getShipmentsListView();
+                if (el) {
+                    el.classList.toggle('shipments-list--view-list', v === 'list');
+                    el.classList.toggle('shipments-list--view-cards', v !== 'list');
+                }
+                document.querySelectorAll('.shipments-view-toggle .view-toggle-btn').forEach((btn) => {
+                    const active = btn.getAttribute('data-view') === v;
+                    btn.classList.toggle('active', active);
+                    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+            }
+
         // Show Create Space button for Issuing Carrier Agent only
         try {
             const createSpaceBtn = document.getElementById('createSpaceBtn');
@@ -722,6 +988,16 @@
                 }
             } catch (error) {
                 console.error('Error setting up create space button:', error);
+            }
+
+            try {
+                const viewCardsBtn = document.getElementById('viewCardsBtn');
+                const viewListBtn = document.getElementById('viewListBtn');
+                if (viewCardsBtn) viewCardsBtn.addEventListener('click', () => setShipmentsListView('cards'));
+                if (viewListBtn) viewListBtn.addEventListener('click', () => setShipmentsListView('list'));
+                applyShipmentsListView();
+            } catch (e) {
+                console.warn('Shipments view toggle setup:', e);
             }
 
             // Switch between status tabs
@@ -775,7 +1051,6 @@
             
             // Expose functions to global scope for onclick handlers IMMEDIATELY
             window.switchTab = switchTab;
-            window.viewShipmentSpace = viewShipmentSpace;
             window.confirmShipmentAWB = confirmShipmentAWB;
             window.setStatus = setStatus;
             window.downloadFactoryInvoice = downloadFactoryInvoice;
@@ -891,11 +1166,34 @@
                             <p>${user.role === 'issuing-carrier-agent' && currentTab === 'pending' ? 'Create your first shipment space to get started!' : 'Shipments will appear here when available.'}</p>
                         </div>
                     `;
+                    applyShipmentsListView();
                     return;
                 }
                 
-                let html = displayShipments.map(shipment => renderShipmentItem(shipment, usersMap)).join('');
+                const useTable = getShipmentsListView() === 'list';
+                let html;
+                if (useTable) {
+                    html = `
+                        <table class="shipments-data-table" role="grid" aria-label="Shipments">
+                            <thead>
+                                <tr>
+                                    <th scope="col">AWB</th>
+                                    <th scope="col">Space ID</th>
+                                    <th scope="col">Shipper</th>
+                                    <th scope="col">Consignee</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${displayShipments.map((shipment) => renderShipmentListRow(shipment, usersMap)).join('')}
+                            </tbody>
+                        </table>`;
+                } else {
+                    html = displayShipments.map((shipment) => renderShipmentItem(shipment, usersMap)).join('');
+                }
                 container.innerHTML = html;
+                applyShipmentsListView();
             }
             
             async function loadUsersMapForShipments(shipments) {
@@ -983,114 +1281,33 @@
                 `;
             }
 
-            function renderShipmentItem(shipment, usersMap) {
+            function safeIdSegment(s) {
+                return String(s ?? '').replace(/[^a-zA-Z0-9_-]/g, '_');
+            }
+
+            function renderShipmentListRow(shipment, usersMap) {
                 const participants = shipment.participants || [];
                 const spaceId = shipment.spaceId || 'N/A';
-                const awbNumber = shipment.awbNumber || 'Not created yet';
+                const sidJs = JSON.stringify(String(spaceId));
+                const hasAwb = shipment.awbNumber != null && String(shipment.awbNumber).trim() !== '';
+                const awbNumber = hasAwb ? String(shipment.awbNumber).trim() : '';
+
                 const isAgent = user.role === 'issuing-carrier-agent' || user.role === 'admin';
                 const isConsignee = user.role === 'consignee';
                 const isCourier = user.role === 'courier';
                 const isShipper = user.role === 'shipper';
                 const isAdmin = user.role === 'admin';
                 const um = usersMap instanceof Map ? usersMap : new Map();
-                const partyLineHtml = buildShipperConsigneePartyHtml(shipment, um);
-                
-                // Determine effective status for display
+                const shipperUid = getParticipantUserId(participants, 'shipper');
+                const consigneeUid = getParticipantUserId(participants, 'consignee');
+                const shipperDisp = escapeHtml(resolveAccountUserName(um, shipperUid) || '—');
+                const consigneeDisp = escapeHtml(resolveAccountUserName(um, consigneeUid) || '—');
+
                 let displayStatus = shipment.status;
                 if (shipment.status === 'active' && !shipment.isConfirmed) {
                     displayStatus = 'pending';
                 }
-                
-                let buttons = '';
-                let statusActions = '';
-                let factoryInvoiceSection = '';
-                
-                // Add delete button for agents/admins (except for deleted or in-transit shipments)
-                const canDelete = (isAgent || isAdmin) && 
-                                  shipment.status !== 'deleted' && 
-                                  shipment.status !== 'in-transit';
-                if (canDelete) {
-                    buttons += `<button class="btn-danger" onclick="deleteShipmentFromList('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">Delete</button>`;
-                }
-            
-                // Pending tab actions
-                if (currentTab === 'pending') {
-                    // Agent or Admin can confirm AWB if it exists
-                    const confirmButton = ((isAgent || isAdmin) && shipment.awbNumber && !shipment.isConfirmed) 
-                        ? `<button class="btn-success" onclick="confirmShipmentAWB('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">Confirm</button>` 
-                        : '';
-                    
-                    statusActions = `
-                        <div class="status-actions">
-                            <div class="status-actions-buttons">
-                                <button class="btn-view" onclick="viewShipmentSpace('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">View</button>
-                                ${confirmButton}
-                            </div>
-                            ${partyLineHtml}
-                        </div>
-                    `;
-                }
-                
-                // Active tab actions
-                if (currentTab === 'active') {
-                    if (shipment.pdfBase64 && shipment.isShared) {
-                        buttons += `<button class="btn-success" onclick="downloadShipmentPDF('${spaceId}')">Download PDF</button>`;
-                    }
-                    
-                    // Export invoice upload (Shipper, Consignee, Agent)
-                    if (isShipper || isConsignee || isAgent) {
-                        factoryInvoiceSection = `
-                            <div class="factory-invoice-section">
-                                ${shipment.factoryInvoice ? `
-                                    <span style="color: #666;">Export Invoice: </span>
-                                    <button class="btn-view" onclick="downloadFactoryInvoice('${spaceId}')" style="background: #28a745; padding: 4px 10px; font-size: 11px;">Download</button>
-                                    <span style="margin-left: 8px; color: #999; font-size: 11px;">
-                                        ${shipment.factoryInvoiceUploadedAt ? new Date(shipment.factoryInvoiceUploadedAt).toLocaleDateString() : ''}
-                                    </span>
-                                ` : `
-                                    <span style="color: #666;">Export Invoice: </span>
-                                    <div class="file-input-wrapper" style="display: inline-block;">
-                                        <input type="file" id="invoice-${spaceId}" accept=".pdf,.jpg,.jpeg,.png" onchange="uploadFactoryInvoiceFile('${spaceId}', this)">
-                                        <label for="invoice-${spaceId}" class="file-input-label">Upload</label>
-                                    </div>
-                                `}
-                            </div>
-                        `;
-                    }
-                    
-                    // Status change actions for Active shipments
-                    statusActions = `
-                        <div class="status-actions">
-                            <div class="status-actions-buttons">
-                                <button class="btn-view" onclick="viewShipmentSpace('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">View</button>
-                                ${isAgent ? `<button class="btn-warning" onclick="setStatus('${spaceId}', 'in-transit', null)" style="padding: 4px 10px; font-size: 11px;">Mark as In Transit</button>` : ''}
-                            </div>
-                            ${partyLineHtml}
-                        </div>
-                    `;
-                }
-                
-                // In Transit tab actions
-                if (currentTab === 'in-transit') {
-                    if (shipment.pdfBase64 && shipment.isShared) {
-                        buttons += `<button class="btn-success" onclick="downloadShipmentPDF('${spaceId}')">Download PDF</button>`;
-                    }
-                    
-                    // Substatus actions for In Transit
-                    statusActions = `
-                        <div class="status-actions">
-                            <div class="status-actions-buttons">
-                                <button class="btn-view" onclick="viewShipmentSpace('${spaceId}')" style="padding: 4px 10px; font-size: 11px;">View</button>
-                                ${(isConsignee || isAgent) ? `<button class="btn-warning" onclick="setStatus('${spaceId}', 'in-transit', 'at-destination')" style="padding: 4px 10px; font-size: 11px;">At Destination</button>` : ''}
-                                ${(isConsignee || isAgent) ? `<button class="btn-warning" onclick="setStatus('${spaceId}', 'in-transit', 'ready-for-pickup')" style="padding: 4px 10px; font-size: 11px;">Ready for Pickup</button>` : ''}
-                                ${(isConsignee || isCourier) ? `<button class="btn-success" onclick="setStatus('${spaceId}', 'in-transit', 'delivered')" style="padding: 4px 10px; font-size: 11px;">Delivered</button>` : ''}
-                            </div>
-                            ${partyLineHtml}
-                        </div>
-                    `;
-                }
-                
-                // Build substatus display
+
                 let substatusDisplay = '';
                 if (shipment.subStatus) {
                     const substatusLabels = {
@@ -1100,7 +1317,205 @@
                     };
                     substatusDisplay = `<span class="substatus-badge">${substatusLabels[shipment.subStatus] || shipment.subStatus}</span>`;
                 }
-                
+
+                const canDelete = (isAgent || isAdmin) &&
+                    shipment.status !== 'deleted' &&
+                    shipment.status !== 'in-transit';
+
+                const actionsParts = [];
+                if (canDelete) {
+                    actionsParts.push(`<button class="btn-danger" onclick="deleteShipmentFromList(${sidJs})" style="padding: 4px 10px; font-size: 11px;">Delete</button>`);
+                }
+
+                let factoryInvoiceBlock = '';
+                const invId = 'invoice-table-' + safeIdSegment(spaceId);
+
+                if (currentTab === 'pending') {
+                    const confirmButton = ((isAgent || isAdmin) && shipment.awbNumber && !shipment.isConfirmed)
+                        ? `<button class="btn-success" onclick="confirmShipmentAWB(${sidJs})" style="padding: 4px 10px; font-size: 11px;">Confirm</button>`
+                        : '';
+                    if (confirmButton) actionsParts.push(confirmButton);
+                }
+
+                if (currentTab === 'active') {
+                    if (shipment.pdfBase64 && shipment.isShared) {
+                        actionsParts.push(`<button class="btn-success" onclick="downloadShipmentPDF(${sidJs})">Download PDF</button>`);
+                    }
+                    if (isShipper || isConsignee || isAgent) {
+                        factoryInvoiceBlock = shipment.factoryInvoice ? `
+                            <div class="list-row-invoice">
+                                <span style="color: #666;">Export Invoice: </span>
+                                <button class="btn-view" onclick="downloadFactoryInvoice(${sidJs})" style="background: #28a745; padding: 4px 10px; font-size: 11px;">Download</button>
+                                <span style="margin-left: 8px; color: #999; font-size: 11px;">
+                                    ${shipment.factoryInvoiceUploadedAt ? new Date(shipment.factoryInvoiceUploadedAt).toLocaleDateString() : ''}
+                                </span>
+                            </div>
+                        ` : `
+                            <div class="list-row-invoice">
+                                <span style="color: #666;">Export Invoice: </span>
+                                <div class="file-input-wrapper" style="display: inline-block;">
+                                    <input type="file" id="${invId}" accept=".pdf,.jpg,.jpeg,.png" onchange="uploadFactoryInvoiceFile(${sidJs}, this)">
+                                    <label for="${invId}" class="file-input-label">Upload</label>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    if (isAgent) {
+                        actionsParts.push(`<button class="btn-warning" onclick="setStatus(${sidJs}, 'in-transit', null)" style="padding: 4px 10px; font-size: 11px;">Mark as In Transit</button>`);
+                    }
+                }
+
+                if (currentTab === 'in-transit') {
+                    if (shipment.pdfBase64 && shipment.isShared) {
+                        actionsParts.push(`<button class="btn-success" onclick="downloadShipmentPDF(${sidJs})">Download PDF</button>`);
+                    }
+                    if (isConsignee || isAgent) {
+                        actionsParts.push(`<button class="btn-warning" onclick="setStatus(${sidJs}, 'in-transit', 'at-destination')" style="padding: 4px 10px; font-size: 11px;">At Destination</button>`);
+                        actionsParts.push(`<button class="btn-warning" onclick="setStatus(${sidJs}, 'in-transit', 'ready-for-pickup')" style="padding: 4px 10px; font-size: 11px;">Ready for Pickup</button>`);
+                    }
+                    if (isConsignee || isCourier) {
+                        actionsParts.push(`<button class="btn-success" onclick="setStatus(${sidJs}, 'in-transit', 'delivered')" style="padding: 4px 10px; font-size: 11px;">Delivered</button>`);
+                    }
+                }
+
+                const awbCell = hasAwb
+                    ? `<button type="button" class="shipment-table-link" data-space-id="${escapeAttr(spaceId)}">${escapeHtml(awbNumber)}</button>`
+                    : `<span class="shipment-table-muted">—</span>`;
+
+                const actionsHtml = `<div class="list-row-actions">${actionsParts.join('')}</div>${factoryInvoiceBlock}`;
+
+                return `
+                    <tr class="shipment-table-row">
+                        <td>${awbCell}</td>
+                        <td><button type="button" class="shipment-table-link" data-space-id="${escapeAttr(spaceId)}">${escapeHtml(String(spaceId))}</button></td>
+                        <td>${shipperDisp}</td>
+                        <td>${consigneeDisp}</td>
+                        <td class="shipment-table-status-cell">
+                            <span class="shipment-status-wrap">
+                                <span class="shipment-status status-${displayStatus}">${displayStatus.replace('-', ' ')}</span>${substatusDisplay}
+                            </span>
+                        </td>
+                        <td class="shipment-table-cell-actions">${actionsHtml}</td>
+                    </tr>
+                `;
+            }
+
+            function renderShipmentItem(shipment, usersMap) {
+                const participants = shipment.participants || [];
+                const spaceId = shipment.spaceId || 'N/A';
+                const sidJs = JSON.stringify(String(spaceId));
+                const hasAwb = shipment.awbNumber != null && String(shipment.awbNumber).trim() !== '';
+                const awbDisplayText = hasAwb ? String(shipment.awbNumber).trim() : '';
+                const isAgent = user.role === 'issuing-carrier-agent' || user.role === 'admin';
+                const isConsignee = user.role === 'consignee';
+                const isCourier = user.role === 'courier';
+                const isShipper = user.role === 'shipper';
+                const isAdmin = user.role === 'admin';
+                const um = usersMap instanceof Map ? usersMap : new Map();
+                const partyLineHtml = buildShipperConsigneePartyHtml(shipment, um);
+                const invIdCard = 'invoice-' + safeIdSegment(spaceId);
+
+                let displayStatus = shipment.status;
+                if (shipment.status === 'active' && !shipment.isConfirmed) {
+                    displayStatus = 'pending';
+                }
+
+                let buttons = '';
+                let statusActions = '';
+                let factoryInvoiceSection = '';
+
+                const canDelete = (isAgent || isAdmin) &&
+                    shipment.status !== 'deleted' &&
+                    shipment.status !== 'in-transit';
+                if (canDelete) {
+                    buttons += `<button class="btn-danger" onclick="deleteShipmentFromList(${sidJs})" style="padding: 4px 10px; font-size: 11px;">Delete</button>`;
+                }
+
+                if (currentTab === 'pending') {
+                    const confirmButton = ((isAgent || isAdmin) && shipment.awbNumber && !shipment.isConfirmed)
+                        ? `<button class="btn-success" onclick="confirmShipmentAWB(${sidJs})" style="padding: 4px 10px; font-size: 11px;">Confirm</button>`
+                        : '';
+
+                    statusActions = `
+                        <div class="status-actions">
+                            <div class="status-actions-buttons">
+                                ${confirmButton}
+                            </div>
+                            ${partyLineHtml}
+                        </div>
+                    `;
+                }
+
+                if (currentTab === 'active') {
+                    if (shipment.pdfBase64 && shipment.isShared) {
+                        buttons += `<button class="btn-success" onclick="downloadShipmentPDF(${sidJs})">Download PDF</button>`;
+                    }
+
+                    if (isShipper || isConsignee || isAgent) {
+                        factoryInvoiceSection = `
+                            <div class="factory-invoice-section">
+                                ${shipment.factoryInvoice ? `
+                                    <span style="color: #666;">Export Invoice: </span>
+                                    <button class="btn-view" onclick="downloadFactoryInvoice(${sidJs})" style="background: #28a745; padding: 4px 10px; font-size: 11px;">Download</button>
+                                    <span style="margin-left: 8px; color: #999; font-size: 11px;">
+                                        ${shipment.factoryInvoiceUploadedAt ? new Date(shipment.factoryInvoiceUploadedAt).toLocaleDateString() : ''}
+                                    </span>
+                                ` : `
+                                    <span style="color: #666;">Export Invoice: </span>
+                                    <div class="file-input-wrapper" style="display: inline-block;">
+                                        <input type="file" id="${invIdCard}" accept=".pdf,.jpg,.jpeg,.png" onchange="uploadFactoryInvoiceFile(${sidJs}, this)">
+                                        <label for="${invIdCard}" class="file-input-label">Upload</label>
+                                    </div>
+                                `}
+                            </div>
+                        `;
+                    }
+
+                    statusActions = `
+                        <div class="status-actions">
+                            <div class="status-actions-buttons">
+                                ${isAgent ? `<button class="btn-warning" onclick="setStatus(${sidJs}, 'in-transit', null)" style="padding: 4px 10px; font-size: 11px;">Mark as In Transit</button>` : ''}
+                            </div>
+                            ${partyLineHtml}
+                        </div>
+                    `;
+                }
+
+                if (currentTab === 'in-transit') {
+                    if (shipment.pdfBase64 && shipment.isShared) {
+                        buttons += `<button class="btn-success" onclick="downloadShipmentPDF(${sidJs})">Download PDF</button>`;
+                    }
+
+                    statusActions = `
+                        <div class="status-actions">
+                            <div class="status-actions-buttons">
+                                ${(isConsignee || isAgent) ? `<button class="btn-warning" onclick="setStatus(${sidJs}, 'in-transit', 'at-destination')" style="padding: 4px 10px; font-size: 11px;">At Destination</button>` : ''}
+                                ${(isConsignee || isAgent) ? `<button class="btn-warning" onclick="setStatus(${sidJs}, 'in-transit', 'ready-for-pickup')" style="padding: 4px 10px; font-size: 11px;">Ready for Pickup</button>` : ''}
+                                ${(isConsignee || isCourier) ? `<button class="btn-success" onclick="setStatus(${sidJs}, 'in-transit', 'delivered')" style="padding: 4px 10px; font-size: 11px;">Delivered</button>` : ''}
+                            </div>
+                            ${partyLineHtml}
+                        </div>
+                    `;
+                }
+
+                let substatusDisplay = '';
+                if (shipment.subStatus) {
+                    const substatusLabels = {
+                        'at-destination': 'At Destination',
+                        'ready-for-pickup': 'Ready for Pickup',
+                        'delivered': 'Delivered'
+                    };
+                    substatusDisplay = `<span class="substatus-badge">${substatusLabels[shipment.subStatus] || shipment.subStatus}</span>`;
+                }
+
+                const awbHeaderHtml = hasAwb
+                    ? `<button type="button" class="shipment-table-link shipment-awb-link" data-space-id="${escapeAttr(spaceId)}">AWB: ${escapeHtml(awbDisplayText)}</button>`
+                    : `<button type="button" class="shipment-table-link shipment-awb-link" data-space-id="${escapeAttr(spaceId)}">Space ID: ${escapeHtml(String(spaceId))}</button>`;
+
+                const spaceLineHtml = hasAwb
+                    ? `<div class="shipment-space-id"><button type="button" class="shipment-table-link" data-space-id="${escapeAttr(spaceId)}">Space ID: ${escapeHtml(String(spaceId))}</button></div>`
+                    : '';
+
                 return `
                     <div class="shipment-item">
                         <div class="shipment-content">
@@ -1108,17 +1523,14 @@
                                 <div>
                                     <div class="shipment-header-row">
                                         <div class="shipment-awb">
-                                            ${awbNumber !== 'Not created yet' ? `AWB: ${awbNumber}` : `Space ID: ${spaceId}`}
+                                            ${awbHeaderHtml}
                                         </div>
-                                        <span class="shipment-status status-${displayStatus}">${displayStatus.replace('-', ' ')}</span>
-                                        ${substatusDisplay}
-                                        <span class="shipment-meta-item">
-                                            <strong>Participants:</strong> ${participants.length}
-                                        </span>
-                                        ${shipment.isShared ? '<span class="shipment-meta-item"><strong>Shared</strong></span>' : ''}
-                                        ${shipment.isConfirmed ? '<span class="shipment-meta-item" style="color: #28a745;"><strong>✓ Confirmed</strong></span>' : '<span class="shipment-meta-item" style="color: #ffc107;"><strong>Not Confirmed</strong></span>'}
+                                        <div class="shipment-status-wrap">
+                                            <span class="shipment-status status-${displayStatus}">${displayStatus.replace('-', ' ')}</span>
+                                            ${substatusDisplay}
+                                        </div>
                                     </div>
-                                    ${awbNumber !== 'Not created yet' ? `<div class="shipment-space-id">Space ID: ${spaceId}</div>` : ''}
+                                    ${spaceLineHtml}
                                 </div>
                                 ${factoryInvoiceSection}
                                 ${statusActions}
@@ -1129,19 +1541,6 @@
                         </div>
                     </div>
                 `;
-            }
-        
-            function viewShipmentSpace(spaceId) {
-                if (window.parent && window.parent !== window) {
-                    const contentFrame = window.parent.document.getElementById('contentFrame');
-                    if (contentFrame) {
-                        contentFrame.src = `shipments/space.html?spaceId=${encodeURIComponent(spaceId)}`;
-                    } else {
-                        window.parent.location.href = `shipments/space.html?spaceId=${spaceId}`;
-                    }
-                } else {
-                    window.location.href = `space.html?spaceId=${spaceId}`;
-                }
             }
             
             async function confirmShipmentAWB(spaceId) {
@@ -1287,6 +1686,7 @@
                             <p>Please refresh the page. If the problem persists, check the browser console.</p>
                         </div>
                     `;
+                    applyShipmentsListView();
                 }
             }
         }); // End DOMContentLoaded

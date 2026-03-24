@@ -19,6 +19,13 @@
         .airports-table thead { background: #C0C0C0; border-bottom: 2px inset #C0C0C0; }
         .airports-table th { padding: 4px 8px; text-align: left; font-weight: bold; font-size: 11px; text-transform: uppercase; border-right: 1px solid #808080; }
         .airports-table th:last-child { border-right: none; }
+        .airports-th-sort {
+            cursor: pointer;
+            user-select: none;
+        }
+        .airports-th-sort:hover {
+            background: #b8b8b8;
+        }
         .airports-table td { padding: 4px 8px; border-bottom: 1px solid #C0C0C0; border-right: 1px solid #C0C0C0; font-size: 11px; }
         .airports-table td:last-child { border-right: none; }
         .airports-table tbody tr:hover { background: #316AC5; color: white; }
@@ -107,6 +114,10 @@
         .airports-table thead {
             background: rgba(96, 165, 250, 0.10) !important;
             border-bottom: 1px solid var(--modern-border) !important;
+        }
+
+        .airports-th-sort:hover {
+            background: rgba(96, 165, 250, 0.22) !important;
         }
 
         .airports-table tbody tr:hover {
@@ -237,6 +248,51 @@
         let airportsAPI = null;
         let airlinesAPI = null;
         let airlinesCache = [];
+
+        /** Default: A–Z by IATA code; click any column header to sort by that field (toggle asc/desc). */
+        let airportsSortColumn = 'airportCode';
+        let airportsSortAsc = true;
+
+        const airportsTextCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+
+        function airportFieldText(v) {
+            return String(v ?? '').trim();
+        }
+
+        function sortAirportsList(airports) {
+            const col = airportsSortColumn;
+            const mult = airportsSortAsc ? 1 : -1;
+            return [...airports].sort((a, b) => {
+                let cmp = 0;
+                if (col === 'terminals') {
+                    const na = Array.isArray(a.terminals) ? a.terminals.length : 0;
+                    const nb = Array.isArray(b.terminals) ? b.terminals.length : 0;
+                    cmp = na - nb;
+                } else {
+                    cmp = airportsTextCollator.compare(airportFieldText(a[col]), airportFieldText(b[col]));
+                }
+                if (cmp !== 0) return mult * cmp;
+                return mult * airportsTextCollator.compare(airportFieldText(a.airportCode), airportFieldText(b.airportCode));
+            });
+        }
+
+        function airportSortHeaderHtml(label, col) {
+            const active = airportsSortColumn === col;
+            const ariaSort = active ? (airportsSortAsc ? 'ascending' : 'descending') : 'none';
+            const hint = active ? (airportsSortAsc ? ' ▲' : ' ▼') : '';
+            return `<th class="airports-th-sort" scope="col" data-sort="${col}" aria-sort="${ariaSort}" title="Sort by ${label}" tabindex="0">${label}${hint}</th>`;
+        }
+
+        function handleAirportSortClick(col) {
+            if (!col) return;
+            if (airportsSortColumn === col) {
+                airportsSortAsc = !airportsSortAsc;
+            } else {
+                airportsSortColumn = col;
+                airportsSortAsc = true;
+            }
+            void renderAirports();
+        }
 
         async function waitForAPI() {
             if (window.airportsAPI && window.airlinesAPI) {
@@ -378,6 +434,7 @@
                 listEl.innerHTML = '<div class="empty-state"><p>No airports yet.</p><p style="font-size:11px;margin-top:8px;color:#444;">Use <strong>+ Add Airport</strong> above (visible if you can edit locations) or open this page while logged in as an <strong>Administrator</strong> or <strong>Issuing Carrier\'s Agent</strong>.</p></div>';
                 return;
             }
+            airports = sortAirportsList(airports);
             const canManage = canManageLocations();
             const rows = airports.map(a => {
                 const termCount = Array.isArray(a.terminals) ? a.terminals.length : 0;
@@ -396,7 +453,13 @@
             listEl.innerHTML = `
                 <table class="airports-table">
                     <thead><tr>
-                        <th>Code</th><th>City</th><th>State</th><th>Country</th><th>Airport Name</th><th>Terminals</th><th>Actions</th>
+                        ${airportSortHeaderHtml('Code', 'airportCode')}
+                        ${airportSortHeaderHtml('City', 'cityName')}
+                        ${airportSortHeaderHtml('State', 'stateName')}
+                        ${airportSortHeaderHtml('Country', 'country')}
+                        ${airportSortHeaderHtml('Airport Name', 'airportName')}
+                        ${airportSortHeaderHtml('Terminals', 'terminals')}
+                        <th scope="col">Actions</th>
                     </tr></thead>
                     <tbody>${rows}</tbody>
                 </table>`;
@@ -522,6 +585,22 @@
             document.getElementById('airportModal').addEventListener('click', e => {
                 if (e.target.id === 'airportModal') closeAirportModal();
             });
+
+            const airportsContent = document.querySelector('.airports-content');
+            if (airportsContent) {
+                airportsContent.addEventListener('click', (e) => {
+                    const th = e.target.closest('th[data-sort]');
+                    if (!th) return;
+                    handleAirportSortClick(th.getAttribute('data-sort'));
+                });
+                airportsContent.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                    const th = e.target.closest('th[data-sort]');
+                    if (!th) return;
+                    e.preventDefault();
+                    handleAirportSortClick(th.getAttribute('data-sort'));
+                });
+            }
         }
 
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

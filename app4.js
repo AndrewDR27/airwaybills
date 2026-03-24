@@ -1539,10 +1539,10 @@ function generateForm() {
         });
     }
     
-    // Create two-column layout for billing fields 42-49 (left) and 50-55 (right)
-    // Left side: 4 rows of 2 fields (42-46, 43-47, 44-48, 45-49)
-    // Right side: 3 rows of 2 fields (50-51, 52-53, 54-55)
+    // Billing lower area: visible two-column for 42-49 only; PDF fields 50-55 live in a hidden div (synced from upper customs).
+    // Upper customs: 50a–55b and synthetic upper Field 30/31 helpers only. PDF fields 56 & 57 stay in lower billing (with 58–59).
     let billingTwoColumnContainer = null;
+    let billingHiddenLower50to55 = null;
     
     // Check for fields 42-49 (left side)
     const leftSidePrefixes = ['42', '43', '44', '45', '46', '47', '48', '49'];
@@ -1566,16 +1566,79 @@ function generateForm() {
     
     const hasLeftSideFields = leftSidePrefixes.some(prefix => leftSideFields[prefix]);
     const hasRightSideFields = rightSidePrefixes.some(prefix => rightSideFields[prefix]);
+
+    // Lower billing rows: PDF 56 & 57 (weights / date-time), then 58 & 59. Upper customs does not duplicate 56–57.
+    const billingRow58_59Prefixes = ['58', '59'];
+    const billingFieldsToRow58_59 = {};
+    billingRow58_59Prefixes.forEach((prefix) => {
+        const matchingField = sortedFieldNames.find((name) => name.startsWith(prefix));
+        if (matchingField) {
+            billingFieldsToRow58_59[prefix] = matchingField;
+        }
+    });
+    const billingFieldsToRow5756 = {};
+    ['56', '57'].forEach((prefix) => {
+        const matchingField = sortedFieldNames.find((name) => name.startsWith(prefix));
+        if (matchingField) {
+            billingFieldsToRow5756[prefix] = matchingField;
+        }
+    });
+    let billingRowContainer56_57 = null;
+    let billingRowContainer58_59 = null;
+    const hasAnyBillingRow5657Fields = ['56', '57'].some((prefix) => billingFieldsToRow5756[prefix]);
+    if (hasAnyBillingRow5657Fields && billingFieldsForm) {
+        billingRowContainer56_57 = document.createElement('div');
+        billingRowContainer56_57.className = 'form-row billing-row-56-57';
+        ['56', '57'].forEach((prefix) => {
+            const fieldName = billingFieldsToRow5756[prefix];
+            if (!fieldName) return;
+            const fieldsWithSameName = fieldsByName.get(fieldName);
+            const primaryField = fieldsWithSameName[0];
+            primaryField.allPdfFieldNames = fieldsWithSameName.map((f) => f.pdfFieldName);
+            primaryField.duplicateCount = fieldsWithSameName.length;
+            if (fieldsWithSameName.length > 1) {
+                console.log(
+                    `Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`,
+                    fieldsWithSameName.map((f) => f.pdfFieldName)
+                );
+            }
+            const formGroup = createFormField(primaryField);
+            billingRowContainer56_57.appendChild(formGroup);
+        });
+    }
+    const hasAnyBillingRow58_59Fields = billingRow58_59Prefixes.some((prefix) => billingFieldsToRow58_59[prefix]);
+    if (hasAnyBillingRow58_59Fields && billingFieldsForm) {
+        billingRowContainer58_59 = document.createElement('div');
+        billingRowContainer58_59.className = 'form-row billing-row-58-59';
+        billingRow58_59Prefixes.forEach((prefix) => {
+            const fieldName = billingFieldsToRow58_59[prefix];
+            if (fieldName) {
+                const fieldsWithSameName = fieldsByName.get(fieldName);
+                const primaryField = fieldsWithSameName[0];
+                primaryField.allPdfFieldNames = fieldsWithSameName.map((f) => f.pdfFieldName);
+                primaryField.duplicateCount = fieldsWithSameName.length;
+                if (fieldsWithSameName.length > 1) {
+                    console.log(
+                        `Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`,
+                        fieldsWithSameName.map((f) => f.pdfFieldName)
+                    );
+                }
+                const formGroup = createFormField(primaryField);
+                billingRowContainer58_59.appendChild(formGroup);
+            }
+        });
+    }
     
     if ((hasLeftSideFields || hasRightSideFields) && billingFieldsForm) {
+        let leftSideContainer = null;
+        if (hasLeftSideFields) {
         billingTwoColumnContainer = document.createElement('div');
         billingTwoColumnContainer.className = 'billing-two-column-container';
         billingTwoColumnContainer.style.display = 'flex';
         billingTwoColumnContainer.style.gap = '16px';
         billingTwoColumnContainer.style.marginTop = '8px';
         
-        // Left side container
-        const leftSideContainer = document.createElement('div');
+        leftSideContainer = document.createElement('div');
         leftSideContainer.className = 'billing-left-column';
         leftSideContainer.style.flex = '1';
         leftSideContainer.style.display = 'flex';
@@ -1623,68 +1686,56 @@ function generateForm() {
                 leftSideContainer.appendChild(row);
             }
         });
+        }
         
-        // Right side container
-        const rightSideContainer = document.createElement('div');
-        rightSideContainer.className = 'billing-right-column';
-        rightSideContainer.style.flex = '1';
-        rightSideContainer.style.display = 'flex';
-        rightSideContainer.style.flexDirection = 'column';
-        rightSideContainer.style.gap = '8px';
-        rightSideContainer.style.border = '2px solid #808080';
-        rightSideContainer.style.padding = '8px';
-        rightSideContainer.style.backgroundColor = '#F0F0F0';
-        
-        // Create 3 rows for right side: 50-51, 52-53, 54-55
-        const rightSideRows = [
-            ['50', '51'],
-            ['52', '53'],
-            ['54', '55']
-        ];
-        
-        rightSideRows.forEach(rowPrefixes => {
-            const row = document.createElement('div');
-            row.className = 'form-row';
-            row.style.display = 'flex';
-            row.style.gap = '8px';
-            
-            rowPrefixes.forEach(prefix => {
-                const fieldName = rightSideFields[prefix];
-                if (fieldName) {
-                    const fieldsWithSameName = fieldsByName.get(fieldName);
-                    const primaryField = fieldsWithSameName[0];
-                    
-                    primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
-                    primaryField.duplicateCount = fieldsWithSameName.length;
-                    
-                    if (fieldsWithSameName.length > 1) {
-                        console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
-                            fieldsWithSameName.map(f => f.pdfFieldName));
+        // PDF fields 50-55: hidden mirror inputs (filled from upper customs 50a/b–55a/b for export)
+        if (hasRightSideFields) {
+            billingHiddenLower50to55 = document.createElement('div');
+            billingHiddenLower50to55.className = 'billing-hidden-lower-50-55';
+            billingHiddenLower50to55.setAttribute('aria-hidden', 'true');
+            billingHiddenLower50to55.style.display = 'none';
+            const rightSideRows = [
+                ['50', '51'],
+                ['52', '53'],
+                ['54', '55']
+            ];
+            rightSideRows.forEach((rowPrefixes) => {
+                const row = document.createElement('div');
+                row.className = 'form-row';
+                row.style.display = 'flex';
+                row.style.gap = '8px';
+                rowPrefixes.forEach((prefix) => {
+                    const fieldName = rightSideFields[prefix];
+                    if (fieldName) {
+                        const fieldsWithSameName = fieldsByName.get(fieldName);
+                        const primaryField = fieldsWithSameName[0];
+                        primaryField.allPdfFieldNames = fieldsWithSameName.map((f) => f.pdfFieldName);
+                        primaryField.duplicateCount = fieldsWithSameName.length;
+                        if (fieldsWithSameName.length > 1) {
+                            console.log(
+                                `Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`,
+                                fieldsWithSameName.map((f) => f.pdfFieldName)
+                            );
+                        }
+                        const formGroup = createFormField(primaryField);
+                        formGroup.style.flex = '1';
+                        row.appendChild(formGroup);
                     }
-                    
-                    const formGroup = createFormField(primaryField);
-                    formGroup.style.flex = '1';
-                    row.appendChild(formGroup);
+                });
+                if (row.children.length > 0) {
+                    billingHiddenLower50to55.appendChild(row);
                 }
             });
-            
-            if (row.children.length > 0) {
-                rightSideContainer.appendChild(row);
-            }
-        });
+        }
         
-        // Add both columns to the container
-        if (leftSideContainer.children.length > 0) {
+        if (billingTwoColumnContainer && leftSideContainer && leftSideContainer.children.length > 0) {
             billingTwoColumnContainer.appendChild(leftSideContainer);
         }
-        if (rightSideContainer.children.length > 0) {
-            billingTwoColumnContainer.appendChild(rightSideContainer);
-        }
         
-        // Also create a similar container in the upper area for customs fields (50-55)
         const customsFieldsContainer = document.getElementById('customsFieldsContainer');
         const customsFieldsRows = document.getElementById('customsFieldsRows');
         if (customsFieldsContainer && customsFieldsRows && hasRightSideFields) {
+            if (hasRightSideFields) {
             // Create rows to match lower format: 50/51, 52/53, 54/55, then upper Field 30/31
             const customsRows = [
                 ['50a', '50b', '51a', '51b'],
@@ -1823,56 +1874,15 @@ function generateForm() {
                     }
                 }, 100);
             }
-            
-            // Show the container if it has fields
+            }
+
             if (customsFieldsRows.children.length > 0) {
                 customsFieldsContainer.style.display = 'block';
-                
-                // Set up checkbox to ignore remaining charge fields (50-55)
-                setupIgnoreRemainingChargesCheckbox();
-            }
-        }
-    }
-    
-    const billingRow9FieldPrefixes = ['57', '56', '58', '59'];
-    const billingFieldsToRow9 = {};
-    billingRow9FieldPrefixes.forEach(prefix => {
-        const matchingField = sortedFieldNames.find(name => name.startsWith(prefix));
-        if (matchingField) {
-            billingFieldsToRow9[prefix] = matchingField;
-        }
-    });
-    
-    // Create row container for billing fields 57, 56, 58, 59 (create if at least one exists)
-    // Note: Order is intentional (57, 56, 58, 59)
-    let billingRowContainer9 = null;
-    const hasAnyBillingRow9Fields = billingRow9FieldPrefixes.some(prefix => billingFieldsToRow9[prefix]);
-    if (hasAnyBillingRow9Fields && billingFieldsForm) {
-        billingRowContainer9 = document.createElement('div');
-        billingRowContainer9.className = 'form-row';
-        
-        // Add row fields in correct order (57, 56, 58, 59); label 56/57 as 30. CHARGEABLE WEIGHT / 31. RATE PER KG
-        billingRow9FieldPrefixes.forEach(prefix => {
-            const fieldName = billingFieldsToRow9[prefix];
-            if (fieldName) {
-                const fieldsWithSameName = fieldsByName.get(fieldName);
-                const primaryField = fieldsWithSameName[0];
-                
-                primaryField.allPdfFieldNames = fieldsWithSameName.map(f => f.pdfFieldName);
-                primaryField.duplicateCount = fieldsWithSameName.length;
-                
-                if (fieldsWithSameName.length > 1) {
-                    console.log(`Consolidating ${fieldsWithSameName.length} fields with name "${fieldName}":`, 
-                        fieldsWithSameName.map(f => f.pdfFieldName));
+                if (hasRightSideFields) {
+                    setupIgnoreRemainingChargesCheckbox();
                 }
-                
-                const fieldForBilling = { ...primaryField };
-                if (prefix === '56') fieldForBilling.label = '30. CHARGEABLE WEIGHT';
-                if (prefix === '57') fieldForBilling.label = '31. RATE PER KG';
-                const formGroup = createFormField(fieldForBilling);
-                billingRowContainer9.appendChild(formGroup);
             }
-        });
+        }
     }
     
     // Process remaining fields
@@ -1922,9 +1932,11 @@ function generateForm() {
             return;
         }
         
-        // Skip fields that are already in the billing row 9 (57, 56, 58, 59)
-        const isBillingRowField9 = Object.values(billingFieldsToRow9).includes(fieldName);
-        if (isBillingRowField9) {
+        // Skip fields in lower billing rows (56–59; 56/57 and 58/59 are dedicated rows)
+        const isBillingRowField5756Or5859 =
+            Object.values(billingFieldsToRow5756).includes(fieldName) ||
+            Object.values(billingFieldsToRow58_59).includes(fieldName);
+        if (isBillingRowField5756Or5859) {
             return;
         }
         
@@ -2087,14 +2099,20 @@ function generateForm() {
             // Append to billing fields form in Billing tab
             billingFieldsForm.appendChild(formGroup);
             
-            // If this is field 42, append the two-column container (fields 43-49 and 50-55 are skipped from individual processing)
-            if (fieldPrefix === '42' && billingTwoColumnContainer && !billingTwoColumnContainer.parentNode) {
+            // If this is field 42, append the left billing column (43-49); hidden 50-55 appended here too
+            if (fieldPrefix === '42' && !billingTwoColumnContainer?.parentNode && billingTwoColumnContainer) {
                 billingFieldsForm.appendChild(billingTwoColumnContainer);
             }
+            if (fieldPrefix === '42' && billingHiddenLower50to55 && !billingHiddenLower50to55.parentNode) {
+                billingFieldsForm.appendChild(billingHiddenLower50to55);
+            }
             
-            // If this is field 55, append the 57-59 row after it (fields 57, 56, 58, 59 are skipped from individual processing)
-            if (fieldPrefix === '55' && billingRowContainer9 && !billingRowContainer9.parentNode) {
-                billingFieldsForm.appendChild(billingRowContainer9);
+            // Lower billing: row 56–57 before row 58–59
+            if (fieldPrefix === '58' && billingRowContainer58_59 && !billingRowContainer58_59.parentNode) {
+                if (billingRowContainer56_57 && !billingRowContainer56_57.parentNode) {
+                    billingFieldsForm.appendChild(billingRowContainer56_57);
+                }
+                billingFieldsForm.appendChild(billingRowContainer58_59);
             }
         } else {
             // Append to main form in Routing tab
@@ -2118,8 +2136,14 @@ function generateForm() {
         if (billingTwoColumnContainer && !billingTwoColumnContainer.parentNode) {
             billingFieldsForm.appendChild(billingTwoColumnContainer);
         }
-        if (billingRowContainer9 && !billingRowContainer9.parentNode) {
-            billingFieldsForm.appendChild(billingRowContainer9);
+        if (billingHiddenLower50to55 && !billingHiddenLower50to55.parentNode) {
+            billingFieldsForm.appendChild(billingHiddenLower50to55);
+        }
+        if (billingRowContainer56_57 && !billingRowContainer56_57.parentNode) {
+            billingFieldsForm.appendChild(billingRowContainer56_57);
+        }
+        if (billingRowContainer58_59 && !billingRowContainer58_59.parentNode) {
+            billingFieldsForm.appendChild(billingRowContainer58_59);
         }
     }
     
@@ -2207,24 +2231,18 @@ function generateForm() {
     // Initialize tabs
     initializeTabs();
     
-    // Auto-populate lower field 57 with current date and time
+    // Auto-populate field 57 (lower billing or legacy upper customs markup) with current date/time when empty
     setTimeout(() => {
+        const customsFieldsRows = document.getElementById('customsFieldsRows');
         const billingFieldsForm = document.getElementById('billingFieldsForm');
-        if (billingFieldsForm) {
-            const formElements = billingFieldsForm.elements;
-            for (let i = 0; i < formElements.length; i++) {
-                const element = formElements[i];
-                if (element.name && element.name.startsWith('57')) {
-                    // Check if this is in the billing form (not upper customs container)
-                    const customsFieldsRows = document.getElementById('customsFieldsRows');
-                    const isInUpperArea = customsFieldsRows && customsFieldsRows.contains(element);
-                    if (!isInUpperArea && (!element.value || element.value.trim() === '')) {
-                        element.value = formatDateTimeForField57();
-                        element.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
+        [customsFieldsRows, billingFieldsForm].filter(Boolean).forEach((root) => {
+            root.querySelectorAll('input[name^="57"], textarea[name^="57"], select[name^="57"]').forEach((element) => {
+                if (element.name && element.name.startsWith('57') && (!element.value || element.value.trim() === '')) {
+                    element.value = formatDateTimeForField57();
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
                 }
-            }
-        }
+            });
+        });
     }, 150);
     
     // Calculate field 32 if fields 30 and 31 have values
@@ -2519,9 +2537,188 @@ function loadTemplateData(templateName) {
     return templates[templateName] || null;
 }
 
+/**
+ * Reset AWB form to blank defaults (currency/weight unit defaults where the Clear Form path used them).
+ * Used before applying a template so fields missing from the saved template do not keep the previous template's values.
+ * @param {{ clearTemplateSelect?: boolean }} [options] - Pass clearTemplateSelect: true from the Clear Form button only.
+ */
+function resetAwbFormToBlankState(options = {}) {
+    const { clearTemplateSelect = false } = options;
+    if (!generatedForm) return;
+
+    const mainElements = generatedForm.elements;
+    for (let i = 0; i < mainElements.length; i++) {
+        const element = mainElements[i];
+        if (element.type === 'checkbox') {
+            element.checked = false;
+        } else if (element.type === 'radio') {
+            element.checked = false;
+        } else {
+            if (element.name && element.name.startsWith('15')) {
+                element.value = 'USD';
+            } else if (element.name && element.name.startsWith('28')) {
+                element.value = 'kg';
+            } else {
+                element.value = '';
+            }
+        }
+    }
+
+    if (clearTemplateSelect && templateSelect) {
+        templateSelect.value = '';
+        currentTemplateName = null;
+        if (deleteTemplateBtn) deleteTemplateBtn.style.display = 'none';
+        if (renameTemplateBtn) renameTemplateBtn.style.display = 'none';
+        if (templateNameGroup) templateNameGroup.style.display = 'none';
+    }
+
+    if (shipperSelect) {
+        shipperSelect.value = '';
+        if (addShipperBtn) updateContactButtonText('Shipper', addShipperBtn, shipperSelect);
+    }
+    if (consigneeSelect) {
+        consigneeSelect.value = '';
+        if (addConsigneeBtn) updateContactButtonText('Consignee', addConsigneeBtn, consigneeSelect);
+    }
+    if (airlineSelect1) {
+        airlineSelect1.value = '';
+        if (addAirlineBtn1) updateContactButtonText('Airline', addAirlineBtn1, airlineSelect1);
+    }
+    if (destinationSelect) {
+        destinationSelect.value = '';
+        if (addDestinationBtn) updateContactButtonText('Destination', addDestinationBtn, destinationSelect);
+    }
+
+    if (directFlightSelect) {
+        directFlightSelect.value = '';
+        handleDirectFlightChange(false);
+    }
+
+    const interlineShipmentSelectEl = document.getElementById('interlineShipmentSelect');
+    if (interlineShipmentSelectEl) {
+        interlineShipmentSelectEl.value = '';
+        handleInterlineShipmentChange(false);
+    }
+
+    if (interlineCarrierSelect1) interlineCarrierSelect1.value = '';
+    if (interlineCarrierSelect2) interlineCarrierSelect2.value = '';
+
+    const interlineCarrierGroup2El = document.getElementById('interlineCarrierGroup2');
+    if (interlineCarrierGroup2El) interlineCarrierGroup2El.style.display = 'none';
+
+    const dangerousGoodsSelectEl = document.getElementById('dangerousGoodsSelect');
+    if (dangerousGoodsSelectEl) {
+        dangerousGoodsSelectEl.value = '';
+        if (typeof handleDangerousGoodsChange === 'function') handleDangerousGoodsChange(false);
+    }
+
+    const declaredValuesSelectEl = document.getElementById('declaredValuesSelect');
+    if (declaredValuesSelectEl) {
+        declaredValuesSelectEl.value = '';
+        handleDeclaredValuesChange(false);
+    }
+
+    const insuranceSelectEl = document.getElementById('insuranceSelect');
+    if (insuranceSelectEl) {
+        insuranceSelectEl.value = '';
+        handleInsuranceChange(false);
+    }
+
+    const prepaidCollectSelectEl = document.getElementById('prepaidCollectSelect');
+    if (prepaidCollectSelectEl) {
+        prepaidCollectSelectEl.value = '';
+        handlePrepaidCollectChange('');
+    }
+
+    const commoditySelectEl = document.getElementById('commoditySelect') || document.querySelector('select[id="commoditySelect"]');
+    if (commoditySelectEl) {
+        commoditySelectEl.value = '';
+    }
+
+    const contactFieldsFormEl = document.getElementById('contactFieldsForm');
+    if (contactFieldsFormEl) {
+        const els = contactFieldsFormEl.elements;
+        for (let i = 0; i < els.length; i++) {
+            const element = els[i];
+            if (element.type === 'checkbox') {
+                element.checked = false;
+            } else if (element.type === 'radio') {
+                element.checked = false;
+            } else {
+                element.value = '';
+            }
+        }
+    }
+
+    const billingFieldsFormEl = document.getElementById('billingFieldsForm');
+    if (billingFieldsFormEl) {
+        const els = billingFieldsFormEl.elements;
+        for (let i = 0; i < els.length; i++) {
+            const element = els[i];
+            if (element.type === 'checkbox') {
+                element.checked = false;
+            } else if (element.type === 'radio') {
+                element.checked = false;
+            } else {
+                if (element.name && element.name.startsWith('15')) {
+                    element.value = 'USD';
+                } else if (element.name && element.name.startsWith('28')) {
+                    element.value = 'K';
+                } else {
+                    element.value = '';
+                }
+            }
+        }
+    }
+
+    const dimensionsFieldsFormEl = document.getElementById('dimensionsFieldsForm');
+    if (dimensionsFieldsFormEl) {
+        dimensionsFieldsFormEl.querySelectorAll('input[name], select[name], textarea[name]').forEach((element) => {
+            const t = element.type;
+            if (t === 'button' || t === 'submit' || t === 'reset') return;
+            if (element.type === 'checkbox') element.checked = false;
+            else if (element.type === 'radio') element.checked = false;
+            else element.value = '';
+        });
+    }
+
+    const dimensionsContainerEl = document.getElementById('dimensionsContainer');
+    if (dimensionsContainerEl) {
+        const existingRows = dimensionsContainerEl.querySelectorAll('.dimensions-row');
+        for (let j = existingRows.length - 1; j > 0; j--) {
+            existingRows[j].remove();
+        }
+        const firstRow = dimensionsContainerEl.querySelector('.dimensions-row');
+        if (firstRow) {
+            const lengthInput = firstRow.querySelector('.dim-length');
+            const widthInput = firstRow.querySelector('.dim-width');
+            const heightInput = firstRow.querySelector('.dim-height');
+            const qtyInput = firstRow.querySelector('.dim-qty');
+            if (lengthInput) lengthInput.value = '';
+            if (widthInput) widthInput.value = '';
+            if (heightInput) heightInput.value = '';
+            if (qtyInput) qtyInput.value = '';
+        }
+        if (typeof updateDimensionsAddButton === 'function') updateDimensionsAddButton();
+        const allRows = dimensionsContainerEl.querySelectorAll('.dimensions-row');
+        if (allRows.length === 1) {
+            const removeBtn = allRows[0].querySelector('.dim-remove-btn');
+            const addBtn = allRows[0].querySelector('.dim-add-box-btn');
+            if (removeBtn) removeBtn.style.display = 'none';
+            if (addBtn) addBtn.style.display = 'block';
+        }
+    }
+
+    setTimeout(() => {
+        if (typeof updateTabValidationIndicators === 'function') updateTabValidationIndicators();
+    }, 50);
+}
+
 async function populateFormFromTemplate(templateData) {
     if (!generatedForm || !templateData) return;
-    
+
+    resetAwbFormToBlankState({ clearTemplateSelect: false });
+
     const formElements = generatedForm.elements;
     const contactFieldsForm = document.getElementById('contactFieldsForm');
     const billingFieldsForm = document.getElementById('billingFieldsForm');
@@ -3088,159 +3285,13 @@ async function handleRenameTemplate() {
 
 function handleClearForm() {
     if (!generatedForm) return;
-    
+
     if (!confirm('Are you sure you want to clear all form fields?')) {
         return;
     }
-    
-    const formElements = generatedForm.elements;
-    
-    for (let i = 0; i < formElements.length; i++) {
-        const element = formElements[i];
-        
-        if (element.type === 'checkbox') {
-            element.checked = false;
-        } else if (element.type === 'radio') {
-            element.checked = false;
-        } else {
-            // Reset field 15 to USD and field 28 to kg
-            if (element.name && element.name.startsWith('15')) {
-                element.value = 'USD';
-            } else if (element.name && element.name.startsWith('28')) {
-                element.value = 'kg';
-            } else {
-                element.value = '';
-            }
-        }
-    }
-    
-    // Clear template selection
-    if (templateSelect) {
-        templateSelect.value = '';
-        currentTemplateName = null;
-        deleteTemplateBtn.style.display = 'none';
-        renameTemplateBtn.style.display = 'none';
-        templateNameGroup.style.display = 'none';
-    }
-    
-    // Clear contact dropdowns
-    if (shipperSelect) {
-        shipperSelect.value = '';
-        updateContactButtonText('Shipper', addShipperBtn, shipperSelect);
-    }
-    
-    if (consigneeSelect) {
-        consigneeSelect.value = '';
-        updateContactButtonText('Consignee', addConsigneeBtn, consigneeSelect);
-    }
-    
-    if (airlineSelect1) {
-        airlineSelect1.value = '';
-        updateContactButtonText('Airline', addAirlineBtn1, airlineSelect1);
-    }
-    
-    if (destinationSelect) {
-        destinationSelect.value = '';
-        if (addDestinationBtn) {
-            updateContactButtonText('Destination', addDestinationBtn, destinationSelect);
-        }
-    }
-    
-    // Clear Direct Flight and Interline Shipment dropdowns
-    if (directFlightSelect) {
-        directFlightSelect.value = '';
-        // Re-enable fields 11, 12, 13, 14 if they were disabled
-        handleDirectFlightChange(false);
-    }
-    
-    const interlineShipmentSelect = document.getElementById('interlineShipmentSelect');
-    if (interlineShipmentSelect) {
-        interlineShipmentSelect.value = '';
-        handleInterlineShipmentChange(false); // Hide interline carrier dropdown
-    }
-    
-    if (interlineCarrierSelect1) {
-        interlineCarrierSelect1.value = '';
-    }
-    
-    if (interlineCarrierSelect2) {
-        interlineCarrierSelect2.value = '';
-    }
-    
-    // Hide Interline Carrier 2 and show the add button again
-    const interlineCarrierGroup2 = document.getElementById('interlineCarrierGroup2');
-    if (interlineCarrierGroup2) {
-        interlineCarrierGroup2.style.display = 'none';
-    }
-    // Don't show the button here - it will be shown by handleInterlineShipmentChange if needed
-    
-    const dangerousGoodsSelect = document.getElementById('dangerousGoodsSelect');
-    if (dangerousGoodsSelect) {
-        dangerousGoodsSelect.value = '';
-    }
-    
-    const declaredValuesSelect = document.getElementById('declaredValuesSelect');
-    if (declaredValuesSelect) {
-        declaredValuesSelect.value = '';
-        // Re-enable fields 16, 17 if they were disabled
-        handleDeclaredValuesChange(false);
-    }
-    
-    const insuranceSelect = document.getElementById('insuranceSelect');
-    if (insuranceSelect) {
-        insuranceSelect.value = '';
-        // Re-enable field 21 if it was disabled
-        handleInsuranceChange(false);
-    }
-    
-    const prepaidCollectSelect = document.getElementById('prepaidCollectSelect');
-    if (prepaidCollectSelect) {
-        prepaidCollectSelect.value = '';
-        handlePrepaidCollectChange('');
-    }
-    
-    // Also clear contact fields form
-    const contactFieldsForm = document.getElementById('contactFieldsForm');
-    if (contactFieldsForm) {
-        const contactFormElements = contactFieldsForm.elements;
-        for (let i = 0; i < contactFormElements.length; i++) {
-            const element = contactFormElements[i];
-            if (element.type === 'checkbox') {
-                element.checked = false;
-            } else if (element.type === 'radio') {
-                element.checked = false;
-            } else {
-                element.value = '';
-            }
-        }
-    }
-    
-    // Also clear billing fields form
-    const billingFieldsForm = document.getElementById('billingFieldsForm');
-    if (billingFieldsForm) {
-        const billingFormElements = billingFieldsForm.elements;
-        for (let i = 0; i < billingFormElements.length; i++) {
-            const element = billingFormElements[i];
-            if (element.type === 'checkbox') {
-                element.checked = false;
-            } else if (element.type === 'radio') {
-                element.checked = false;
-            } else {
-                // Reset field 15 to USD and field 28 to K
-                if (element.name && element.name.startsWith('15')) {
-                    element.value = 'USD';
-                } else if (element.name && element.name.startsWith('28')) {
-                    element.value = 'K';
-                } else {
-                    element.value = '';
-                }
-            }
-        }
-    }
-    
-    // Update validation indicators
-    setTimeout(() => updateTabValidationIndicators(), 50);
-    
+
+    resetAwbFormToBlankState({ clearTemplateSelect: true });
+
     showError('✓ Form cleared');
     setTimeout(() => hideError(), 2000);
 }
