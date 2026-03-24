@@ -1539,8 +1539,8 @@ function generateForm() {
         });
     }
     
-    // Billing lower area: visible two-column for 42-49 only; PDF fields 50-55 live in a hidden div (synced from upper customs).
-    // Upper customs: 50a–55b and synthetic upper Field 30/31 helpers only. PDF fields 56 & 57 stay in lower billing (with 58–59).
+    // Billing lower area: two-column 42–49 (left) and 50–55 (right) when present; upper customs syncs into these PDF fields.
+    // Upper customs: 50a–55b and synthetic upper Field 30/31 helpers. PDF fields 56 & 57 stay in lower billing (with 58–59).
     let billingTwoColumnContainer = null;
     let billingHiddenLower50to55 = null;
     
@@ -1688,12 +1688,24 @@ function generateForm() {
         });
         }
         
-        // PDF fields 50-55: hidden mirror inputs (filled from upper customs 50a/b–55a/b for export)
+        // PDF fields 50–55: visible lower column (synced from upper customs 50a/b–55a/b for export)
         if (hasRightSideFields) {
             billingHiddenLower50to55 = document.createElement('div');
-            billingHiddenLower50to55.className = 'billing-hidden-lower-50-55';
-            billingHiddenLower50to55.setAttribute('aria-hidden', 'true');
-            billingHiddenLower50to55.style.display = 'none';
+            billingHiddenLower50to55.className = 'billing-lower-cdc-50-55 billing-right-column';
+            billingHiddenLower50to55.style.flex = '1';
+            billingHiddenLower50to55.style.display = 'flex';
+            billingHiddenLower50to55.style.flexDirection = 'column';
+            billingHiddenLower50to55.style.gap = '8px';
+            billingHiddenLower50to55.style.border = '2px solid #808080';
+            billingHiddenLower50to55.style.padding = '8px';
+            billingHiddenLower50to55.style.backgroundColor = '#F0F0F0';
+            const lowerCdcTitle = document.createElement('div');
+            lowerCdcTitle.style.fontWeight = '600';
+            lowerCdcTitle.style.fontSize = '11px';
+            lowerCdcTitle.style.color = '#0f172a';
+            lowerCdcTitle.style.marginBottom = '4px';
+            lowerCdcTitle.textContent = 'CDC / CDA charges (lower billing)';
+            billingHiddenLower50to55.appendChild(lowerCdcTitle);
             const rightSideRows = [
                 ['50', '51'],
                 ['52', '53'],
@@ -1727,8 +1739,20 @@ function generateForm() {
                 }
             });
         }
-        
-        if (billingTwoColumnContainer && leftSideContainer && leftSideContainer.children.length > 0) {
+
+        if (hasRightSideFields && billingHiddenLower50to55 && billingHiddenLower50to55.children.length > 1) {
+            if (!billingTwoColumnContainer) {
+                billingTwoColumnContainer = document.createElement('div');
+                billingTwoColumnContainer.className = 'billing-two-column-container';
+                billingTwoColumnContainer.style.display = 'flex';
+                billingTwoColumnContainer.style.gap = '16px';
+                billingTwoColumnContainer.style.marginTop = '8px';
+            }
+            if (billingTwoColumnContainer && leftSideContainer && leftSideContainer.children.length > 0) {
+                billingTwoColumnContainer.appendChild(leftSideContainer);
+            }
+            billingTwoColumnContainer.appendChild(billingHiddenLower50to55);
+        } else if (billingTwoColumnContainer && leftSideContainer && leftSideContainer.children.length > 0) {
             billingTwoColumnContainer.appendChild(leftSideContainer);
         }
         
@@ -2099,12 +2123,9 @@ function generateForm() {
             // Append to billing fields form in Billing tab
             billingFieldsForm.appendChild(formGroup);
             
-            // If this is field 42, append the left billing column (43-49); hidden 50-55 appended here too
+            // If this is field 42, append the two-column block (42–49 left + 50–55 right when present)
             if (fieldPrefix === '42' && !billingTwoColumnContainer?.parentNode && billingTwoColumnContainer) {
                 billingFieldsForm.appendChild(billingTwoColumnContainer);
-            }
-            if (fieldPrefix === '42' && billingHiddenLower50to55 && !billingHiddenLower50to55.parentNode) {
-                billingFieldsForm.appendChild(billingHiddenLower50to55);
             }
             
             // Lower billing: row 56–57 before row 58–59
@@ -2136,7 +2157,11 @@ function generateForm() {
         if (billingTwoColumnContainer && !billingTwoColumnContainer.parentNode) {
             billingFieldsForm.appendChild(billingTwoColumnContainer);
         }
-        if (billingHiddenLower50to55 && !billingHiddenLower50to55.parentNode) {
+        if (
+            billingHiddenLower50to55 &&
+            !billingHiddenLower50to55.parentNode &&
+            (!billingTwoColumnContainer || !billingTwoColumnContainer.contains(billingHiddenLower50to55))
+        ) {
             billingFieldsForm.appendChild(billingHiddenLower50to55);
         }
         if (billingRowContainer56_57 && !billingRowContainer56_57.parentNode) {
